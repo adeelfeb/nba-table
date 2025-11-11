@@ -1,0 +1,27 @@
+ .section {
+  padding: 2rem 0 3rem;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
+}
+.inner {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  text-align: center;
+}
+.heading {
+  margin-bottom: 0.75rem;
+}
+.primaryCta {
+  display: inline-block;
+  background: #111;
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.contact {
+  color: #666;
+  font-size: 0.95rem;
+} 
+

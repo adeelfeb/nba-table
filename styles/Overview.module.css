@@ -1,0 +1,146 @@
+ .section {
+  padding: 2rem 0;
+}
+.lede {
+  color: #444;
+  margin-bottom: 1rem;
+}
+.quicknav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 1rem;
+}
+.quicknav a {
+  display: inline-block;
+  padding: 0.35rem 0.6rem;
+  background: #f5f5f5;
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.card {
+  background: #ffffffcc;
+  backdrop-filter: blur(2px);
+  border: 1px solid #eaeaea;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.03);
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1rem;
+}
+.callout {
+  border: 1px dashed #e0e0e0;
+  background: #fbfbfb;
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+.subtleTitle {
+  color: #555;
+  font-weight: 600;
+}
+.mapping {
+  padding-left: 0;
+  list-style: none;
+}
+.mapping li {
+  margin: 0.35rem 0;
+}
+.badge {
+  display: inline-block;
+  min-width: 42px;
+  text-align: center;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+  border: 1px solid #eaeaea;
+  background: #fff;
+  color: #333;
+}
+.b2b {
+  background: #eef6ff;
+  border-color: #d5e8ff;
+  color: #0b5db8;
+}
+.both {
+  background: #f4f4f4;
+  border-color: #e0e0e0;
+  color: #444;
+}
+.steps {
+  margin: 1.5rem 0;
+}
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+.stepCard {
+  border: 1px solid #eaeaea;
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.03);
+}
+.kicker {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin-bottom: 0.25rem;
+}
+.owner {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.35rem;
+}
+.phases {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.phase {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+.phaseBadge {
+  display: inline-block;
+  background: #111;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  margin-top: 0.2rem;
+}
+.phaseTitle {
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+.phaseDesc {
+  color: #444;
+}
+.closing {
+  margin-top: 1rem;
+  color: #222;
+  font-weight: 500;
+}
+@media (max-width: 768px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+} 
+

@@ -1,0 +1,41 @@
+ .section {
+  padding: 3rem 0 2.25rem;
+  position: relative;
+}
+.inner {
+  max-width: 900px;
+}
+.surface {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid #eaeaea;
+  border-radius: 14px;
+  padding: 1.25rem 1.25rem 1rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+}
+.intro {
+  font-size: 1.1rem;
+  line-height: 1.75rem;
+  color: #333;
+}
+.ctaRow {
+  margin-top: 1.25rem;
+}
+.primaryCta {
+  display: inline-block;
+  background: #111;
+  color: #fff;
+  padding: 0.75rem 1.2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.subtitle {
+  margin-top: 0.6rem;
+  color: #666;
+  font-size: 0.95rem;
+}
+@media (max-width: 768px) {
+  .surface { padding: 1rem; }
+} 
+
