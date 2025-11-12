@@ -69,28 +69,34 @@ export default function Header({
           text-decoration: none !important;
         }
         .page-header {
-          border-bottom: 1px solid #eaeaea;
-          background: #ffffff;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .header-grid {
           display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 1rem;
-          padding: 1.25rem 0;
+          padding: 0.75rem 0;
           width: 100%;
           box-sizing: border-box;
         }
         .logo-img {
           height: auto;
           width: auto;
-          max-height: 40px;
+          max-height: 32px;
           display: block;
           transition: transform 0.2s ease, opacity 0.2s ease;
         }
         .logo-link:hover .logo-img {
-          transform: scale(1.05);
-          opacity: 0.9;
+          transform: scale(1.03);
+          opacity: 0.85;
         }
         .logo {
           text-decoration: none;
@@ -152,29 +158,29 @@ export default function Header({
         :global(.page-header a.nav-button) {
           color: #fff !important;
           background: #0070f3 !important;
-          padding: 0.6rem 1rem !important;
-          border-radius: 999px !important;
+          padding: 0.5rem 1rem !important;
+          border-radius: 8px !important;
           text-decoration: none !important;
           font-weight: 600 !important;
+          font-size: 0.9rem !important;
           display: inline-flex !important;
           align-items: center !important;
           gap: 0.4rem !important;
-          box-shadow: 0 8px 20px rgba(0,112,243,0.25) !important;
-          border: 1px solid rgba(0,0,0,0.06) !important;
-          transition: transform 0.08s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease !important;
+          box-shadow: 0 2px 8px rgba(0,112,243,0.2) !important;
+          border: none !important;
+          transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease !important;
           cursor: pointer !important;
         }
         :global(.page-header a.nav-button:hover) {
           transform: translateY(-1px) !important;
-          box-shadow: 0 12px 26px rgba(0,112,243,0.35) !important;
+          box-shadow: 0 4px 12px rgba(0,112,243,0.3) !important;
           background: #0059c1 !important;
-          border-color: rgba(0,0,0,0.08) !important;
           text-decoration: none !important;
           color: #fff !important;
         }
         :global(.page-header a.nav-button:active) {
           transform: translateY(0) !important;
-          box-shadow: 0 6px 16px rgba(0,112,243,0.25) !important;
+          box-shadow: 0 2px 6px rgba(0,112,243,0.25) !important;
           background: #0059c1 !important;
         }
         :global(.page-header a.nav-button:focus-visible) {
@@ -190,27 +196,35 @@ export default function Header({
         .logo:hover { text-decoration: none; }
         @media (max-width: 768px) {
           .header-grid {
-            padding: 1rem 0;
+            padding: 0.65rem 0;
             gap: 0.75rem;
           }
           .logo-img {
-            max-height: 36px;
+            max-height: 28px;
           }
           .local-nav {
             gap: 0.5rem;
           }
           .nav-link {
-            font-size: 0.9rem;
-            padding: 0.4rem 0.6rem;
+            font-size: 0.85rem;
+            padding: 0.35rem 0.55rem;
+          }
+          :global(.page-header a.nav-button) {
+            padding: 0.45rem 0.85rem !important;
+            font-size: 0.85rem !important;
           }
         }
         @media (max-width: 480px) {
           .header-grid {
-            padding: 0.875rem 0;
+            padding: 0.6rem 0;
             gap: 0.5rem;
           }
           .logo-img {
-            max-height: 32px;
+            max-height: 26px;
+          }
+          :global(.page-header a.nav-button) {
+            padding: 0.4rem 0.75rem !important;
+            font-size: 0.8rem !important;
           }
         }
       `}</style>
