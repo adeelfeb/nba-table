@@ -89,10 +89,6 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
   return (
     <div className="settings-grid">
       <section className="settings-card">
-        <header>
-          <h2>Profile</h2>
-          <p>Update how your name appears across the dashboard.</p>
-        </header>
         <form onSubmit={handleProfileSubmit} className="form">
           <label className="field">
             <span className="label">Display name</span>
@@ -115,10 +111,6 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
       </section>
 
       <section className="settings-card">
-        <header>
-          <h2>Password</h2>
-          <p>Keep your account secure by updating your password regularly.</p>
-        </header>
         <form onSubmit={handlePasswordSubmit} className="form">
           <label className="field">
             <span className="label">Current password</span>
@@ -186,28 +178,13 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
           border-radius: 1.1rem;
           box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
           padding: 1.9rem;
-          display: grid;
-          gap: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.1rem;
           width: 100%;
           max-width: 100%;
           box-sizing: border-box;
           overflow-x: hidden;
-        }
-
-        .settings-card header {
-          display: grid;
-          gap: 0.4rem;
-        }
-
-        .settings-card h2 {
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: #0f172a;
-        }
-
-        .settings-card p {
-          color: #607089;
-          line-height: 1.6;
         }
 
         .form {
@@ -294,7 +271,7 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
           }
           .settings-card {
             padding: 1.5rem;
-            gap: 1.25rem;
+            gap: 1rem;
           }
         }
 
@@ -306,15 +283,6 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
             padding: 1.25rem;
             gap: 1rem;
             border-radius: 0.9rem;
-          }
-          .settings-card header {
-            gap: 0.35rem;
-          }
-          .settings-card h2 {
-            font-size: 1.1rem;
-          }
-          .settings-card p {
-            font-size: 0.9rem;
           }
           .form {
             gap: 0.95rem;
@@ -346,12 +314,6 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
             padding: 1rem;
             gap: 0.875rem;
             border-radius: 0.8rem;
-          }
-          .settings-card h2 {
-            font-size: 1rem;
-          }
-          .settings-card p {
-            font-size: 0.85rem;
           }
           .form {
             gap: 0.875rem;

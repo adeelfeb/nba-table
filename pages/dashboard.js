@@ -299,10 +299,12 @@ export default function Dashboard({ user }) {
       isLoggingOut={isLoggingOut}
     >
       <section className={`section ${isOverviewSection ? 'section--compact' : ''}`}>
-        <header className="section-header">
-          <h1 className="section-title">{sectionTitle}</h1>
-          {sectionSubtitle && <p className="section-subtitle">{sectionSubtitle}</p>}
-        </header>
+        {!isOverviewSection && (
+          <header className="section-header">
+            <h1 className="section-title">{sectionTitle}</h1>
+            {sectionSubtitle && <p className="section-subtitle">{sectionSubtitle}</p>}
+          </header>
+        )}
         <div className={`section-body ${isOverviewSection ? 'section-body--compact' : ''}`}>
           {activeSection === 'settings' ? (
             <SettingsPanel
@@ -396,7 +398,7 @@ export default function Dashboard({ user }) {
         }
 
         .section--compact {
-          gap: 0.3rem;
+          gap: 0;
         }
 
         .section-body--compact {

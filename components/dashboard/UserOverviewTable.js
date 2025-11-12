@@ -53,10 +53,13 @@ function ActionCellRenderer() {
   );
 }
 
+const COMPACT_TABLE_BREAKPOINT = 960;
+
 export default function UserOverviewTable() {
   const [rowData, setRowData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isCompact, setIsCompact] = useState(false);
 
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, DATE_FORMAT_OPTIONS), []);
 
@@ -65,39 +68,39 @@ export default function UserOverviewTable() {
       {
         headerName: 'Name',
         field: 'name',
-        minWidth: 200,
+        minWidth: 180,
         filter: 'agTextColumnFilter',
       },
       {
         headerName: 'Email',
         field: 'email',
-        minWidth: 220,
+        minWidth: 200,
         filter: 'agTextColumnFilter',
       },
       {
         headerName: 'Role',
         field: 'role',
-        minWidth: 140,
+        minWidth: 130,
         filter: 'agTextColumnFilter',
         valueFormatter: (params) => params.value?.replace(/_/g, ' ') || '—',
       },
       {
         headerName: 'Created At',
         field: 'createdAt',
-        minWidth: 180,
+        minWidth: 150,
         valueFormatter: (params) => formatDateCell(params.value, dateFormatter),
       },
       {
         headerName: 'Updated At',
         field: 'updatedAt',
-        minWidth: 180,
+        minWidth: 150,
         valueFormatter: (params) => formatDateCell(params.value, dateFormatter),
       },
       {
         headerName: 'Actions',
         field: 'id',
-        minWidth: 180,
-        maxWidth: 200,
+        minWidth: 150,
+        maxWidth: 180,
         sortable: false,
         filter: false,
         cellRenderer: ActionCellRenderer,
@@ -168,39 +171,113 @@ export default function UserOverviewTable() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return () => {};
+    }
+
+    const evaluateViewport = () => {
+      setIsCompact(window.innerWidth < COMPACT_TABLE_BREAKPOINT);
+    };
+
+    evaluateViewport();
+    window.addEventListener('resize', evaluateViewport);
+
+    return () => {
+      window.removeEventListener('resize', evaluateViewport);
+    };
+  }, []);
+
+  const isEmpty = !isLoading && !error && rowData.length === 0;
+
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h2 className={styles.title}>Team Overview</h2>
-        <p className={styles.subtitle}>Review active users and manage roles across your workspace.</p>
-      </header>
-
+      <h2 className={styles.tableHeading}>Team overview</h2>
       {error && <div className={`${styles.feedback} ${styles.feedbackError}`}>{error}</div>}
       {!error && isLoading && (
         <div className={`${styles.feedback} ${styles.feedbackInfo}`}>Loading users…</div>
       )}
+      {isEmpty && <div className={`${styles.feedback} ${styles.feedbackInfo}`}>No users found yet.</div>}
 
-      <div className={styles.gridWrapper}>
-        <div className={`ag-theme-quartz ${styles.grid}`}>
-          {typeof window !== 'undefined' && (
-            <AgGridReact
-              rowData={rowData}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-              enableCellTextSelection
-              animateRows
-              headerHeight={64}
-              rowHeight={70}
-              domLayout="autoHeight"
-              pagination
-              paginationPageSize={10}
-              suppressPaginationPanel={false}
-              suppressRowClickSelection
-              stopEditingWhenCellsLoseFocus
-            />
+      {isCompact ? (
+        <div className={styles.cardListWrapper} aria-live="polite">
+          {!isEmpty && (
+            <ul className={styles.cardList}>
+              {rowData.map((user) => (
+                <li key={user.id} className={styles.cardItem}>
+                  <div className={styles.cardRow}>
+                    <span className={styles.cardLabel}>Name</span>
+                    <span className={styles.cardValue}>{user.name || '—'}</span>
+                  </div>
+                  <div className={styles.cardRow}>
+                    <span className={styles.cardLabel}>Email</span>
+                    <span className={styles.cardValue}>{user.email || '—'}</span>
+                  </div>
+                  <div className={styles.cardRow}>
+                    <span className={styles.cardLabel}>Role</span>
+                    <span className={styles.cardValue}>
+                      {user.role?.replace(/_/g, ' ') || '—'}
+                    </span>
+                  </div>
+                  <div className={styles.cardRow}>
+                    <span className={styles.cardLabel}>Created</span>
+                    <span className={styles.cardValue}>
+                      {formatDateCell(user.createdAt, dateFormatter)}
+                    </span>
+                  </div>
+                  <div className={styles.cardRow}>
+                    <span className={styles.cardLabel}>Updated</span>
+                    <span className={styles.cardValue}>
+                      {formatDateCell(user.updatedAt, dateFormatter)}
+                    </span>
+                  </div>
+                  <div className={`${styles.cardRow} ${styles.cardActions}`}>
+                    <span className={styles.cardLabel}>Actions</span>
+                    <div className={styles.actionButtons}>
+                      <button
+                        type="button"
+                        className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                        disabled
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                        disabled
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-      </div>
+      ) : (
+        <div className={styles.gridWrapper}>
+          <div className={`ag-theme-quartz ${styles.grid}`}>
+            {typeof window !== 'undefined' && (
+              <AgGridReact
+                rowData={rowData}
+                columnDefs={columnDefs}
+                defaultColDef={defaultColDef}
+                enableCellTextSelection
+                animateRows
+                headerHeight={64}
+                rowHeight={70}
+                domLayout="autoHeight"
+                pagination
+                paginationPageSize={10}
+                suppressPaginationPanel={false}
+                suppressRowClickSelection
+                stopEditingWhenCellsLoseFocus
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

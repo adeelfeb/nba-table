@@ -1,10 +1,10 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.75rem;
   background: #ffffff;
   border-radius: 1rem;
-  padding: 1.1rem 1.25rem;
+  padding: 1.15rem 1.25rem 1.1rem;
   box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
   width: 100%;
   max-width: 100%;
@@ -12,25 +12,68 @@
   box-sizing: border-box;
 }
 
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.title {
+.tableHeading {
   margin: 0;
-  font-size: 1.28rem;
+  padding: 0.35rem 0 0.4rem;
+  font-size: 1.22rem;
   font-weight: 600;
   color: #0f172a;
 }
 
-.subtitle {
+.cardListWrapper {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.cardList {
+  display: grid;
+  gap: 0.85rem;
+  list-style: none;
+  padding: 0;
   margin: 0;
-  color: #4b5563;
-  font-size: 0.93rem;
-  line-height: 1.55;
-  max-width: 64ch;
+}
+
+.cardItem {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.95rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  background: #ffffff;
+}
+
+.cardRow {
+  display: grid;
+  grid-template-columns: minmax(0, 115px) 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.cardLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.cardValue {
+  font-size: 0.95rem;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.cardActions {
+  align-items: center;
+  border-top: 1px dashed rgba(148, 163, 184, 0.6);
+  padding-top: 0.65rem;
+  margin-top: 0.4rem;
+}
+
+.cardActions .cardLabel {
+  align-self: center;
 }
 
 .feedback {
@@ -160,6 +203,11 @@
   gap: 0.5rem;
   justify-content: flex-end;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.cardActions .actionButtons {
+  justify-content: flex-start;
 }
 
 .actionButton {
@@ -193,19 +241,11 @@
     padding: 1rem;
     gap: 0.75rem;
   }
-
-  .title {
-    font-size: 1.18rem;
-  }
 }
 
 @media (max-width: 720px) {
   .container {
     padding: 0.85rem;
-  }
-
-  .subtitle {
-    font-size: 0.88rem;
   }
 
   .grid :global(.ag-header-cell),
@@ -215,6 +255,40 @@
 
   .grid {
     min-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .cardItem {
+    padding: 0.95rem;
+    gap: 0.65rem;
+  }
+
+  .cardRow {
+    grid-template-columns: minmax(0, 105px) 1fr;
+    gap: 0.65rem;
+  }
+
+  .cardLabel {
+    font-size: 0.72rem;
+  }
+
+  .cardValue {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .cardRow {
+    grid-template-columns: 1fr;
+  }
+
+  .cardLabel {
+    font-size: 0.7rem;
+  }
+
+  .cardActions {
+    gap: 0.5rem;
   }
 }
 
