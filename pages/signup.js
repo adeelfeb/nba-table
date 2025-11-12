@@ -127,6 +127,16 @@ export default function SignupPage() {
               Sign in instead
             </Link>
           </footer>
+
+          <div className="internal-notice">
+            <p>
+              <strong>Internal Tool Only</strong>
+            </p>
+            <p>
+              This dashboard and authentication system is reserved for internal team members only. 
+              If you are not part of the internal team, you do not need to access these pages.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -250,6 +260,27 @@ export default function SignupPage() {
         .cta-link:hover {
           text-decoration: underline;
         }
+        .internal-notice {
+          margin-top: 1.5rem;
+          padding: 1rem 1.25rem;
+          border-radius: 0.75rem;
+          background: rgba(251, 191, 36, 0.1);
+          border: 1px solid rgba(251, 191, 36, 0.3);
+          text-align: center;
+        }
+        .internal-notice p {
+          margin: 0;
+          font-size: 0.875rem;
+          line-height: 1.5;
+          color: #78350f;
+        }
+        .internal-notice p:first-child {
+          margin-bottom: 0.5rem;
+        }
+        .internal-notice strong {
+          font-weight: 600;
+          color: #92400e;
+        }
         @keyframes spin {
           to {
             transform: rotate(360deg);
@@ -279,6 +310,13 @@ export default function SignupPage() {
           .card-header p {
             font-size: 0.9rem;
           }
+          .internal-notice {
+            padding: 0.875rem 1rem;
+            margin-top: 1.25rem;
+          }
+          .internal-notice p {
+            font-size: 0.8rem;
+          }
         }
         @media (max-width: 480px) {
           .auth-shell {
@@ -301,6 +339,13 @@ export default function SignupPage() {
           button {
             padding: 0.95rem 1.2rem;
             font-size: 0.95rem;
+          }
+          .internal-notice {
+            padding: 0.75rem 0.875rem;
+            margin-top: 1rem;
+          }
+          .internal-notice p {
+            font-size: 0.75rem;
           }
         }
         @media (prefers-reduced-motion: reduce) {
