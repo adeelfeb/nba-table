@@ -3,6 +3,9 @@ import { useRouter } from 'next/router';
 import DashboardLayout from '../components/DashboardLayout';
 import SettingsPanel from '../components/dashboard/SettingsPanel';
 import UserOverviewTable from '../components/dashboard/UserOverviewTable';
+import JobManager from '../components/dashboard/JobManager';
+import TranscriptManager from '../components/dashboard/TranscriptManager';
+import VendorManager from '../components/dashboard/VendorManager';
 
 export async function getServerSideProps(context) {
   const { req } = context;
@@ -33,17 +36,40 @@ const NAVIGATION_BY_ROLE = {
   superadmin: [
     { key: 'overview', label: 'Overview' },
     { key: 'user-management', label: 'User Management' },
+    { key: 'jobs', label: 'Jobs' },
+    { key: 'transcripts', label: 'Transcripts' },
+    { key: 'vendors', label: 'Vendors' },
     { key: 'funding', label: 'Funding Opportunities' },
     { key: 'reports', label: 'Reports & Analytics' },
   ],
   admin: [
     { key: 'overview', label: 'Overview' },
+    { key: 'jobs', label: 'Jobs' },
+    { key: 'transcripts', label: 'Transcripts' },
+    { key: 'vendors', label: 'Vendors' },
     { key: 'funding', label: 'Funding Opportunities' },
     { key: 'submissions', label: 'Submissions' },
     { key: 'team', label: 'Team Insights' },
   ],
+  hr: [
+    { key: 'overview', label: 'Overview' },
+    { key: 'jobs', label: 'Jobs' },
+    { key: 'transcripts', label: 'Transcripts' },
+    { key: 'vendors', label: 'Vendors' },
+    { key: 'reports', label: 'Reports & Analytics' },
+  ],
+  hr_admin: [
+    { key: 'overview', label: 'Overview' },
+    { key: 'jobs', label: 'Jobs' },
+    { key: 'transcripts', label: 'Transcripts' },
+    { key: 'vendors', label: 'Vendors' },
+    { key: 'reports', label: 'Reports & Analytics' },
+  ],
   base_user: [
     { key: 'overview', label: 'Overview' },
+    { key: 'jobs', label: 'Jobs' },
+    { key: 'transcripts', label: 'Transcripts' },
+    { key: 'vendors', label: 'Vendors' },
     { key: 'applications', label: 'My Applications' },
     { key: 'resources', label: 'Resources' },
     { key: 'support', label: 'Support' },
@@ -59,6 +85,21 @@ const FALLBACK_NAV = [
 const SECTION_DESCRIPTORS = {
   overview: {
     body: () => <UserOverviewTable />,
+  },
+  jobs: {
+    subtitle: 'Review intake details and manage job assignments.',
+    hideHeader: true,
+    body: (user) => <JobManager user={user} />,
+  },
+  transcripts: {
+    subtitle: 'Analyze call transcripts and AI parsing confidence.',
+    hideHeader: true,
+    body: (user) => <TranscriptManager user={user} />,
+  },
+  vendors: {
+    subtitle: 'Monitor vendor compliance status and documentation.',
+    hideHeader: true,
+    body: (user) => <VendorManager user={user} />,
   },
   applications: {
     subtitle: 'Track the status of each funding application at a glance.',
@@ -154,6 +195,7 @@ const SECTION_DESCRIPTORS = {
   },
   reports: {
     subtitle: 'Measure performance and share insights with stakeholders.',
+    hideHeader: true,
     panels: [
       {
         title: 'Performance dashboard',
@@ -287,6 +329,7 @@ export default function Dashboard({ user }) {
     activeSection === 'settings'
       ? 'Manage your personal details and keep your account secure.'
       : sectionDescriptor.subtitle;
+  const hideHeader = Boolean(sectionDescriptor.hideHeader);
 
   return (
     <DashboardLayout
@@ -299,7 +342,7 @@ export default function Dashboard({ user }) {
       isLoggingOut={isLoggingOut}
     >
       <section className={`section ${isOverviewSection ? 'section--compact' : ''}`}>
-        {!isOverviewSection && (
+        {!isOverviewSection && !hideHeader && (
           <header className="section-header">
             <h1 className="section-title">{sectionTitle}</h1>
             {sectionSubtitle && <p className="section-subtitle">{sectionSubtitle}</p>}

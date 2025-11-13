@@ -192,7 +192,6 @@ export default function UserOverviewTable() {
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.tableHeading}>Team overview</h2>
       {error && <div className={`${styles.feedback} ${styles.feedbackError}`}>{error}</div>}
       {!error && isLoading && (
         <div className={`${styles.feedback} ${styles.feedbackInfo}`}>Loading users…</div>
