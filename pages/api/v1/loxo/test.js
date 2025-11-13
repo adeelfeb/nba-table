@@ -1,0 +1,24 @@
+import { applyCors, withErrorHandling } from '../../../../utils';
+import { testLoxoResponse } from '../../../../controllers/loxoController';
+import { jsonError } from '../../../../lib/response';
+
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
+async function handler(req, res) {
+  if (applyCors(req, res)) return;
+
+  switch (req.method) {
+    case 'POST':
+      return testLoxoResponse(req, res);
+    default:
+      res.setHeader('Allow', ['POST', 'OPTIONS']);
+      return jsonError(res, 405, `Method ${req.method} not allowed`);
+  }
+}
+
+export default withErrorHandling(handler);
+
