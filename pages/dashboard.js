@@ -84,7 +84,7 @@ const FALLBACK_NAV = [
 
 const SECTION_DESCRIPTORS = {
   overview: {
-    body: () => <UserOverviewTable />,
+    body: (user) => <UserOverviewTable currentUser={user} />,
   },
   jobs: {
     subtitle: 'Review intake details and manage job assignments.',

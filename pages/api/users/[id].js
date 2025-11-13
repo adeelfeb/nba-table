@@ -1,9 +1,9 @@
 import connectDB from '../../../lib/db';
 import User from '../../../models/User';
-import Role from '../../../models/Role';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import roleMiddleware from '../../../middlewares/roleMiddleware';
 import { jsonError, jsonSuccess } from '../../../lib/response';
+import { ensureRole } from '../../../lib/roles';
 
 export default async function handler(req, res) {
   const { method, query: { id } } = req;
@@ -23,28 +23,68 @@ export default async function handler(req, res) {
       try {
         const currentUser = await authMiddleware(req, res);
         if (!currentUser) return;
-        const update = req.body || {};
-        // Prevent role changes unless admin
-        let roleRefUpdate = null;
-        if (update.role) {
-          if (!roleMiddleware(['admin', 'superadmin'])(req, res)) return;
-          const normalizedRole = typeof update.role === 'string' ? update.role.trim().toLowerCase() : '';
+
+        const body = req.body || {};
+        const { newPassword } = body;
+        if (body.password) delete body.password;
+        if (body.newPassword) delete body.newPassword;
+
+        let normalizedRole = null;
+        let roleDoc = null;
+        if (Object.prototype.hasOwnProperty.call(body, 'role')) {
+          if (!roleMiddleware(['admin', 'superadmin', 'hr', 'hr_admin'])(req, res)) return;
+          normalizedRole =
+            typeof body.role === 'string' && body.role.trim()
+              ? body.role.trim().toLowerCase()
+              : '';
           if (!normalizedRole) {
             return jsonError(res, 400, 'Role must be a non-empty string');
           }
-          const roleDoc = await Role.findOne({ name: normalizedRole });
-          if (!roleDoc) {
-            return jsonError(res, 400, 'Role does not exist');
+          roleDoc = await ensureRole(normalizedRole);
+        }
+
+        const userDoc = await User.findById(id);
+        if (!userDoc) return jsonError(res, 404, 'User not found');
+
+        if (Object.prototype.hasOwnProperty.call(body, 'name')) {
+          const trimmedName = typeof body.name === 'string' ? body.name.trim() : '';
+          if (!trimmedName) {
+            return jsonError(res, 400, 'Name is required');
           }
-          update.role = normalizedRole;
-          roleRefUpdate = roleDoc._id;
+          userDoc.name = trimmedName;
         }
-        if (update.password) delete update.password; // Use dedicated password change flow if needed
-        if (roleRefUpdate) {
-          update.roleRef = roleRefUpdate;
+
+        if (Object.prototype.hasOwnProperty.call(body, 'email')) {
+          const trimmedEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+          if (!trimmedEmail) {
+            return jsonError(res, 400, 'Email is required');
+          }
+          userDoc.email = trimmedEmail;
         }
-        const user = await User.findByIdAndUpdate(id, update, { new: true, runValidators: true }).select('-password');
-        if (!user) return jsonError(res, 404, 'User not found');
+
+        if (normalizedRole) {
+          userDoc.role = normalizedRole;
+          userDoc.roleRef = roleDoc?._id || null;
+        }
+
+        if (typeof newPassword === 'string' && newPassword.trim()) {
+          const trimmedPassword = newPassword.trim();
+          if (trimmedPassword.length < 6) {
+            return jsonError(res, 400, 'New password must be at least 6 characters long');
+          }
+          userDoc.password = trimmedPassword;
+        }
+
+        try {
+          await userDoc.save();
+        } catch (err) {
+          if (err.code === 11000) {
+            return jsonError(res, 409, 'Email already in use');
+          }
+          throw err;
+        }
+
+        const user = await User.findById(userDoc._id).select('-password');
         return jsonSuccess(res, 200, 'User updated', { user });
       } catch (err) {
         return jsonError(res, 500, 'Failed to update user', err.message);
@@ -54,7 +94,7 @@ export default async function handler(req, res) {
       try {
         const currentUser = await authMiddleware(req, res);
         if (!currentUser) return;
-        if (!roleMiddleware(['admin', 'superadmin'])(req, res)) return;
+        if (!roleMiddleware(['admin', 'superadmin', 'hr', 'hr_admin'])(req, res)) return;
         const user = await User.findByIdAndDelete(id).select('-password');
         if (!user) return jsonError(res, 404, 'User not found');
         return jsonSuccess(res, 200, 'User deleted', { user });

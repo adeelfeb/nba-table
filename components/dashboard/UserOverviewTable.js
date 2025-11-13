@@ -15,6 +15,17 @@ const DATE_FORMAT_OPTIONS = {
   timeStyle: 'short',
 };
 
+const EDIT_ROLES = new Set(['superadmin', 'admin', 'hr', 'hr_admin']);
+const ROLE_OPTIONS = [
+  { value: 'superadmin', label: 'Super Admin' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'hr_admin', label: 'HR Admin' },
+  { value: 'hr', label: 'HR' },
+  { value: 'base_user', label: 'Base User' },
+  { value: 'simple_user', label: 'Simple User' },
+];
+const DEFAULT_ROLE = 'base_user';
+
 function formatDateCell(value, formatter) {
   if (!value) return '—';
   try {
@@ -26,28 +37,47 @@ function formatDateCell(value, formatter) {
   }
 }
 
-function ActionCellRenderer() {
-  const handleClick = useCallback((event) => {
+function ActionCellRenderer(params) {
+  const { data, context } = params;
+  const canEditUsers = Boolean(context?.canEditUsers);
+  const onEdit = typeof context?.onEdit === 'function' ? context.onEdit : null;
+  const onDelete = typeof context?.onDelete === 'function' ? context.onDelete : null;
+  const deletingId = context?.deletingId || null;
+  const editingId = context?.editingId || null;
+  const isSaving = Boolean(context?.isSaving);
+  const isProcessing = deletingId === data?.id;
+  const isEditingThisRow = editingId === data?.id;
+  const disableActions = !canEditUsers || isProcessing || isSaving;
+
+  const handleEditClick = (event) => {
     event?.stopPropagation();
-  }, []);
+    if (disableActions) return;
+    onEdit?.(data);
+  };
+
+  const handleDeleteClick = (event) => {
+    event?.stopPropagation();
+    if (disableActions) return;
+    onDelete?.(data);
+  };
 
   return (
     <div className={styles.actionButtons}>
       <button
         type="button"
         className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-        onClick={handleClick}
-        disabled
+        disabled={disableActions}
+        onClick={handleEditClick}
       >
-        Edit
+        {isSaving && isEditingThisRow ? 'Saving…' : 'Edit'}
       </button>
       <button
         type="button"
         className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-        onClick={handleClick}
-        disabled
+        disabled={disableActions}
+        onClick={handleDeleteClick}
       >
-        Delete
+        {isProcessing ? 'Deleting…' : 'Delete'}
       </button>
     </div>
   );
@@ -55,13 +85,62 @@ function ActionCellRenderer() {
 
 const COMPACT_TABLE_BREAKPOINT = 960;
 
-export default function UserOverviewTable() {
+export default function UserOverviewTable({ currentUser = null }) {
   const [rowData, setRowData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isCompact, setIsCompact] = useState(false);
+  const [actionMessage, setActionMessage] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState(null);
+  const [roleOptions, setRoleOptions] = useState(ROLE_OPTIONS);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+  const [roleLoadError, setRoleLoadError] = useState('');
 
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, DATE_FORMAT_OPTIONS), []);
+
+  const normalizedRole = (currentUser?.role || '').toLowerCase();
+  const canEditUsers = useMemo(() => EDIT_ROLES.has(normalizedRole), [normalizedRole]);
+
+  const normalizeUser = useCallback((user) => {
+    if (!user || typeof user !== 'object') return null;
+    const safeId = user.id || user._id || user.email;
+    if (!safeId) return null;
+    const normalizedRole =
+      typeof user.role === 'string' && user.role.trim()
+        ? user.role.trim().toLowerCase()
+        : DEFAULT_ROLE;
+    return {
+      id: safeId,
+      _id: user._id || safeId,
+      name: user.name || '',
+      email: user.email || '',
+      role: normalizedRole,
+      createdAt: user.createdAt || user.created_at || null,
+      updatedAt: user.updatedAt || user.updated_at || null,
+    };
+  }, []);
+
+  const editRoleOptions = useMemo(() => {
+    const seen = new Set();
+    const options = [];
+    roleOptions.forEach((option) => {
+      const value = option.value.toLowerCase();
+      if (seen.has(value)) return;
+      seen.add(value);
+      options.push({ value, label: option.label });
+    });
+    if (editingUser?.role) {
+      const normalized = editingUser.role.trim().toLowerCase();
+      if (normalized && !seen.has(normalized)) {
+        options.push({ value: normalized, label: normalized.replace(/_/g, ' ') });
+      }
+    }
+    return options;
+  }, [roleOptions, editingUser]);
 
   const columnDefs = useMemo(
     () => [
@@ -105,9 +184,10 @@ export default function UserOverviewTable() {
         filter: false,
         cellRenderer: ActionCellRenderer,
         suppressMenu: true,
+        hide: !canEditUsers,
       },
     ],
-    [dateFormatter]
+    [dateFormatter, canEditUsers]
   );
 
   const defaultColDef = useMemo(
@@ -120,56 +200,87 @@ export default function UserOverviewTable() {
     []
   );
 
-  useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-
-    async function fetchUsers() {
-      setIsLoading(true);
-      setError('');
-      try {
-        const response = await fetch('/api/users/list', {
-          method: 'GET',
-          credentials: 'include',
-          signal: controller.signal,
-        });
-        const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-          throw new Error('Unexpected server response');
-        }
-        const payload = await response.json();
-        if (!response.ok || payload.success === false) {
-          const message = payload?.message || 'Unable to fetch users';
-          throw new Error(message);
-        }
-        const data = Array.isArray(payload.data) ? payload.data : [];
-        if (isMounted) {
-          setRowData(
-            data.map((user) => ({
-              ...user,
-              id: user.id || user._id || user.email,
-            }))
-          );
-        }
-      } catch (err) {
-        if (isMounted && err.name !== 'AbortError') {
-          setError(err.message || 'Failed to load users');
-          setRowData([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetch('/api/users/list', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Unexpected server response');
       }
+      const payload = await response.json();
+      if (!response.ok || payload.success === false) {
+        const message = payload?.message || 'Unable to fetch users';
+        throw new Error(message);
+      }
+      const data = Array.isArray(payload.data) ? payload.data : [];
+      const normalized = data
+        .map(normalizeUser)
+        .filter(Boolean);
+      setRowData(normalized);
+    } catch (err) {
+      setError(err.message || 'Failed to load users');
+      setRowData([]);
+    } finally {
+      setIsLoading(false);
     }
+  }, [normalizeUser]);
 
-    fetchUsers();
+  const loadRoles = useCallback(async () => {
+    if (!canEditUsers) return;
+    setIsLoadingRoles(true);
+    setRoleLoadError('');
+    try {
+      const response = await fetch('/api/roles/list', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Unexpected server response');
+      }
+      const payload = await response.json();
+      if (!response.ok || payload.success === false) {
+        const message = payload?.message || 'Unable to fetch roles';
+        throw new Error(message);
+      }
+      const roles = Array.isArray(payload?.data?.roles) ? payload.data.roles : [];
+      const seen = new Set();
+      const merged = [];
+      ROLE_OPTIONS.forEach((option) => {
+        const key = option.value.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        merged.push({ value: key, label: option.label });
+      });
+      roles.forEach((roleDoc) => {
+        const rawName = typeof roleDoc.name === 'string' ? roleDoc.name.trim().toLowerCase() : '';
+        if (!rawName || seen.has(rawName)) return;
+        const label = roleDoc.description?.trim() || rawName.replace(/_/g, ' ');
+        merged.push({ value: rawName, label });
+        seen.add(rawName);
+      });
+      merged.sort((a, b) => a.label.localeCompare(b.label));
+      setRoleOptions(merged);
+    } catch (err) {
+      setRoleLoadError(err.message || 'Failed to load roles');
+    } finally {
+      setIsLoadingRoles(false);
+    }
+  }, [canEditUsers]);
 
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, []);
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  useEffect(() => {
+    if (!canEditUsers) return;
+    loadRoles();
+  }, [canEditUsers, loadRoles]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -188,13 +299,184 @@ export default function UserOverviewTable() {
     };
   }, []);
 
+  const handleEditUser = useCallback(
+    (user) => {
+      if (!canEditUsers || !user) return;
+      setActionError('');
+      setActionMessage('');
+      const snapshot = { ...user };
+      const normalizedRole =
+        typeof snapshot.role === 'string' && snapshot.role.trim()
+          ? snapshot.role.trim().toLowerCase()
+          : DEFAULT_ROLE;
+      setEditingUser(snapshot);
+      setEditForm({
+        name: snapshot.name || '',
+        email: snapshot.email || '',
+        role: normalizedRole,
+        newPassword: '',
+      });
+    },
+    [canEditUsers]
+  );
+
+  const handleEditFieldChange = useCallback((event) => {
+    const { name, value } = event.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setActionError('');
+    setActionMessage('');
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    if (isSaving) return;
+    setEditingUser(null);
+    setEditForm({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+    setActionError('');
+  }, [isSaving]);
+
+  const handleSubmitEdit = useCallback(
+    async (event) => {
+      event.preventDefault();
+      if (!editingUser || !canEditUsers) return;
+
+      const trimmedName = editForm.name.trim();
+      const trimmedEmail = editForm.email.trim();
+      const normalizedRoleValue = ((editForm.role || '').trim() || DEFAULT_ROLE).toLowerCase();
+      const trimmedPassword = editForm.newPassword.trim();
+
+      if (!trimmedName) {
+        setActionError('Name is required');
+        return;
+      }
+      if (!trimmedEmail) {
+        setActionError('Email is required');
+        return;
+      }
+      if (!normalizedRoleValue) {
+        setActionError('Role is required');
+        return;
+      }
+      if (trimmedPassword && trimmedPassword.length < 6) {
+        setActionError('New password must be at least 6 characters long');
+        return;
+      }
+
+      setIsSaving(true);
+      setActionError('');
+      setActionMessage('');
+
+      try {
+        const targetId = editingUser._id || editingUser.id;
+        const body = {
+          name: trimmedName,
+          email: trimmedEmail,
+          role: normalizedRoleValue,
+        };
+        if (trimmedPassword) {
+          body.newPassword = trimmedPassword;
+        }
+        const response = await fetch(`/api/users/${encodeURIComponent(targetId)}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success === false) {
+          const message = payload?.message || 'Failed to update user';
+          throw new Error(message);
+        }
+        const updatedUser = payload?.data?.user || null;
+        if (updatedUser) {
+          const normalized = normalizeUser({ ...updatedUser, id: updatedUser._id || editingUser.id });
+          if (normalized) {
+            setRowData((prev) =>
+              prev.map((row) => (row.id === editingUser.id ? { ...row, ...normalized } : row))
+            );
+          }
+        }
+        setActionMessage('User updated successfully');
+        setEditingUser(null);
+        setEditForm({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+        loadRoles();
+      } catch (err) {
+        setActionError(err.message || 'Unable to update user');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [
+      canEditUsers,
+      editForm.email,
+      editForm.name,
+      editForm.role,
+      editForm.newPassword,
+      editingUser,
+      normalizeUser,
+      loadRoles,
+    ]
+  );
+
+  const handleDeleteUser = useCallback(
+    async (user) => {
+      if (!canEditUsers || !user) return;
+      const targetId = user._id || user.id || user.email;
+      if (!targetId) return;
+      const safeRowId = user.id || user._id || user.email;
+
+      const confirmMessage = `Are you sure you want to delete ${user.name || user.email || 'this user'}?`;
+      if (typeof window !== 'undefined') {
+        const confirmed = window.confirm(confirmMessage);
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      setIsDeletingId(safeRowId);
+      setActionError('');
+      setActionMessage('');
+
+      try {
+        const response = await fetch(`/api/users/${encodeURIComponent(targetId)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success === false) {
+          const message = payload?.message || 'Failed to delete user';
+          throw new Error(message);
+        }
+        setRowData((prev) => prev.filter((row) => row.id !== safeRowId));
+        if (editingUser?.id === safeRowId) {
+          setEditingUser(null);
+          setEditForm({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+        }
+        setActionMessage('User deleted successfully');
+      } catch (err) {
+        setActionError(err.message || 'Unable to delete user');
+      } finally {
+        setIsDeletingId(null);
+      }
+    },
+    [canEditUsers, editingUser]
+  );
+
   const isEmpty = !isLoading && !error && rowData.length === 0;
+  const editingId = editingUser?.id || null;
 
   return (
     <div className={styles.container}>
       {error && <div className={`${styles.feedback} ${styles.feedbackError}`}>{error}</div>}
       {!error && isLoading && (
         <div className={`${styles.feedback} ${styles.feedbackInfo}`}>Loading users…</div>
+      )}
+      {actionMessage && <div className={`${styles.feedback} ${styles.feedbackSuccess}`}>{actionMessage}</div>}
+      {actionError && <div className={`${styles.feedback} ${styles.feedbackError}`}>{actionError}</div>}
+      {canEditUsers && roleLoadError && !editingUser && (
+        <div className={`${styles.feedback} ${styles.feedbackError}`}>{roleLoadError}</div>
       )}
       {isEmpty && <div className={`${styles.feedback} ${styles.feedbackInfo}`}>No users found yet.</div>}
 
@@ -230,25 +512,29 @@ export default function UserOverviewTable() {
                       {formatDateCell(user.updatedAt, dateFormatter)}
                     </span>
                   </div>
-                  <div className={`${styles.cardRow} ${styles.cardActions}`}>
-                    <span className={styles.cardLabel}>Actions</span>
-                    <div className={styles.actionButtons}>
-                      <button
-                        type="button"
-                        className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-                        disabled
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        disabled
-                      >
-                        Delete
-                      </button>
+                  {canEditUsers && (
+                    <div className={`${styles.cardRow} ${styles.cardActions}`}>
+                      <span className={styles.cardLabel}>Actions</span>
+                      <div className={styles.actionButtons}>
+                        <button
+                          type="button"
+                          className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                          disabled={isSaving || isDeletingId === user.id}
+                          onClick={() => handleEditUser(user)}
+                        >
+                          {isSaving && editingId === user.id ? 'Saving…' : 'Edit'}
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                          disabled={isSaving || isDeletingId === user.id}
+                          onClick={() => handleDeleteUser(user)}
+                        >
+                          {isDeletingId === user.id ? 'Deleting…' : 'Delete'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -272,10 +558,116 @@ export default function UserOverviewTable() {
                 suppressPaginationPanel={false}
                 suppressRowClickSelection
                 stopEditingWhenCellsLoseFocus
+                context={{
+                  onEdit: handleEditUser,
+                  onDelete: handleDeleteUser,
+                  canEditUsers,
+                  deletingId: isDeletingId,
+                  editingId,
+                  isSaving,
+                }}
               />
             )}
           </div>
         </div>
+      )}
+
+      {canEditUsers && editingUser && (
+        <form className={styles.editPanel} onSubmit={handleSubmitEdit}>
+          <div className={styles.editPanelHeader}>
+            <span className={styles.editPanelTitle}>
+              Edit {editingUser.name || editingUser.email || 'user'}
+            </span>
+          </div>
+          {roleLoadError && (
+            <div className={`${styles.inlineFeedback} ${styles.inlineFeedbackError}`}>
+              {roleLoadError}
+              <button
+                type="button"
+                className={styles.inlineRetryButton}
+                onClick={loadRoles}
+                disabled={isLoadingRoles}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {isLoadingRoles && (
+            <div className={`${styles.inlineFeedback} ${styles.inlineFeedbackInfo}`}>
+              Loading role options…
+            </div>
+          )}
+          {isSaving && (
+            <div className={`${styles.inlineFeedback} ${styles.feedbackInfo}`}>
+              Saving changes…
+            </div>
+          )}
+          <div className={styles.editFormGrid}>
+            <label className={styles.editField}>
+              <span>Name</span>
+              <input
+                type="text"
+                name="name"
+                value={editForm.name}
+                onChange={handleEditFieldChange}
+                disabled={isSaving}
+                required
+              />
+            </label>
+            <label className={styles.editField}>
+              <span>Email</span>
+              <input
+                type="email"
+                name="email"
+                value={editForm.email}
+                onChange={handleEditFieldChange}
+                disabled={isSaving}
+                required
+              />
+            </label>
+            <label className={styles.editField}>
+              <span>Role</span>
+              <select
+                name="role"
+                value={editForm.role}
+                onChange={handleEditFieldChange}
+                disabled={isSaving}
+                required
+              >
+                {editRoleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.editField}>
+              <span>New Password</span>
+              <input
+                type="password"
+                name="newPassword"
+                value={editForm.newPassword}
+                onChange={handleEditFieldChange}
+                disabled={isSaving}
+                placeholder="Leave blank to keep current password"
+                minLength={6}
+              />
+            </label>
+          </div>
+          <div className={styles.editActions}>
+            <button type="submit" className={styles.primaryButton} disabled={isSaving}>
+              Save changes
+            </button>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={handleCancelEdit}
+              disabled={isSaving}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );
