@@ -535,6 +535,92 @@ export default function LoxoPanel() {
       <div className="loxo-panel__grid">
         <article
           className={`loxo-panel__card loxo-panel__card--wide${
+            collapsedSections.preQualified ? ' loxo-panel__card--collapsed' : ''
+          }`}
+        >
+          <header>
+            <div>
+              <h3>Global pre-qualified sync</h3>
+              <p className="loxo-panel__muted">
+                Trigger the POST endpoint to gather every candidate in the “Pre Qualified” stage across all jobs.
+              </p>
+            </div>
+            <div className="loxo-panel__actions">
+              <button
+                className="loxo-panel__button"
+                type="button"
+                onClick={handlePreQualifiedFetch}
+                disabled={preQualified.loading}
+              >
+                {preQualified.loading ? 'Fetching…' : 'Fetch all pre-qualified'}
+              </button>
+              <button
+                type="button"
+                className={`loxo-panel__toggle${
+                  collapsedSections.preQualified ? ' loxo-panel__toggle--expand' : ' loxo-panel__toggle--collapse'
+                }`}
+                onClick={() => toggleSection('preQualified')}
+                aria-expanded={!collapsedSections.preQualified}
+                aria-controls="loxo-panel-pre-qualified-global"
+              >
+                <span aria-hidden="true">{collapsedSections.preQualified ? '▾' : '▴'}</span>
+                <span className="loxo-panel__toggle-text">
+                  {collapsedSections.preQualified ? 'Expand' : 'Collapse'}
+                </span>
+              </button>
+            </div>
+          </header>
+          {!collapsedSections.preQualified && (
+            <div id="loxo-panel-pre-qualified-global">
+              {preQualified.error && (
+                <p className="loxo-panel__status loxo-panel__status--error">{preQualified.error}</p>
+              )}
+              {preQualified.summary && (
+                <div className="loxo-panel__summary">
+                  <div>
+                    <strong>Total processed</strong>
+                    <span>{preQualified.summary.totalCandidates}</span>
+                  </div>
+                  <div>
+                    <strong>Pre-qualified</strong>
+                    <span>{preQualified.summary.preQualifiedCount}</span>
+                  </div>
+                </div>
+              )}
+              {!preQualified.loading && !preQualified.error && preQualified.rows.length === 0 && (
+                <p className="loxo-panel__muted">Run the sync to view pre-qualified candidates across all jobs.</p>
+              )}
+              {preQualified.loading && <p className="loxo-panel__muted">Syncing with Loxo…</p>}
+              {preQualified.rows.length > 0 && (
+                <div className="loxo-panel__table-wrapper">
+                  <table className="loxo-panel__table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Candidate</th>
+                        <th scope="col">Job</th>
+                        <th scope="col">Stage</th>
+                        <th scope="col">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preQualified.rows.map((candidate) => (
+                        <tr key={`${candidate.id}-${candidate.email}`}>
+                          <td>{candidate.name}</td>
+                          <td>{candidate.jobTitle}</td>
+                          <td>{candidate.stage}</td>
+                          <td>{candidate.email}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </article>
+
+        <article
+          className={`loxo-panel__card loxo-panel__card--wide${
             collapsedSections.jobs ? ' loxo-panel__card--collapsed' : ''
           }`}
         >
@@ -570,6 +656,9 @@ export default function LoxoPanel() {
               </button>
             </div>
           </header>
+          <p className="loxo-panel__note">
+            Before using any job actions below, fetch all jobs and set the specific job as active to load its details.
+          </p>
           {!collapsedSections.jobs && (
             <div id="loxo-panel-jobs">
               {jobsState.error && (
@@ -953,91 +1042,6 @@ export default function LoxoPanel() {
           )}
         </article>
 
-        <article
-          className={`loxo-panel__card loxo-panel__card--wide${
-            collapsedSections.preQualified ? ' loxo-panel__card--collapsed' : ''
-          }`}
-        >
-          <header>
-            <div>
-              <h3>Global pre-qualified sync</h3>
-              <p className="loxo-panel__muted">
-                Trigger the POST endpoint to gather every candidate in the “Pre Qualified” stage across all jobs.
-              </p>
-            </div>
-            <div className="loxo-panel__actions">
-              <button
-                className="loxo-panel__button"
-                type="button"
-                onClick={handlePreQualifiedFetch}
-                disabled={preQualified.loading}
-              >
-                {preQualified.loading ? 'Fetching…' : 'Fetch all pre-qualified'}
-              </button>
-              <button
-                type="button"
-                className={`loxo-panel__toggle${
-                  collapsedSections.preQualified ? ' loxo-panel__toggle--expand' : ' loxo-panel__toggle--collapse'
-                }`}
-                onClick={() => toggleSection('preQualified')}
-                aria-expanded={!collapsedSections.preQualified}
-                aria-controls="loxo-panel-pre-qualified-global"
-              >
-                <span aria-hidden="true">{collapsedSections.preQualified ? '▾' : '▴'}</span>
-                <span className="loxo-panel__toggle-text">
-                  {collapsedSections.preQualified ? 'Expand' : 'Collapse'}
-                </span>
-              </button>
-            </div>
-          </header>
-          {!collapsedSections.preQualified && (
-            <div id="loxo-panel-pre-qualified-global">
-              {preQualified.error && (
-                <p className="loxo-panel__status loxo-panel__status--error">{preQualified.error}</p>
-              )}
-              {preQualified.summary && (
-                <div className="loxo-panel__summary">
-                  <div>
-                    <strong>Total processed</strong>
-                    <span>{preQualified.summary.totalCandidates}</span>
-                  </div>
-                  <div>
-                    <strong>Pre-qualified</strong>
-                    <span>{preQualified.summary.preQualifiedCount}</span>
-                  </div>
-                </div>
-              )}
-              {!preQualified.loading && !preQualified.error && preQualified.rows.length === 0 && (
-                <p className="loxo-panel__muted">Run the sync to view pre-qualified candidates across all jobs.</p>
-              )}
-              {preQualified.loading && <p className="loxo-panel__muted">Syncing with Loxo…</p>}
-              {preQualified.rows.length > 0 && (
-                <div className="loxo-panel__table-wrapper">
-                  <table className="loxo-panel__table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Candidate</th>
-                        <th scope="col">Job</th>
-                        <th scope="col">Stage</th>
-                        <th scope="col">Email</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preQualified.rows.map((candidate) => (
-                        <tr key={`${candidate.id}-${candidate.email}`}>
-                          <td>{candidate.name}</td>
-                          <td>{candidate.jobTitle}</td>
-                          <td>{candidate.stage}</td>
-                          <td>{candidate.email}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-        </article>
       </div>
 
       <style jsx>{`
@@ -1236,6 +1240,16 @@ export default function LoxoPanel() {
           margin: 0;
           color: #64748b;
           font-size: 0.9rem;
+        }
+
+        .loxo-panel__note {
+          margin: 0;
+          padding: 0.65rem 0.85rem;
+          border-radius: 0.75rem;
+          background: rgba(37, 99, 235, 0.1);
+          color: #1e3a8a;
+          font-size: 0.9rem;
+          font-weight: 600;
         }
 
         .loxo-panel__badge {
