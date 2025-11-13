@@ -235,6 +235,21 @@ export default function LoxoPanel() {
     error: '',
     result: null,
   });
+  const [collapsedSections, setCollapsedSections] = useState({
+    jobs: false,
+    jobDetail: false,
+    allCandidates: false,
+    stage: false,
+    preQualified: false,
+    candidateDetail: false,
+  });
+
+  const toggleSection = useCallback((section) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  }, []);
 
   const resetJobScopedData = useCallback(() => {
     setJobDetail(initialJobDetailState());
@@ -546,7 +561,11 @@ export default function LoxoPanel() {
       )}
 
       <div className="loxo-panel__grid">
-        <article className="loxo-panel__card loxo-panel__card--wide">
+        <article
+          className={`loxo-panel__card loxo-panel__card--wide${
+            collapsedSections.jobs ? ' loxo-panel__card--collapsed' : ''
+          }`}
+        >
           <header>
             <div>
               <h3>All available jobs</h3>
@@ -554,257 +573,327 @@ export default function LoxoPanel() {
                 Click the button to fetch every job currently exposed through the Loxo API.
               </p>
             </div>
-            <button
-              className="loxo-panel__button"
-              type="button"
-              onClick={handleFetchJobs}
-              disabled={jobsState.loading}
-            >
-              {jobsState.loading ? 'Fetching…' : 'Fetch jobs'}
-            </button>
+            <div className="loxo-panel__actions">
+              <button
+                className="loxo-panel__button"
+                type="button"
+                onClick={handleFetchJobs}
+                disabled={jobsState.loading}
+              >
+                {jobsState.loading ? 'Fetching…' : 'Fetch jobs'}
+              </button>
+              <button
+                type="button"
+                className="loxo-panel__toggle"
+                onClick={() => toggleSection('jobs')}
+                aria-expanded={!collapsedSections.jobs}
+                aria-controls="loxo-panel-jobs"
+              >
+                {collapsedSections.jobs ? 'Expand' : 'Collapse'}
+              </button>
+            </div>
           </header>
-          {jobsState.error && <p className="loxo-panel__status loxo-panel__status--error">{jobsState.error}</p>}
-          {!jobsState.loading && !jobsState.error && jobsTableRows.length === 0 && (
-            <p className="loxo-panel__muted">No jobs loaded yet. Fetch to see what is available.</p>
-          )}
-          {jobsState.loading && <p className="loxo-panel__muted">Loading jobs from Loxo…</p>}
-          {jobsTableRows.length > 0 && (
-            <>
-              <div className="loxo-panel__table-wrapper" role="region" aria-live="polite">
-                <table className="loxo-panel__table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Title</th>
-                      <th scope="col">Location</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Updated</th>
-                      <th scope="col">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobsTableRows.map((job) => {
-                      const isActive = selectedJobId === job.id;
-                      return (
-                        <tr key={`${job.id}-${job.title}`}>
-                          <td>{job.title}</td>
-                          <td>{job.location}</td>
-                          <td>{job.status}</td>
-                          <td>{job.updatedAt}</td>
-                          <td>
-                            {!isActive ? (
-                              <button
-                                type="button"
-                                className="loxo-panel__button loxo-panel__button--ghost"
-                                onClick={() => handleConfirmSelectJob(job.id)}
-                              >
-                                Set active
-                              </button>
-                            ) : (
-                              <div className="loxo-panel__inline loxo-panel__inline--gap">
-                                <button
-                                  type="button"
-                                  className="loxo-panel__button loxo-panel__button--ghost"
-                                  disabled
-                                >
-                                  Active
-                                </button>
-                                <button
-                                  type="button"
-                                  className="loxo-panel__button loxo-panel__button--ghost"
-                                  onClick={handleUnsetActive}
-                                >
-                                  Unset active
-                                </button>
-                              </div>
-                            )}
-                          </td>
+          {!collapsedSections.jobs && (
+            <div id="loxo-panel-jobs">
+              {jobsState.error && (
+                <p className="loxo-panel__status loxo-panel__status--error">{jobsState.error}</p>
+              )}
+              {!jobsState.loading && !jobsState.error && jobsTableRows.length === 0 && (
+                <p className="loxo-panel__muted">No jobs loaded yet. Fetch to see what is available.</p>
+              )}
+              {jobsState.loading && <p className="loxo-panel__muted">Loading jobs from Loxo…</p>}
+              {jobsTableRows.length > 0 && (
+                <>
+                  <div className="loxo-panel__table-wrapper" role="region" aria-live="polite">
+                    <table className="loxo-panel__table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Title</th>
+                          <th scope="col">Location</th>
+                          <th scope="col">Status</th>
+                          <th scope="col">Updated</th>
+                          <th scope="col">Action</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div className="loxo-panel__grid-inline">
-                <div className="loxo-panel__inline loxo-panel__inline--gap">
-                  <label htmlFor="loxo-job-select" className="loxo-panel__label">
-                    Select job
-                  </label>
-                  <select
-                    id="loxo-job-select"
-                    className="loxo-panel__select"
-                    value={selectedJobId}
-                    onChange={handleSelectJobFromEvent}
-                  >
-                    <option value="">-- No active job --</option>
-                    {jobsTableRows.map((job) => (
-                      <option key={job.id || job.title} value={job.id}>
-                        {job.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="loxo-panel__inline loxo-panel__inline--gap">
-                  <label htmlFor="loxo-job-id-input" className="loxo-panel__label">
-                    Enter job ID
-                  </label>
-                  <input
-                    id="loxo-job-id-input"
-                    className="loxo-panel__input"
-                    value={jobIdInput}
-                    onChange={handleJobIdInputChange}
-                    placeholder="e.g. 123456"
-                  />
-                  <button
-                    type="button"
-                    className="loxo-panel__button loxo-panel__button--ghost"
-                    onClick={handleApplyJobId}
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </>
+                      </thead>
+                      <tbody>
+                        {jobsTableRows.map((job) => {
+                          const isActive = selectedJobId === job.id;
+                          return (
+                            <tr key={`${job.id}-${job.title}`}>
+                              <td>{job.title}</td>
+                              <td>{job.location}</td>
+                              <td>{job.status}</td>
+                              <td>{job.updatedAt}</td>
+                              <td>
+                                {!isActive ? (
+                                  <button
+                                    type="button"
+                                    className="loxo-panel__button loxo-panel__button--ghost"
+                                    onClick={() => handleConfirmSelectJob(job.id)}
+                                  >
+                                    Set active
+                                  </button>
+                                ) : (
+                                  <div className="loxo-panel__inline loxo-panel__inline--gap">
+                                    <button
+                                      type="button"
+                                      className="loxo-panel__button loxo-panel__button--ghost"
+                                      disabled
+                                    >
+                                      Active
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="loxo-panel__button loxo-panel__button--ghost"
+                                      onClick={handleUnsetActive}
+                                    >
+                                      Unset active
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="loxo-panel__grid-inline">
+                    <div className="loxo-panel__inline loxo-panel__inline--gap">
+                      <label htmlFor="loxo-job-select" className="loxo-panel__label">
+                        Select job
+                      </label>
+                      <select
+                        id="loxo-job-select"
+                        className="loxo-panel__select"
+                        value={selectedJobId}
+                        onChange={handleSelectJobFromEvent}
+                      >
+                        <option value="">-- No active job --</option>
+                        {jobsTableRows.map((job) => (
+                          <option key={job.id || job.title} value={job.id}>
+                            {job.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="loxo-panel__inline loxo-panel__inline--gap">
+                      <label htmlFor="loxo-job-id-input" className="loxo-panel__label">
+                        Enter job ID
+                      </label>
+                      <input
+                        id="loxo-job-id-input"
+                        className="loxo-panel__input"
+                        value={jobIdInput}
+                        onChange={handleJobIdInputChange}
+                        placeholder="e.g. 123456"
+                      />
+                      <button
+                        type="button"
+                        className="loxo-panel__button loxo-panel__button--ghost"
+                        onClick={handleApplyJobId}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </article>
 
-        <article className="loxo-panel__card">
+        <article
+          className={`loxo-panel__card${collapsedSections.jobDetail ? ' loxo-panel__card--collapsed' : ''}`}
+        >
           <header>
             <div>
               <h3>Job detail</h3>
               <p className="loxo-panel__muted">Active job: {activeJobTitle}</p>
             </div>
-            <button
-              className="loxo-panel__button"
-              type="button"
-              onClick={handleFetchJobDetail}
-              disabled={jobDetail.loading}
-            >
-              {jobDetail.loading ? 'Fetching…' : 'Fetch job detail'}
-            </button>
+            <div className="loxo-panel__actions">
+              <button
+                className="loxo-panel__button"
+                type="button"
+                onClick={handleFetchJobDetail}
+                disabled={jobDetail.loading}
+              >
+                {jobDetail.loading ? 'Fetching…' : 'Fetch job detail'}
+              </button>
+              <button
+                type="button"
+                className="loxo-panel__toggle"
+                onClick={() => toggleSection('jobDetail')}
+                aria-expanded={!collapsedSections.jobDetail}
+                aria-controls="loxo-panel-job-detail"
+              >
+                {collapsedSections.jobDetail ? 'Expand' : 'Collapse'}
+              </button>
+            </div>
           </header>
-          {jobDetail.error && <p className="loxo-panel__status loxo-panel__status--error">{jobDetail.error}</p>}
-          {!jobDetail.loading && !jobDetail.error && (!jobDetail.data || jobSummary.length === 0) && (
-            <p className="loxo-panel__muted">Run the fetch to load job metadata.</p>
-          )}
-          {jobDetail.loading && <p className="loxo-panel__muted">Loading job detail…</p>}
-          {jobSummary.length > 0 && (
-            <div className="loxo-panel__table-wrapper loxo-panel__table-wrapper--compact">
-              <table className="loxo-panel__table loxo-panel__table--meta">
-                <tbody>
-                  {jobSummary.map((item) => (
-                    <tr key={item.label}>
-                      <th scope="row">{item.label}</th>
-                      <td>{item.value || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {!collapsedSections.jobDetail && (
+            <div id="loxo-panel-job-detail">
+              {jobDetail.error && (
+                <p className="loxo-panel__status loxo-panel__status--error">{jobDetail.error}</p>
+              )}
+              {!jobDetail.loading && !jobDetail.error && (!jobDetail.data || jobSummary.length === 0) && (
+                <p className="loxo-panel__muted">Run the fetch to load job metadata.</p>
+              )}
+              {jobDetail.loading && <p className="loxo-panel__muted">Loading job detail…</p>}
+              {jobSummary.length > 0 && (
+                <div className="loxo-panel__table-wrapper loxo-panel__table-wrapper--compact">
+                  <table className="loxo-panel__table loxo-panel__table--meta">
+                    <tbody>
+                      {jobSummary.map((item) => (
+                        <tr key={item.label}>
+                          <th scope="row">{item.label}</th>
+                          <td>{item.value || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </article>
 
-        <article className="loxo-panel__card">
+        <article
+          className={`loxo-panel__card${collapsedSections.allCandidates ? ' loxo-panel__card--collapsed' : ''}`}
+        >
           <header>
             <div>
               <h3>All candidates in job</h3>
               <p className="loxo-panel__muted">Loads every applicant tied to the active job.</p>
             </div>
-            <button
-              className="loxo-panel__button"
-              type="button"
-              onClick={handleFetchAllCandidates}
-              disabled={allCandidates.loading}
-            >
-              {allCandidates.loading ? 'Fetching…' : 'Fetch candidates'}
-            </button>
+            <div className="loxo-panel__actions">
+              <button
+                className="loxo-panel__button"
+                type="button"
+                onClick={handleFetchAllCandidates}
+                disabled={allCandidates.loading}
+              >
+                {allCandidates.loading ? 'Fetching…' : 'Fetch candidates'}
+              </button>
+              <button
+                type="button"
+                className="loxo-panel__toggle"
+                onClick={() => toggleSection('allCandidates')}
+                aria-expanded={!collapsedSections.allCandidates}
+                aria-controls="loxo-panel-all-candidates"
+              >
+                {collapsedSections.allCandidates ? 'Expand' : 'Collapse'}
+              </button>
+            </div>
           </header>
-          {allCandidates.error && (
-            <p className="loxo-panel__status loxo-panel__status--error">{allCandidates.error}</p>
-          )}
-          {!allCandidates.loading && !allCandidates.error && allCandidates.rows.length === 0 && (
-            <p className="loxo-panel__muted">No candidates loaded yet. Fetch to view the roster.</p>
-          )}
-          {allCandidates.loading && <p className="loxo-panel__muted">Loading candidates…</p>}
-          {allCandidates.rows.length > 0 && (
-            <div className="loxo-panel__table-wrapper">
-              <table className="loxo-panel__table">
-                <thead>
-                  <tr>
-                    <th scope="col">Candidate</th>
-                    <th scope="col">Stage</th>
-                    <th scope="col">Email</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allCandidates.rows.map((candidate) => (
-                    <tr key={`${candidate.id}-${candidate.email}`}>
-                      <td>
-                        <div className="loxo-panel__stack">
-                          <span>{candidate.name}</span>
-                          <span className="loxo-panel__muted">{candidate.jobTitle}</span>
-                        </div>
-                      </td>
-                      <td>{candidate.stage}</td>
-                      <td>{candidate.email}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {!collapsedSections.allCandidates && (
+            <div id="loxo-panel-all-candidates">
+              {allCandidates.error && (
+                <p className="loxo-panel__status loxo-panel__status--error">{allCandidates.error}</p>
+              )}
+              {!allCandidates.loading && !allCandidates.error && allCandidates.rows.length === 0 && (
+                <p className="loxo-panel__muted">No candidates loaded yet. Fetch to view the roster.</p>
+              )}
+              {allCandidates.loading && <p className="loxo-panel__muted">Loading candidates…</p>}
+              {allCandidates.rows.length > 0 && (
+                <div className="loxo-panel__table-wrapper">
+                  <table className="loxo-panel__table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Candidate</th>
+                        <th scope="col">Stage</th>
+                        <th scope="col">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allCandidates.rows.map((candidate) => (
+                        <tr key={`${candidate.id}-${candidate.email}`}>
+                          <td>
+                            <div className="loxo-panel__stack">
+                              <span>{candidate.name}</span>
+                              <span className="loxo-panel__muted">{candidate.jobTitle}</span>
+                            </div>
+                          </td>
+                          <td>{candidate.stage}</td>
+                          <td>{candidate.email}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </article>
 
-        <article className="loxo-panel__card">
+        <article className={`loxo-panel__card${collapsedSections.stage ? ' loxo-panel__card--collapsed' : ''}`}>
           <header>
             <div>
               <h3>Pre-qualified stage (job)</h3>
               <p className="loxo-panel__muted">Pulls the candidates in the pre-qualified workflow stage for the active job.</p>
             </div>
-            <button
-              className="loxo-panel__button"
-              type="button"
-              onClick={handleFetchSelectedStageCandidates}
-              disabled={selectedStageCandidates.loading}
-            >
-              {selectedStageCandidates.loading ? 'Fetching…' : 'Fetch stage'}
-            </button>
+            <div className="loxo-panel__actions">
+              <button
+                className="loxo-panel__button"
+                type="button"
+                onClick={handleFetchSelectedStageCandidates}
+                disabled={selectedStageCandidates.loading}
+              >
+                {selectedStageCandidates.loading ? 'Fetching…' : 'Fetch stage'}
+              </button>
+              <button
+                type="button"
+                className="loxo-panel__toggle"
+                onClick={() => toggleSection('stage')}
+                aria-expanded={!collapsedSections.stage}
+                aria-controls="loxo-panel-stage"
+              >
+                {collapsedSections.stage ? 'Expand' : 'Collapse'}
+              </button>
+            </div>
           </header>
-          {selectedStageCandidates.error && (
-            <p className="loxo-panel__status loxo-panel__status--error">{selectedStageCandidates.error}</p>
-          )}
-          {!selectedStageCandidates.loading &&
-            !selectedStageCandidates.error &&
-            selectedStageCandidates.rows.length === 0 && (
-              <p className="loxo-panel__muted">
-                Run the fetch to see who is currently marked as pre-qualified in this job.
-              </p>
-            )}
-          {selectedStageCandidates.loading && <p className="loxo-panel__muted">Loading stage candidates…</p>}
-          {selectedStageCandidates.rows.length > 0 && (
-            <div className="loxo-panel__table-wrapper">
-              <table className="loxo-panel__table">
-                <thead>
-                  <tr>
-                    <th scope="col">Candidate</th>
-                    <th scope="col">Stage</th>
-                    <th scope="col">Email</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedStageCandidates.rows.map((candidate) => (
-                    <tr key={`${candidate.id}-${candidate.email}`}>
-                      <td>{candidate.name}</td>
-                      <td>{candidate.stage}</td>
-                      <td>{candidate.email}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {!collapsedSections.stage && (
+            <div id="loxo-panel-stage">
+              {selectedStageCandidates.error && (
+                <p className="loxo-panel__status loxo-panel__status--error">{selectedStageCandidates.error}</p>
+              )}
+              {!selectedStageCandidates.loading &&
+                !selectedStageCandidates.error &&
+                selectedStageCandidates.rows.length === 0 && (
+                  <p className="loxo-panel__muted">
+                    Run the fetch to see who is currently marked as pre-qualified in this job.
+                  </p>
+                )}
+              {selectedStageCandidates.loading && <p className="loxo-panel__muted">Loading stage candidates…</p>}
+              {selectedStageCandidates.rows.length > 0 && (
+                <div className="loxo-panel__table-wrapper">
+                  <table className="loxo-panel__table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Candidate</th>
+                        <th scope="col">Stage</th>
+                        <th scope="col">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedStageCandidates.rows.map((candidate) => (
+                        <tr key={`${candidate.id}-${candidate.email}`}>
+                          <td>{candidate.name}</td>
+                          <td>{candidate.stage}</td>
+                          <td>{candidate.email}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </article>
 
-        <article className="loxo-panel__card">
+        <article
+          className={`loxo-panel__card${collapsedSections.candidateDetail ? ' loxo-panel__card--collapsed' : ''}`}
+        >
           <header>
             <div>
               <h3>Candidate detail</h3>
@@ -812,54 +901,73 @@ export default function LoxoPanel() {
                 Provide a candidate ID to fetch a single applicant for the active job.
               </p>
             </div>
-            <button
-              className="loxo-panel__button"
-              type="button"
-              onClick={handleFetchCandidateDetail}
-              disabled={candidateDetail.loading}
-            >
-              {candidateDetail.loading ? 'Fetching…' : 'Fetch candidate'}
-            </button>
+            <div className="loxo-panel__actions">
+              <button
+                className="loxo-panel__button"
+                type="button"
+                onClick={handleFetchCandidateDetail}
+                disabled={candidateDetail.loading}
+              >
+                {candidateDetail.loading ? 'Fetching…' : 'Fetch candidate'}
+              </button>
+              <button
+                type="button"
+                className="loxo-panel__toggle"
+                onClick={() => toggleSection('candidateDetail')}
+                aria-expanded={!collapsedSections.candidateDetail}
+                aria-controls="loxo-panel-candidate-detail"
+              >
+                {collapsedSections.candidateDetail ? 'Expand' : 'Collapse'}
+              </button>
+            </div>
           </header>
-          <div className="loxo-panel__inline loxo-panel__inline--gap">
-            <label htmlFor="loxo-candidate-id-input" className="loxo-panel__label">
-              Candidate ID
-            </label>
-            <input
-              id="loxo-candidate-id-input"
-              className="loxo-panel__input"
-              value={candidateIdInput}
-              onChange={handleCandidateIdInputChange}
-              placeholder="e.g. 987654"
-            />
-          </div>
-          <p className="loxo-panel__muted">
-            Using job ID: {selectedJobId || jobIdInput || 'Not set'}
-          </p>
-          {candidateDetail.error && (
-            <p className="loxo-panel__status loxo-panel__status--error">{candidateDetail.error}</p>
-          )}
-          {!candidateDetail.loading && !candidateDetail.error && !candidateDetail.data && (
-            <p className="loxo-panel__muted">Enter the IDs above and run the fetch.</p>
-          )}
-          {candidateDetail.loading && <p className="loxo-panel__muted">Loading candidate…</p>}
-          {candidateSummary.length > 0 && (
-            <div className="loxo-panel__table-wrapper loxo-panel__table-wrapper--compact">
-              <table className="loxo-panel__table loxo-panel__table--meta">
-                <tbody>
-                  {candidateSummary.map((item) => (
-                    <tr key={item.label}>
-                      <th scope="row">{item.label}</th>
-                      <td>{item.value || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {!collapsedSections.candidateDetail && (
+            <div id="loxo-panel-candidate-detail">
+              <div className="loxo-panel__inline loxo-panel__inline--gap">
+                <label htmlFor="loxo-candidate-id-input" className="loxo-panel__label">
+                  Candidate ID
+                </label>
+                <input
+                  id="loxo-candidate-id-input"
+                  className="loxo-panel__input"
+                  value={candidateIdInput}
+                  onChange={handleCandidateIdInputChange}
+                  placeholder="e.g. 987654"
+                />
+              </div>
+              <p className="loxo-panel__muted">
+                Using job ID: {selectedJobId || jobIdInput || 'Not set'}
+              </p>
+              {candidateDetail.error && (
+                <p className="loxo-panel__status loxo-panel__status--error">{candidateDetail.error}</p>
+              )}
+              {!candidateDetail.loading && !candidateDetail.error && !candidateDetail.data && (
+                <p className="loxo-panel__muted">Enter the IDs above and run the fetch.</p>
+              )}
+              {candidateDetail.loading && <p className="loxo-panel__muted">Loading candidate…</p>}
+              {candidateSummary.length > 0 && (
+                <div className="loxo-panel__table-wrapper loxo-panel__table-wrapper--compact">
+                  <table className="loxo-panel__table loxo-panel__table--meta">
+                    <tbody>
+                      {candidateSummary.map((item) => (
+                        <tr key={item.label}>
+                          <th scope="row">{item.label}</th>
+                          <td>{item.value || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </article>
 
-        <article className="loxo-panel__card loxo-panel__card--wide">
+        <article
+          className={`loxo-panel__card loxo-panel__card--wide${
+            collapsedSections.preQualified ? ' loxo-panel__card--collapsed' : ''
+          }`}
+        >
           <header>
             <div>
               <h3>Global pre-qualified sync</h3>
@@ -867,56 +975,71 @@ export default function LoxoPanel() {
                 Trigger the POST endpoint to gather every candidate in the “Pre Qualified” stage across all jobs.
               </p>
             </div>
-            <button
-              className="loxo-panel__button"
-              type="button"
-              onClick={handlePreQualifiedFetch}
-              disabled={preQualified.loading}
-            >
-              {preQualified.loading ? 'Fetching…' : 'Fetch all pre-qualified'}
-            </button>
-          </header>
-          {preQualified.error && (
-            <p className="loxo-panel__status loxo-panel__status--error">{preQualified.error}</p>
-          )}
-          {preQualified.summary && (
-            <div className="loxo-panel__summary">
-              <div>
-                <strong>Total processed</strong>
-                <span>{preQualified.summary.totalCandidates}</span>
-              </div>
-              <div>
-                <strong>Pre-qualified</strong>
-                <span>{preQualified.summary.preQualifiedCount}</span>
-              </div>
+            <div className="loxo-panel__actions">
+              <button
+                className="loxo-panel__button"
+                type="button"
+                onClick={handlePreQualifiedFetch}
+                disabled={preQualified.loading}
+              >
+                {preQualified.loading ? 'Fetching…' : 'Fetch all pre-qualified'}
+              </button>
+              <button
+                type="button"
+                className="loxo-panel__toggle"
+                onClick={() => toggleSection('preQualified')}
+                aria-expanded={!collapsedSections.preQualified}
+                aria-controls="loxo-panel-pre-qualified-global"
+              >
+                {collapsedSections.preQualified ? 'Expand' : 'Collapse'}
+              </button>
             </div>
-          )}
-          {!preQualified.loading && !preQualified.error && preQualified.rows.length === 0 && (
-            <p className="loxo-panel__muted">Run the sync to view pre-qualified candidates across all jobs.</p>
-          )}
-          {preQualified.loading && <p className="loxo-panel__muted">Syncing with Loxo…</p>}
-          {preQualified.rows.length > 0 && (
-            <div className="loxo-panel__table-wrapper">
-              <table className="loxo-panel__table">
-                <thead>
-                  <tr>
-                    <th scope="col">Candidate</th>
-                    <th scope="col">Job</th>
-                    <th scope="col">Stage</th>
-                    <th scope="col">Email</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preQualified.rows.map((candidate) => (
-                    <tr key={`${candidate.id}-${candidate.email}`}>
-                      <td>{candidate.name}</td>
-                      <td>{candidate.jobTitle}</td>
-                      <td>{candidate.stage}</td>
-                      <td>{candidate.email}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          </header>
+          {!collapsedSections.preQualified && (
+            <div id="loxo-panel-pre-qualified-global">
+              {preQualified.error && (
+                <p className="loxo-panel__status loxo-panel__status--error">{preQualified.error}</p>
+              )}
+              {preQualified.summary && (
+                <div className="loxo-panel__summary">
+                  <div>
+                    <strong>Total processed</strong>
+                    <span>{preQualified.summary.totalCandidates}</span>
+                  </div>
+                  <div>
+                    <strong>Pre-qualified</strong>
+                    <span>{preQualified.summary.preQualifiedCount}</span>
+                  </div>
+                </div>
+              )}
+              {!preQualified.loading && !preQualified.error && preQualified.rows.length === 0 && (
+                <p className="loxo-panel__muted">Run the sync to view pre-qualified candidates across all jobs.</p>
+              )}
+              {preQualified.loading && <p className="loxo-panel__muted">Syncing with Loxo…</p>}
+              {preQualified.rows.length > 0 && (
+                <div className="loxo-panel__table-wrapper">
+                  <table className="loxo-panel__table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Candidate</th>
+                        <th scope="col">Job</th>
+                        <th scope="col">Stage</th>
+                        <th scope="col">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preQualified.rows.map((candidate) => (
+                        <tr key={`${candidate.id}-${candidate.email}`}>
+                          <td>{candidate.name}</td>
+                          <td>{candidate.jobTitle}</td>
+                          <td>{candidate.stage}</td>
+                          <td>{candidate.email}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </article>
@@ -948,9 +1071,9 @@ export default function LoxoPanel() {
         }
 
         .loxo-panel__grid {
-          display: grid;
+          display: flex;
+          flex-direction: column;
           gap: 1.25rem;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         }
 
         .loxo-panel__card {
@@ -962,10 +1085,14 @@ export default function LoxoPanel() {
           gap: 0.85rem;
         }
 
+        .loxo-panel__card--collapsed {
+          gap: 0.85rem;
+        }
+
         .loxo-panel__card header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
+          align-items: flex-start;
           gap: 0.75rem;
         }
 
@@ -976,7 +1103,31 @@ export default function LoxoPanel() {
         }
 
         .loxo-panel__card--wide {
-          grid-column: 1 / -1;
+          width: 100%;
+        }
+
+        .loxo-panel__actions {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .loxo-panel__toggle {
+          border: none;
+          background: rgba(37, 99, 235, 0.12);
+          color: #1d4ed8;
+          font-weight: 600;
+          font-size: 0.85rem;
+          padding: 0.35rem 0.75rem;
+          border-radius: 0.65rem;
+          cursor: pointer;
+          transition: background 120ms ease, color 120ms ease;
+        }
+
+        .loxo-panel__toggle:hover {
+          background: rgba(37, 99, 235, 0.18);
+          color: #1e3a8a;
         }
 
         .loxo-panel__button {
@@ -1101,9 +1252,11 @@ export default function LoxoPanel() {
         .loxo-panel__table-wrapper {
           border: 1px solid rgba(148, 163, 184, 0.35);
           border-radius: 0.9rem;
-          overflow: hidden;
+          overflow-x: auto;
+          overflow-y: hidden;
           background: #ffffff;
           box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.14);
+          max-width: 100%;
         }
 
         .loxo-panel__table-wrapper--compact {
@@ -1178,10 +1331,6 @@ export default function LoxoPanel() {
           .loxo-panel__header {
             flex-direction: column;
             align-items: flex-start;
-          }
-
-          .loxo-panel__grid {
-            grid-template-columns: 1fr;
           }
 
           .loxo-panel__card {
