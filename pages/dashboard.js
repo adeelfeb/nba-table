@@ -7,6 +7,7 @@ import UserOverviewTable from '../components/dashboard/UserOverviewTable';
 import JobManager from '../components/dashboard/JobManager';
 import TranscriptManager from '../components/dashboard/TranscriptManager';
 import VendorManager from '../components/dashboard/VendorManager';
+import CandidateManager from '../components/dashboard/CandidateManager';
 import PerformanceDashboard from '../components/dashboard/reports/PerformanceDashboard';
 import LoxoPanel from '../components/dashboard/LoxoPanel';
 import CityServiceManager from '../components/dashboard/CityServiceManager';
@@ -41,6 +42,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'user-management', label: 'User Management' },
     { key: 'jobs', label: 'Jobs' },
+    { key: 'candidates', label: 'Candidates' },
     { key: 'loxo', label: 'Loxo' },
     { key: 'transcripts', label: 'Transcripts' },
     { key: 'vendors', label: 'Vendors' },
@@ -52,6 +54,7 @@ const NAVIGATION_BY_ROLE = {
   admin: [
     { key: 'overview', label: 'Overview' },
     { key: 'jobs', label: 'Jobs' },
+    { key: 'candidates', label: 'Candidates' },
     { key: 'loxo', label: 'Loxo' },
     { key: 'transcripts', label: 'Transcripts' },
     { key: 'vendors', label: 'Vendors' },
@@ -64,6 +67,7 @@ const NAVIGATION_BY_ROLE = {
   hr: [
     { key: 'overview', label: 'Overview' },
     { key: 'jobs', label: 'Jobs' },
+    { key: 'candidates', label: 'Candidates' },
     { key: 'loxo', label: 'Loxo' },
     { key: 'transcripts', label: 'Transcripts' },
     { key: 'vendors', label: 'Vendors' },
@@ -74,6 +78,7 @@ const NAVIGATION_BY_ROLE = {
   hr_admin: [
     { key: 'overview', label: 'Overview' },
     { key: 'jobs', label: 'Jobs' },
+    { key: 'candidates', label: 'Candidates' },
     { key: 'loxo', label: 'Loxo' },
     { key: 'transcripts', label: 'Transcripts' },
     { key: 'vendors', label: 'Vendors' },
@@ -125,6 +130,11 @@ const SECTION_DESCRIPTORS = {
     subtitle: 'Monitor vendor compliance status and documentation.',
     hideHeader: true,
     body: (user) => <VendorManager user={user} />,
+  },
+  candidates: {
+    subtitle: 'Manage candidate and vendor lead intake. Track onboarding status and service information.',
+    hideHeader: true,
+    body: (user) => <CandidateManager user={user} />,
   },
   'city-service-routes': {
     subtitle: 'Manage dynamic city + service URL routes. Test and configure location-based routing.',

