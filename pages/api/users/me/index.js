@@ -1,8 +1,11 @@
 import authMiddleware from '../../../../middlewares/authMiddleware';
 import { getCurrentUser, updateCurrentUser } from '../../../../controllers/userController';
 import { jsonError } from '../../../../lib/response';
+import { applyCors } from '../../../../utils';
 
 export default async function handler(req, res) {
+  if (await applyCors(req, res)) return;
+
   const user = await authMiddleware(req, res);
   if (!user) return;
 

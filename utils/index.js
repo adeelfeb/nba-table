@@ -4,7 +4,7 @@ export function validationError(res, details) {
   return jsonError(res, 400, 'Validation error', details);
 }
 export { logger } from './logger';
-export { applyCors } from './cors';
+export { applyCors, clearCorsCache } from './cors';
 export { withErrorHandling } from './asyncHandler';
 export {
   calculateProofScorePlaceholder,

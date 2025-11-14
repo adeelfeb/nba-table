@@ -1,5 +1,6 @@
 import connectDB from '../../lib/db';
 import mongoose from 'mongoose';
+import { applyCors } from '../../utils';
 
 // Define a simple Test schema
 const TestSchema = new mongoose.Schema({
@@ -22,6 +23,8 @@ const Test = mongoose.models.Test || mongoose.model('Test', TestSchema);
  * Access at: http://localhost:3000/api/test-db
  */
 export default async function handler(req, res) {
+  if (await applyCors(req, res)) return;
+
   if (req.method === 'GET') {
     try {
       // Connect to MongoDB

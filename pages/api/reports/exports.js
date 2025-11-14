@@ -1,4 +1,5 @@
 import { jsonError, jsonSuccess } from '../../../lib/response';
+import { applyCors } from '../../../utils';
 
 const EXPORT_OPTIONS = [
   {
@@ -27,6 +28,8 @@ const EXPORT_OPTIONS = [
 const LAST_GENERATED_AT = new Date(Date.now() - 1000 * 60 * 35).toISOString();
 
 export default async function handler(req, res) {
+  if (await applyCors(req, res)) return;
+
   if (req.method === 'GET') {
     return jsonSuccess(res, 200, 'Export options ready', {
       options: EXPORT_OPTIONS,
@@ -59,6 +62,8 @@ export default async function handler(req, res) {
 
   return jsonError(res, 405, 'Method not allowed');
 }
+
+
 
 
 

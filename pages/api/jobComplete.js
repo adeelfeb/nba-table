@@ -8,7 +8,7 @@ export const config = {
 };
 
 async function handler(req, res) {
-  if (applyCors(req, res)) return;
+  if (await applyCors(req, res)) return;
 
   if (req.method === 'OPTIONS') {
     return res.status(204).end();

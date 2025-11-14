@@ -5,6 +5,7 @@ import roleMiddleware from '../../../middlewares/roleMiddleware';
 import { jsonError, jsonSuccess } from '../../../lib/response';
 import { ensureRole } from '../../../lib/roles';
 import { ensureDefaultHrUser } from '../../../lib/defaultUsers';
+import { applyCors } from '../../../utils';
 
 function isValidEmail(value) {
   if (typeof value !== 'string') return false;
@@ -15,6 +16,7 @@ const MIN_PASSWORD_LENGTH = 6;
 
 export default async function handler(req, res) {
   const { method } = req;
+  if (await applyCors(req, res)) return;
   await connectDB();
 
   switch (method) {

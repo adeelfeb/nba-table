@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import DashboardLayout from '../components/DashboardLayout';
 import SettingsPanel from '../components/dashboard/SettingsPanel';
+import AddOrigin from '../components/dashboard/AddOrigin';
 import UserOverviewTable from '../components/dashboard/UserOverviewTable';
 import JobManager from '../components/dashboard/JobManager';
 import TranscriptManager from '../components/dashboard/TranscriptManager';
@@ -43,6 +44,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'transcripts', label: 'Transcripts' },
     { key: 'vendors', label: 'Vendors' },
     { key: 'funding', label: 'Funding Opportunities' },
+    { key: 'add-origin', label: 'Add Origin' },
     { key: 'reports', label: 'Reports & Analytics' },
   ],
   admin: [
@@ -54,6 +56,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'funding', label: 'Funding Opportunities' },
     { key: 'submissions', label: 'Submissions' },
     { key: 'team', label: 'Team Insights' },
+    { key: 'add-origin', label: 'Add Origin' },
   ],
   hr: [
     { key: 'overview', label: 'Overview' },
@@ -61,6 +64,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'loxo', label: 'Loxo' },
     { key: 'transcripts', label: 'Transcripts' },
     { key: 'vendors', label: 'Vendors' },
+    { key: 'add-origin', label: 'Add Origin' },
     { key: 'reports', label: 'Reports & Analytics' },
   ],
   hr_admin: [
@@ -69,6 +73,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'loxo', label: 'Loxo' },
     { key: 'transcripts', label: 'Transcripts' },
     { key: 'vendors', label: 'Vendors' },
+    { key: 'add-origin', label: 'Add Origin' },
     { key: 'reports', label: 'Reports & Analytics' },
   ],
   base_user: [
@@ -260,6 +265,10 @@ const SECTION_DESCRIPTORS = {
   reports: {
     hideHeader: true,
     body: () => <PerformanceDashboard />,
+  },
+  'add-origin': {
+    hideHeader: true,
+    body: () => <AddOrigin />,
   },
   submissions: {
     subtitle: 'Oversee incoming submissions and coordinate reviews.',

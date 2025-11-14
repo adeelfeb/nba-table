@@ -1,7 +1,11 @@
 // Example API endpoint
 // Access at: http://localhost:3000/api/test
 
+import { applyCors } from '../../utils';
+
 export default async function handler(req, res) {
+  if (await applyCors(req, res)) return;
+
   if (req.method === 'GET') {
     try {
       // Example: Test MongoDB connection

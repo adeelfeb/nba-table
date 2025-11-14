@@ -9,7 +9,7 @@ export const config = {
 };
 
 async function handler(req, res) {
-  if (applyCors(req, res)) return;
+  if (await applyCors(req, res)) return;
 
   const { jobId } = req.query || {};
 

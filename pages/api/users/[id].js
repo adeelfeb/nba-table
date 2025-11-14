@@ -4,9 +4,11 @@ import authMiddleware from '../../../middlewares/authMiddleware';
 import roleMiddleware from '../../../middlewares/roleMiddleware';
 import { jsonError, jsonSuccess } from '../../../lib/response';
 import { ensureRole } from '../../../lib/roles';
+import { applyCors } from '../../../utils';
 
 export default async function handler(req, res) {
   const { method, query: { id } } = req;
+  if (await applyCors(req, res)) return;
   await connectDB();
 
   switch (method) {

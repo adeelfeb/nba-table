@@ -1,4 +1,5 @@
 import { jsonError, jsonSuccess } from '../../../lib/response';
+import { applyCors } from '../../../utils';
 
 const TREND_DATA = {
   '30d': {
@@ -161,7 +162,9 @@ const TREND_DATA = {
 
 const DEFAULT_TIMEFRAME = '90d';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
+  if (await applyCors(req, res)) return;
+
   if (req.method !== 'GET') {
     return jsonError(res, 405, 'Method not allowed');
   }
@@ -177,6 +180,8 @@ export default function handler(req, res) {
     summary: data.summary,
   });
 }
+
+
 
 
 

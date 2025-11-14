@@ -4,8 +4,11 @@ import Role from '../../../models/Role';
 import { jsonError, jsonSuccess } from '../../../lib/response';
 import { env } from '../../../lib/config';
 import { ensureRole } from '../../../lib/roles';
+import { applyCors } from '../../../utils';
 
 export default async function handler(req, res) {
+  if (await applyCors(req, res)) return;
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return jsonError(res, 405, `Method ${req.method} not allowed`);
