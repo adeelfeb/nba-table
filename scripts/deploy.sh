@@ -3,372 +3,275 @@
 # deploy.sh - Auto-deploy Proof project with rollback capability
 # -------------------------------
 
-# Exit immediately if a command exits with a non-zero status
-set -e
+set -euo pipefail
 
 # Configuration
 PROJECT_DIR="/root/proof"
 BACKUP_DIR="/root/proof-backups"
 PM2_PROCESS="proof-server"
+ECOSYSTEM_FILE="${PROJECT_DIR}/ecosystem.config.js"
 HEALTH_CHECK_URL="http://localhost:3000/api/test"
-MAX_BACKUPS=5  # Keep last 5 backups
-HEALTH_CHECK_TIMEOUT=30  # seconds
-HEALTH_CHECK_RETRIES=3
+MAX_BACKUPS=5
+HEALTH_CHECK_TIMEOUT=10
+HEALTH_CHECK_RETRIES=5
+STARTUP_WAIT=20
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Logging function
-log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
-}
+log() { echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+warn() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
-
-warn() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-# Function to create backup
+# Create backup
 create_backup() {
     local backup_name="backup-$(date +'%Y%m%d-%H%M%S')"
     local backup_path="${BACKUP_DIR}/${backup_name}"
     
     log "Creating backup: ${backup_name}"
+    mkdir -p "${BACKUP_DIR}" "${backup_path}"
     
-    # Create backup directory if it doesn't exist
-    mkdir -p "${BACKUP_DIR}"
-    mkdir -p "${backup_path}"
-    
-    # Always backup git state
+    # Backup git state
     git -C "${PROJECT_DIR}" rev-parse HEAD > "${backup_path}/git-commit.txt" 2>/dev/null || true
     cp "${PROJECT_DIR}/package.json" "${backup_path}/package.json" 2>/dev/null || true
     cp "${PROJECT_DIR}/package-lock.json" "${backup_path}/package-lock.json" 2>/dev/null || true
     
-    # Backup .next directory if it exists
+    # Backup .next if exists
     if [ -d "${PROJECT_DIR}/.next" ]; then
-        cp -r "${PROJECT_DIR}/.next" "${backup_path}/.next" 2>/dev/null || true
-        log "Backed up .next directory"
+        log "Backing up .next directory..."
+        cp -r "${PROJECT_DIR}/.next" "${backup_path}/.next" 2>/dev/null || {
+            warn "Failed to backup .next, continuing with git state only"
+        }
     else
         warn "No .next directory found, backing up git state only"
     fi
     
-    # Backup node_modules if it exists (optional, can be large)
-    # We'll skip this to save space, dependencies can be reinstalled
-    
-    log "Backup created successfully: ${backup_name}"
+    log "Backup created: ${backup_name}"
     echo "${backup_name}"
 }
 
-# Function to find most recent backup
+# Find latest backup
 find_latest_backup() {
     local backups=($(ls -t "${BACKUP_DIR}" 2>/dev/null | grep "^backup-" || true))
-    if [ ${#backups[@]} -gt 0 ]; then
-        echo "${backups[0]}"
-    else
-        echo ""
-    fi
+    [ ${#backups[@]} -gt 0 ] && echo "${backups[0]}" || echo ""
 }
 
-# Function to rollback to previous version
+# Rollback function
 rollback() {
     local backup_name=$1
     
-    # If no backup name provided or backup doesn't exist, try to find the latest one
     if [ -z "$backup_name" ] || [ ! -d "${BACKUP_DIR}/${backup_name}" ]; then
-        warn "Specified backup not found, looking for most recent backup..."
+        warn "Specified backup not found, finding latest..."
         backup_name=$(find_latest_backup)
         if [ -z "$backup_name" ] || [ ! -d "${BACKUP_DIR}/${backup_name}" ]; then
-            error "No valid backup found for rollback"
-            log "Available backups in ${BACKUP_DIR}:"
+            error "No valid backup found"
             ls -la "${BACKUP_DIR}" 2>/dev/null || true
             return 1
         fi
-        log "Using most recent backup: ${backup_name}"
+        log "Using latest backup: ${backup_name}"
     fi
     
-    error "Rolling back to backup: ${backup_name}"
-    
+    error "Rolling back to: ${backup_name}"
     local backup_path="${BACKUP_DIR}/${backup_name}"
+    cd "${PROJECT_DIR}" || return 1
     
-    # Restore .next directory
+    # Restore .next
     if [ -d "${backup_path}/.next" ]; then
         rm -rf "${PROJECT_DIR}/.next"
         cp -r "${backup_path}/.next" "${PROJECT_DIR}/.next"
-        log "Restored .next directory from backup"
+        log "Restored .next directory"
     fi
     
-    # Restore node_modules if needed
-    if [ -d "${backup_path}/node_modules" ] && [ ! -d "${PROJECT_DIR}/node_modules" ]; then
-        log "Restoring node_modules from backup"
-        cp -r "${backup_path}/node_modules" "${PROJECT_DIR}/node_modules"
+    # Restore git commit
+    if [ -f "${backup_path}/git-commit.txt" ]; then
+        local commit_hash=$(cat "${backup_path}/git-commit.txt")
+        log "Restoring git commit: ${commit_hash}"
+        git checkout "${commit_hash}" 2>/dev/null || warn "Could not restore git commit"
     fi
     
-    # Restore package files if they differ
+    # Restore package.json if different
     if [ -f "${backup_path}/package.json" ]; then
         if ! cmp -s "${PROJECT_DIR}/package.json" "${backup_path}/package.json"; then
-            warn "Package.json differs, restoring from backup"
+            warn "Restoring package.json from backup"
             cp "${backup_path}/package.json" "${PROJECT_DIR}/package.json"
             cp "${backup_path}/package-lock.json" "${PROJECT_DIR}/package-lock.json" 2>/dev/null || true
-            log "Running npm install to sync dependencies..."
-            cd "${PROJECT_DIR}"
             npm install --production=false
         fi
     fi
     
-    # Restore git commit if available
-    if [ -f "${backup_path}/git-commit.txt" ]; then
-        local commit_hash=$(cat "${backup_path}/git-commit.txt")
-        log "Restoring git commit: ${commit_hash}"
-        cd "${PROJECT_DIR}"
-        git checkout "${commit_hash}" 2>/dev/null || warn "Could not restore git commit"
-    fi
-    
-    # Restart PM2 with restored version
-    log "Restarting PM2 process with previous version..."
-    pm2 restart "${PM2_PROCESS}" --update-env || pm2 start "${PM2_PROCESS}" --update-env
-    
-    # Wait a bit for the process to start
-    sleep 5
-    
-    # Verify rollback
-    if check_health; then
-        log "Rollback successful! Application is running with previous version."
-        return 0
+    # Restart PM2
+    log "Restarting PM2..."
+    if [ -f "${ECOSYSTEM_FILE}" ]; then
+        pm2 restart ecosystem.config.js --update-env || pm2 start ecosystem.config.js --update-env
     else
-        error "Rollback completed but health check failed. Manual intervention may be required."
-        return 1
+        pm2 restart "${PM2_PROCESS}" --update-env || pm2 start "${PM2_PROCESS}" --update-env
     fi
+    
+    sleep 10
+    check_health && log "Rollback successful!" || error "Rollback health check failed"
 }
 
-# Function to check application health
+# Health check
 check_health() {
     local retries=0
     local max_retries=${HEALTH_CHECK_RETRIES}
     
-    log "Checking application health at ${HEALTH_CHECK_URL}..."
+    log "Checking health at ${HEALTH_CHECK_URL}..."
     
     while [ $retries -lt $max_retries ]; do
-        # Check if PM2 process is running
+        # Check PM2 process
         if ! pm2 describe "${PM2_PROCESS}" > /dev/null 2>&1; then
-            warn "PM2 process ${PM2_PROCESS} is not running"
+            warn "PM2 process not running"
             retries=$((retries + 1))
-            if [ $retries -lt $max_retries ]; then
-                warn "Retrying in 5 seconds..."
-                sleep 5
-            fi
+            [ $retries -lt $max_retries ] && sleep 5
             continue
         fi
         
-        # Check HTTP health endpoint (don't use -f flag to capture response even on errors)
-        local http_code=$(curl -s -o /tmp/health_check_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${HEALTH_CHECK_URL}" 2>&1)
-        local curl_exit=$?
-        local response=$(cat /tmp/health_check_response.txt 2>/dev/null || echo "")
+        # Check HTTP endpoint
+        local http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${HEALTH_CHECK_URL}" 2>&1 || echo "000")
+        local response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
         
-        # Log the actual response for debugging (first 500 chars)
-        if [ -n "$response" ]; then
-            log "Health check response (HTTP $http_code): $(echo "$response" | head -c 500)"
-        else
-            log "Health check returned empty response (HTTP $http_code, curl exit: $curl_exit)"
-        fi
-        
-        # Check if curl succeeded and got HTTP 200
-        if [ $curl_exit -eq 0 ] && [ "$http_code" = "200" ]; then
-            # Check if response contains success field (JSON response)
+        if [ "$http_code" = "200" ]; then
             if echo "$response" | grep -q '"success"'; then
-                # Check if success is true
-                if echo "$response" | grep -q '"success"\s*:\s*true'; then
-                    log "Health check passed! (HTTP $http_code)"
-                    rm -f /tmp/health_check_response.txt
-                    return 0
-                else
-                    warn "Health check returned success=false in response"
-                    # Still accept it if we got 200 - the endpoint is responding
-                    warn "Accepting 200 response even though success=false"
-                    rm -f /tmp/health_check_response.txt
-                    return 0
-                fi
+                log "Health check passed! (HTTP 200)"
+                rm -f /tmp/hc_response.txt
+                return 0
             else
-                # If not JSON but got 200, accept it - server is responding
-                if [ -n "$response" ]; then
-                    warn "Health check returned non-JSON response (HTTP $http_code), but accepting 200 status"
-                    rm -f /tmp/health_check_response.txt
-                    return 0
-                else
-                    warn "Health check returned empty response (HTTP $http_code)"
-                fi
+                warn "Got 200 but unexpected response format"
+                log "Response: $(echo "$response" | head -c 200)"
             fi
         else
-            if [ $curl_exit -ne 0 ]; then
-                warn "Health check HTTP request failed (curl exit code: $curl_exit, HTTP code: $http_code)"
-            else
-                warn "Health check returned non-200 status (HTTP $http_code)"
+            warn "Health check failed (HTTP $http_code, attempt $((retries + 1))/$max_retries)"
+            if [ -n "$response" ]; then
+                log "Response: $(echo "$response" | head -c 200)"
             fi
         fi
         
         retries=$((retries + 1))
-        if [ $retries -lt $max_retries ]; then
-            warn "Health check failed (attempt ${retries}/${max_retries}), retrying in 5 seconds..."
-            sleep 5
-        fi
+        [ $retries -lt $max_retries ] && sleep 5
     done
     
     error "Health check failed after ${max_retries} attempts"
-    # Log PM2 status for debugging
-    log "PM2 process status:"
+    log "PM2 status:"
     pm2 describe "${PM2_PROCESS}" || true
-    # Log PM2 logs for debugging
-    log "Recent PM2 error logs:"
-    pm2 logs "${PM2_PROCESS}" --err --lines 20 --nostream || true
-    log "Recent PM2 output logs:"
-    pm2 logs "${PM2_PROCESS}" --out --lines 20 --nostream || true
-    rm -f /tmp/health_check_response.txt
+    log "PM2 error logs (last 10 lines):"
+    pm2 logs "${PM2_PROCESS}" --err --lines 10 --nostream || true
+    rm -f /tmp/hc_response.txt
     return 1
 }
 
-# Function to clean old backups
+# Cleanup old backups
 cleanup_old_backups() {
     log "Cleaning up old backups (keeping last ${MAX_BACKUPS})..."
-    
-    # Get list of backups sorted by modification time (newest first)
     local backups=($(ls -t "${BACKUP_DIR}" 2>/dev/null | grep "^backup-" || true))
-    local backup_count=${#backups[@]}
+    local count=${#backups[@]}
     
-    if [ $backup_count -gt $MAX_BACKUPS ]; then
-        local to_remove=$((backup_count - MAX_BACKUPS))
-        for ((i=MAX_BACKUPS; i<backup_count; i++)); do
-            local old_backup="${BACKUP_DIR}/${backups[$i]}"
-            log "Removing old backup: ${backups[$i]}"
-            rm -rf "${old_backup}"
+    if [ $count -gt $MAX_BACKUPS ]; then
+        for ((i=MAX_BACKUPS; i<count; i++)); do
+            rm -rf "${BACKUP_DIR}/${backups[$i]}"
+            log "Removed old backup: ${backups[$i]}"
         done
-        log "Cleaned up ${to_remove} old backup(s)"
     else
         log "No old backups to clean up"
     fi
 }
 
-# Main deployment function
+# Main deployment
 main() {
-    log "Starting deployment for Proof project..."
+    log "Starting deployment..."
     
-    # Navigate to project directory
     cd "${PROJECT_DIR}" || {
         error "Project directory not found: ${PROJECT_DIR}"
         exit 1
     }
     
-    # Create backup of current working version BEFORE making any changes
+    # Create backup
     local current_backup=$(create_backup)
-    
-    # Don't clean up backups yet - wait until deployment succeeds
-    
-    # Store current git commit for potential rollback
     local current_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
     
-    # Pull latest changes from GitHub
-    log "Pulling latest code from GitHub..."
-    if ! git fetch origin main; then
-        error "Failed to fetch from GitHub"
-        if [ -n "$current_backup" ]; then
-            rollback "$current_backup"
-        fi
-        exit 1
-    fi
-    
-    # Store the commit we're about to deploy
-    local new_commit=$(git rev-parse origin/main 2>/dev/null || echo "")
-    
-    # Reset to latest
-    git reset --hard origin/main || {
-        error "Failed to reset to latest commit"
-        if [ -n "$current_backup" ]; then
-            rollback "$current_backup"
-        fi
+    # Pull latest
+    log "Pulling latest code..."
+    git fetch origin main || {
+        error "Failed to fetch"
+        [ -n "$current_backup" ] && rollback "$current_backup"
         exit 1
     }
     
-    # Install/update npm dependencies
-    log "Installing npm dependencies..."
-    if ! npm install; then
-        error "Failed to install dependencies"
-        if [ -n "$current_backup" ]; then
-            rollback "$current_backup"
-        fi
+    local new_commit=$(git rev-parse origin/main 2>/dev/null || echo "")
+    git reset --hard origin/main || {
+        error "Failed to reset"
+        [ -n "$current_backup" ] && rollback "$current_backup"
         exit 1
-    fi
+    }
     
-    # Build the Next.js project
+    # Install dependencies
+    log "Installing dependencies..."
+    npm install || {
+        error "npm install failed"
+        [ -n "$current_backup" ] && rollback "$current_backup"
+        exit 1
+    }
+    
+    # Build
     log "Building Next.js project..."
-    if ! npm run build; then
-        error "Build failed!"
-        if [ -n "$current_backup" ]; then
-            log "Attempting to rollback to previous version..."
-            rollback "$current_backup"
-        fi
+    npm run build || {
+        error "Build failed"
+        [ -n "$current_backup" ] && rollback "$current_backup"
         exit 1
-    fi
+    }
     
-    # Verify build output exists
+    # Verify build
     if [ ! -d "${PROJECT_DIR}/.next" ]; then
-        error "Build output not found!"
-        if [ -n "$current_backup" ]; then
-            log "Attempting to rollback to previous version..."
-            rollback "$current_backup"
-        fi
+        error "Build output (.next) not found"
+        [ -n "$current_backup" ] && rollback "$current_backup"
         exit 1
     fi
     
-    # Restart PM2 process with new build
-    log "Restarting PM2 process: ${PM2_PROCESS}..."
-    if ! pm2 restart "${PM2_PROCESS}" --update-env; then
-        error "Failed to restart PM2 process"
-        if [ -n "$current_backup" ]; then
-            log "Attempting to rollback to previous version..."
-            rollback "$current_backup"
-        fi
-        exit 1
+    # Restart PM2
+    log "Restarting PM2 process..."
+    if [ -f "${ECOSYSTEM_FILE}" ]; then
+        pm2 restart ecosystem.config.js --update-env || pm2 start ecosystem.config.js --update-env
+    else
+        pm2 restart "${PM2_PROCESS}" --update-env || {
+            warn "PM2 restart failed, trying start..."
+            pm2 start "${PM2_PROCESS}" --update-env || {
+                error "PM2 start failed"
+                [ -n "$current_backup" ] && rollback "$current_backup"
+                exit 1
+            }
+        }
     fi
     
-    # Wait for application to start
-    log "Waiting for application to start..."
-    sleep 15
+    # Wait for startup
+    log "Waiting ${STARTUP_WAIT}s for application to start..."
+    sleep ${STARTUP_WAIT}
     
-    # Perform health check
+    # Health check
     if ! check_health; then
-        error "Health check failed after deployment!"
+        error "Health check failed after deployment"
         if [ -n "$current_backup" ]; then
-            log "Attempting to rollback to previous version..."
             if rollback "$current_backup"; then
-                log "Rollback successful! Previous version is now running."
-                log "Deployment was not applied due to health check failure."
-                log "Previous commit remains active: ${current_commit}"
-                # Exit with 0 (success) since rollback was successful
-                # The previous version is running, which is what we want
+                log "Rollback successful! Previous version running."
+                log "Previous commit: ${current_commit}"
                 exit 0
             else
-                error "Rollback failed! Manual intervention required."
+                error "Rollback failed"
                 exit 1
             fi
         else
-            error "No backup available for rollback. Manual intervention required."
+            error "No backup available for rollback"
             exit 1
         fi
     fi
     
-    log "Deployment completed successfully!"
+    log "Deployment successful!"
     log "Deployed commit: ${new_commit}"
-    if [ -n "$current_backup" ]; then
-        log "Previous version backed up as: ${current_backup}"
-    fi
+    [ -n "$current_backup" ] && log "Backup: ${current_backup}"
     
-    # Clean up old backups now that deployment succeeded
     cleanup_old_backups
 }
 
-# Run main function
 main "$@"

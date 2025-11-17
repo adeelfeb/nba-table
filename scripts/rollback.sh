@@ -3,133 +3,102 @@
 # rollback.sh - Manual rollback script for Proof project
 # -------------------------------
 
+set -euo pipefail
+
 # Configuration
 PROJECT_DIR="/root/proof"
 BACKUP_DIR="/root/proof-backups"
 PM2_PROCESS="proof-server"
+ECOSYSTEM_FILE="${PROJECT_DIR}/ecosystem.config.js"
 HEALTH_CHECK_URL="http://localhost:3000/api/test"
-HEALTH_CHECK_TIMEOUT=30
+HEALTH_CHECK_TIMEOUT=10
 HEALTH_CHECK_RETRIES=3
 
-# Colors for output
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
-}
+log() { echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"; }
+error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+warn() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
+info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
-error() {
-    echo -e "${RED}[ERROR]${NC} $1" >&2
-}
-
-warn() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-# Function to check application health
+# Health check
 check_health() {
     local retries=0
-    local max_retries=${HEALTH_CHECK_RETRIES}
-    
-    log "Checking application health at ${HEALTH_CHECK_URL}..."
-    
-    while [ $retries -lt $max_retries ]; do
-        if curl -f -s -m ${HEALTH_CHECK_TIMEOUT} "${HEALTH_CHECK_URL}" > /dev/null 2>&1; then
+    while [ $retries -lt ${HEALTH_CHECK_RETRIES} ]; do
+        local http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${HEALTH_CHECK_URL}" 2>&1 || echo "000")
+        if [ "$http_code" = "200" ]; then
             log "Health check passed!"
             return 0
         fi
-        
         retries=$((retries + 1))
-        if [ $retries -lt $max_retries ]; then
-            warn "Health check failed (attempt ${retries}/${max_retries}), retrying in 5 seconds..."
-            sleep 5
-        fi
+        [ $retries -lt ${HEALTH_CHECK_RETRIES} ] && sleep 5
     done
-    
-    error "Health check failed after ${max_retries} attempts"
+    error "Health check failed"
     return 1
 }
 
-# Function to rollback to a specific backup
+# Rollback to backup
 rollback_to_backup() {
     local backup_name=$1
     
     if [ -z "$backup_name" ]; then
-        error "Backup name is required"
+        error "Backup name required"
         return 1
     fi
     
     local backup_path="${BACKUP_DIR}/${backup_name}"
-    
     if [ ! -d "$backup_path" ]; then
         error "Backup not found: ${backup_name}"
         return 1
     fi
     
-    log "Rolling back to backup: ${backup_name}"
+    log "Rolling back to: ${backup_name}"
+    cd "${PROJECT_DIR}" || return 1
     
-    cd "${PROJECT_DIR}" || {
-        error "Project directory not found: ${PROJECT_DIR}"
-        return 1
-    }
-    
-    # Restore .next directory
+    # Restore .next
     if [ -d "${backup_path}/.next" ]; then
         rm -rf "${PROJECT_DIR}/.next"
         cp -r "${backup_path}/.next" "${PROJECT_DIR}/.next"
-        log "Restored .next directory from backup"
+        log "Restored .next directory"
+    else
+        warn "No .next in backup, skipping restore"
     fi
     
-    # Restore node_modules if needed
-    if [ -d "${backup_path}/node_modules" ] && [ ! -d "${PROJECT_DIR}/node_modules" ]; then
-        log "Restoring node_modules from backup"
-        cp -r "${backup_path}/node_modules" "${PROJECT_DIR}/node_modules"
-    fi
-    
-    # Restore package files if they differ
+    # Restore package.json if different
     if [ -f "${backup_path}/package.json" ]; then
         if ! cmp -s "${PROJECT_DIR}/package.json" "${backup_path}/package.json"; then
-            warn "Package.json differs, restoring from backup"
+            warn "Restoring package.json"
             cp "${backup_path}/package.json" "${PROJECT_DIR}/package.json"
             cp "${backup_path}/package-lock.json" "${PROJECT_DIR}/package-lock.json" 2>/dev/null || true
-            log "Running npm install to sync dependencies..."
             npm install --production=false
         fi
     fi
     
-    # Restore git commit if available
+    # Restore git commit
     if [ -f "${backup_path}/git-commit.txt" ]; then
         local commit_hash=$(cat "${backup_path}/git-commit.txt")
         log "Restoring git commit: ${commit_hash}"
         git checkout "${commit_hash}" 2>/dev/null || warn "Could not restore git commit"
     fi
     
-    # Restart PM2 with restored version
-    log "Restarting PM2 process..."
-    pm2 restart "${PM2_PROCESS}" --update-env || pm2 start "${PM2_PROCESS}" --update-env
-    
-    # Wait for the process to start
-    sleep 10
-    
-    # Verify rollback
-    if check_health; then
-        log "Rollback successful! Application is running with backup version."
-        return 0
+    # Restart PM2
+    log "Restarting PM2..."
+    if [ -f "${ECOSYSTEM_FILE}" ]; then
+        pm2 restart ecosystem.config.js --update-env || pm2 start ecosystem.config.js --update-env
     else
-        error "Rollback completed but health check failed."
-        return 1
+        pm2 restart "${PM2_PROCESS}" --update-env || pm2 start "${PM2_PROCESS}" --update-env
     fi
+    
+    sleep 10
+    check_health && log "Rollback successful!" || error "Rollback health check failed"
 }
 
-# List available backups
+# List backups
 list_backups() {
     info "Available backups:"
     echo ""
@@ -158,15 +127,13 @@ list_backups() {
             echo -e "  ${BLUE}[$((i+1))]${NC} ${backup}"
         fi
         
-        if [ -n "$commit_info" ]; then
-            echo -e "       Commit: ${commit_info}"
-        fi
+        [ -n "$commit_info" ] && echo -e "       Commit: ${commit_info}"
         echo -e "       Date: ${date_info}"
         echo ""
     done
 }
 
-# Main function
+# Main
 main() {
     if [ "$1" == "list" ] || [ -z "$1" ]; then
         list_backups
@@ -183,7 +150,6 @@ main() {
         echo "  list              List all available backups"
         echo "  <backup-name>     Rollback to the specified backup"
         echo "  --help, -h        Show this help message"
-        echo ""
         exit 0
     fi
     
@@ -191,4 +157,3 @@ main() {
 }
 
 main "$@"
-
