@@ -1,6 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Configure output file tracing to prevent .nft.json errors
+  // Exclude all files from tracing since we're not using serverless deployment
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/**/*',
+    ],
+  },
   webpack: (config, { isServer }) => {
     // Suppress webpack cache serialization warnings and autoprefixer warnings
     config.ignoreWarnings = [
