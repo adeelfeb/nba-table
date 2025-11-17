@@ -130,36 +130,10 @@ rollback() {
     check_health && log "Rollback successful!" || error "Rollback health check failed"
 }
 
-# Detect actual port from PM2 logs
-detect_port() {
-    # Wait a moment for logs to be available
-    sleep 2
-    
-    # Try to get port from PM2 logs (Next.js shows "Local: http://localhost:PORT")
-    # PM2 logs format: "0|proof-se |    - Local:        http://localhost:8000"
-    local port_line=$(pm2 logs "${PM2_PROCESS}" --out --lines 100 --nostream 2>/dev/null | grep -i "Local:" | grep -o "localhost:[0-9]*" | tail -1 | cut -d: -f2 || echo "")
-    
-    if [ -n "$port_line" ] && [ "$port_line" != "" ]; then
-        log "Detected port from PM2 logs: ${port_line}"
-        echo "$port_line"
-        return 0
-    fi
-    
-    # Fallback: check which ports are actually listening
-    if lsof -i :8000 > /dev/null 2>&1; then
-        log "Detected port 8000 is listening"
-        echo "8000"
-        return 0
-    fi
-    
-    if lsof -i :3000 > /dev/null 2>&1; then
-        log "Detected port 3000 is listening"
-        echo "3000"
-        return 0
-    fi
-    
-    # Default to 8000 (since that's what the server is actually using)
-    warn "Could not detect port, defaulting to 8000"
+# Get the port - server runs on 8000
+get_health_check_port() {
+    # Server is configured to run on port 8000
+    # Check port 8000 first, fallback to 3000 only if 8000 fails
     echo "8000"
 }
 
@@ -170,11 +144,11 @@ check_health() {
     local actual_port=""
     local health_url=""
     
-    # Detect actual port
-    actual_port=$(detect_port)
+    # Use port 8000 (server runs on 8000)
+    actual_port=$(get_health_check_port)
     health_url="http://localhost:${actual_port}/api/test"
     
-    log "Checking health at ${health_url} (detected port: ${actual_port})..."
+    log "Checking health at ${health_url} (port: ${actual_port})..."
     
     while [ $retries -lt $max_retries ]; do
         # Check PM2 process
@@ -185,25 +159,19 @@ check_health() {
             continue
         fi
         
-        # Try detected port first
-        local http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+        # Try port 8000 first (server runs on 8000)
+        local http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "http://localhost:8000/api/test" 2>&1 || echo "000")
         local response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
         
-        # If detected port failed, try the other port
+        # If port 8000 failed, try port 3000 as fallback
         if [ "$http_code" != "200" ] && [ "$http_code" = "000" ]; then
-            if [ "$actual_port" = "3000" ]; then
-                warn "Port 3000 failed, trying port 8000..."
-                actual_port="8000"
-                health_url="http://localhost:8000/api/test"
-                http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
-                response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
-            elif [ "$actual_port" = "8000" ]; then
-                warn "Port 8000 failed, trying port 3000..."
-                actual_port="3000"
-                health_url="http://localhost:3000/api/test"
-                http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
-                response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
-            fi
+            warn "Port 8000 failed, trying port 3000 as fallback..."
+            actual_port="3000"
+            health_url="http://localhost:3000/api/test"
+            http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+            response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
+        else
+            actual_port="8000"
         fi
         
         if [ "$http_code" = "200" ]; then

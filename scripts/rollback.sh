@@ -26,47 +26,26 @@ error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 warn() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
-# Detect port from PM2 logs
-detect_port() {
-    sleep 2
-    local port_line=$(pm2 logs "${PM2_PROCESS}" --out --lines 100 --nostream 2>/dev/null | grep -i "Local:" | grep -o "localhost:[0-9]*" | tail -1 | cut -d: -f2 || echo "")
-    if [ -n "$port_line" ] && [ "$port_line" != "" ]; then
-        echo "$port_line"
-        return 0
-    fi
-    if lsof -i :8000 > /dev/null 2>&1; then
-        echo "8000"
-        return 0
-    fi
-    if lsof -i :3000 > /dev/null 2>&1; then
-        echo "3000"
-        return 0
-    fi
-    echo "8000"
-}
-
-# Health check
+# Health check - server runs on port 8000
 check_health() {
     local retries=0
-    local actual_port=$(detect_port)
-    local health_url="http://localhost:${actual_port}/api/test"
+    local actual_port="8000"
+    local health_url="http://localhost:8000/api/test"
     
     log "Checking health at ${health_url} (port: ${actual_port})..."
     
     while [ $retries -lt ${HEALTH_CHECK_RETRIES} ]; do
+        # Try port 8000 first (server runs on 8000)
         local http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
         
-        # Try alternative port if first attempt failed
+        # If port 8000 failed, try port 3000 as fallback
         if [ "$http_code" != "200" ] && [ "$http_code" = "000" ]; then
-            if [ "$actual_port" = "3000" ]; then
-                actual_port="8000"
-                health_url="http://localhost:8000/api/test"
-                http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
-            elif [ "$actual_port" = "8000" ]; then
-                actual_port="3000"
-                health_url="http://localhost:3000/api/test"
-                http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
-            fi
+            warn "Port 8000 failed, trying port 3000 as fallback..."
+            actual_port="3000"
+            health_url="http://localhost:3000/api/test"
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+        else
+            actual_port="8000"
         fi
         
         if [ "$http_code" = "200" ]; then
