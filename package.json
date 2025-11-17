@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "build:analyze": "ANALYZE=true next build",
+    "start": "next start",
+    "postinstall": "echo 'Dependencies installed successfully'"
   },
   "dependencies": {
     "ag-grid-community": "^34.3.1",

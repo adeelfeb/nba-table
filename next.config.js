@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  
   // Configure output file tracing to prevent .nft.json errors
   // Exclude all files from tracing since we're not using serverless deployment
   outputFileTracingExcludes: {
@@ -8,7 +9,28 @@ const nextConfig = {
       'node_modules/**/*',
     ],
   },
-  webpack: (config, { isServer }) => {
+
+  // Build optimizations for faster builds
+  // Note: SWC minification is enabled by default in Next.js 15
+  compiler: {
+    // Remove console logs in production for smaller bundle
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
+  // Enable experimental features for better performance
+  experimental: {
+    // Optimize package imports
+    optimizePackageImports: ['ag-grid-community', 'ag-grid-react'],
+  },
+
+  // Optimize images
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
+
+  webpack: (config, { isServer, dev }) => {
     // Suppress webpack cache serialization warnings and autoprefixer warnings
     config.ignoreWarnings = [
       {
@@ -25,6 +47,20 @@ const nextConfig = {
       },
     ];
 
+    // Optimize webpack for faster builds
+    // Enable caching for faster rebuilds (production only to avoid dev issues)
+    if (!dev && !isServer) {
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+      };
+    }
+    
+    // Ensure we don't interfere with Next.js's internal chunking
+    // Next.js handles chunk splitting automatically and optimally
+
     // Reduce infrastructure logging to suppress cache warnings
     if (!isServer) {
       config.infrastructureLogging = {
@@ -34,12 +70,17 @@ const nextConfig = {
 
     return config;
   },
+
   // Suppress build warnings in console
   logging: {
     fetches: {
       fullUrl: false,
     },
   },
+
+  // Production optimizations
+  poweredByHeader: false, // Remove X-Powered-By header
+  compress: true, // Enable gzip compression
 }
 
 module.exports = nextConfig

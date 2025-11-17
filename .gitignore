@@ -59,3 +59,10 @@ Thumbs.db
 .idea/
 *.sublime-workspace
 *.sublime-project
+
+# Deployment backups
+/root/proof-backups/
+proof-backups/
+
+# Webpack cache
+.webpack/
