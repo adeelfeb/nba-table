@@ -10,7 +10,7 @@ PROJECT_DIR="/root/proof"
 BACKUP_DIR="/root/proof-backups"
 PM2_PROCESS="proof-server"
 ECOSYSTEM_FILE="${PROJECT_DIR}/ecosystem.config.js"
-HEALTH_CHECK_URL="http://localhost:3000/api/test"
+HEALTH_CHECK_URL="http://localhost:8000/api/test"
 HEALTH_CHECK_TIMEOUT=10
 HEALTH_CHECK_RETRIES=3
 
@@ -26,13 +26,51 @@ error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 warn() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 
+# Detect port from PM2 logs
+detect_port() {
+    sleep 2
+    local port_line=$(pm2 logs "${PM2_PROCESS}" --out --lines 100 --nostream 2>/dev/null | grep -i "Local:" | grep -o "localhost:[0-9]*" | tail -1 | cut -d: -f2 || echo "")
+    if [ -n "$port_line" ] && [ "$port_line" != "" ]; then
+        echo "$port_line"
+        return 0
+    fi
+    if lsof -i :8000 > /dev/null 2>&1; then
+        echo "8000"
+        return 0
+    fi
+    if lsof -i :3000 > /dev/null 2>&1; then
+        echo "3000"
+        return 0
+    fi
+    echo "8000"
+}
+
 # Health check
 check_health() {
     local retries=0
+    local actual_port=$(detect_port)
+    local health_url="http://localhost:${actual_port}/api/test"
+    
+    log "Checking health at ${health_url} (port: ${actual_port})..."
+    
     while [ $retries -lt ${HEALTH_CHECK_RETRIES} ]; do
-        local http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${HEALTH_CHECK_URL}" 2>&1 || echo "000")
+        local http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+        
+        # Try alternative port if first attempt failed
+        if [ "$http_code" != "200" ] && [ "$http_code" = "000" ]; then
+            if [ "$actual_port" = "3000" ]; then
+                actual_port="8000"
+                health_url="http://localhost:8000/api/test"
+                http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+            elif [ "$actual_port" = "8000" ]; then
+                actual_port="3000"
+                health_url="http://localhost:3000/api/test"
+                http_code=$(curl -s -o /dev/null -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+            fi
+        fi
+        
         if [ "$http_code" = "200" ]; then
-            log "Health check passed!"
+            log "Health check passed! (port ${actual_port})"
             return 0
         fi
         retries=$((retries + 1))

@@ -10,7 +10,7 @@ PROJECT_DIR="/root/proof"
 BACKUP_DIR="/root/proof-backups"
 PM2_PROCESS="proof-server"
 ECOSYSTEM_FILE="${PROJECT_DIR}/ecosystem.config.js"
-HEALTH_CHECK_URL="http://localhost:3000/api/test"
+HEALTH_CHECK_URL="http://localhost:8000/api/test"
 MAX_BACKUPS=5
 HEALTH_CHECK_TIMEOUT=10
 HEALTH_CHECK_RETRIES=5
@@ -132,38 +132,47 @@ rollback() {
 
 # Detect actual port from PM2 logs
 detect_port() {
-    # Try to get port from PM2 logs (Next.js shows "Local: http://localhost:PORT")
-    local port_line=$(pm2 logs "${PM2_PROCESS}" --out --lines 50 --nostream 2>/dev/null | grep -o "Local:.*http://localhost:[0-9]*" | tail -1 | grep -o "[0-9]*" || echo "")
+    # Wait a moment for logs to be available
+    sleep 2
     
-    if [ -n "$port_line" ]; then
+    # Try to get port from PM2 logs (Next.js shows "Local: http://localhost:PORT")
+    # PM2 logs format: "0|proof-se |    - Local:        http://localhost:8000"
+    local port_line=$(pm2 logs "${PM2_PROCESS}" --out --lines 100 --nostream 2>/dev/null | grep -i "Local:" | grep -o "localhost:[0-9]*" | tail -1 | cut -d: -f2 || echo "")
+    
+    if [ -n "$port_line" ] && [ "$port_line" != "" ]; then
+        log "Detected port from PM2 logs: ${port_line}"
         echo "$port_line"
         return 0
     fi
     
-    # Fallback: check if port 3000 is listening
-    if lsof -i :3000 > /dev/null 2>&1; then
-        echo "3000"
-        return 0
-    fi
-    
-    # Fallback: check if port 8000 is listening
+    # Fallback: check which ports are actually listening
     if lsof -i :8000 > /dev/null 2>&1; then
+        log "Detected port 8000 is listening"
         echo "8000"
         return 0
     fi
     
-    # Default to 3000
-    echo "3000"
+    if lsof -i :3000 > /dev/null 2>&1; then
+        log "Detected port 3000 is listening"
+        echo "3000"
+        return 0
+    fi
+    
+    # Default to 8000 (since that's what the server is actually using)
+    warn "Could not detect port, defaulting to 8000"
+    echo "8000"
 }
 
 # Health check
 check_health() {
     local retries=0
     local max_retries=${HEALTH_CHECK_RETRIES}
+    local actual_port=""
+    local health_url=""
     
     # Detect actual port
-    local actual_port=$(detect_port)
-    local health_url="http://localhost:${actual_port}/api/test"
+    actual_port=$(detect_port)
+    health_url="http://localhost:${actual_port}/api/test"
     
     log "Checking health at ${health_url} (detected port: ${actual_port})..."
     
@@ -176,9 +185,26 @@ check_health() {
             continue
         fi
         
-        # Check HTTP endpoint
+        # Try detected port first
         local http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
         local response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
+        
+        # If detected port failed, try the other port
+        if [ "$http_code" != "200" ] && [ "$http_code" = "000" ]; then
+            if [ "$actual_port" = "3000" ]; then
+                warn "Port 3000 failed, trying port 8000..."
+                actual_port="8000"
+                health_url="http://localhost:8000/api/test"
+                http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+                response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
+            elif [ "$actual_port" = "8000" ]; then
+                warn "Port 8000 failed, trying port 3000..."
+                actual_port="3000"
+                health_url="http://localhost:3000/api/test"
+                http_code=$(curl -s -o /tmp/hc_response.txt -w "%{http_code}" -m ${HEALTH_CHECK_TIMEOUT} "${health_url}" 2>&1 || echo "000")
+                response=$(cat /tmp/hc_response.txt 2>/dev/null || echo "")
+            fi
+        fi
         
         if [ "$http_code" = "200" ]; then
             if echo "$response" | grep -q '"success"'; then
@@ -190,15 +216,9 @@ check_health() {
                 log "Response: $(echo "$response" | head -c 200)"
             fi
         else
-            warn "Health check failed (HTTP $http_code, attempt $((retries + 1))/$max_retries)"
+            warn "Health check failed (HTTP $http_code on port ${actual_port}, attempt $((retries + 1))/$max_retries)"
             if [ -n "$response" ]; then
                 log "Response: $(echo "$response" | head -c 200)"
-            fi
-            # Try alternative port if 3000 failed
-            if [ "$actual_port" = "3000" ] && [ "$http_code" = "000" ]; then
-                warn "Trying alternative port 8000..."
-                actual_port="8000"
-                health_url="http://localhost:8000/api/test"
             fi
         fi
         
