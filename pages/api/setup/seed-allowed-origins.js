@@ -17,6 +17,12 @@ const DEFAULT_ORIGINS = [
     description: 'Default HTTP origin for GoogleWeb UK',
     isActive: true,
   },
+  {
+    origin: 'https://global-node.thefvg.com',
+    label: 'Global Node TheFVG (Production)',
+    description: 'Default production origin for Global Node TheFVG',
+    isActive: true,
+  },
 ];
 
 export default async function handler(req, res) {

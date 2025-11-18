@@ -20,6 +20,7 @@ function parseDefaultOrigins() {
   const defaultOrigins = [
     'https://googleweb.uk',
     'http://googleweb.uk',
+    'https://global-node.thefvg.com',
   ];
   
   const configured = env.CORS_DEFAULT_ORIGINS || '';
