@@ -38,15 +38,18 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for session management
         body: JSON.stringify({ email: email.trim(), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        throw new Error(formatErrorMessage(data, 'We couldn’t sign you in with those credentials.'));
+        throw new Error(formatErrorMessage(data, "We couldn't sign you in with those credentials."));
       }
+      // Small delay to ensure cookie is set before redirect
+      await new Promise(resolve => setTimeout(resolve, 100));
       await router.push('/dashboard');
     } catch (err) {
-      setError(err.message || 'We couldn’t sign you in with those credentials.');
+      setError(err.message || "We couldn't sign you in with those credentials.");
     } finally {
       setLoading(false);
     }

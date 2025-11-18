@@ -1,8 +1,5 @@
 import axios from 'axios';
 
-// Use require for cheerio in server-side Next.js code to avoid module resolution issues
-const cheerio = require('cheerio');
-
 /**
  * Normalizes a URL to ensure it has a protocol
  * Accepts domains, URLs with or without protocol, and various formats
@@ -74,18 +71,23 @@ export async function scrapeWebsite(url) {
       };
     }
 
-    // Validate cheerio is available
-    if (!cheerio) {
-      console.error('Cheerio is not available. Please ensure cheerio is installed: npm install cheerio');
+    // Dynamically import cheerio to avoid webpack bundling issues
+    let cheerio;
+    try {
+      // Use dynamic import for Next.js compatibility
+      const cheerioModule = await import('cheerio');
+      cheerio = cheerioModule.default || cheerioModule;
+    } catch (importError) {
+      console.error('Failed to import cheerio:', importError);
       return {
         success: false,
-        error: 'Scraping library is not available. Please ensure cheerio is installed.',
+        error: 'Scraping library could not be loaded. Please ensure cheerio is installed.',
         data: null,
       };
     }
 
-    if (typeof cheerio.load !== 'function') {
-      console.error('Cheerio.load is not a function. Cheerio object:', cheerio);
+    if (!cheerio || typeof cheerio.load !== 'function') {
+      console.error('Cheerio.load is not available. Cheerio object:', cheerio);
       return {
         success: false,
         error: 'Scraping library error. Please contact support.',

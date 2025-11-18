@@ -46,15 +46,18 @@ export default function SignupPage() {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for session management
         body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
-        throw new Error(formatErrorMessage(data, 'We couldn’t create your account. Please try again.'));
+        throw new Error(formatErrorMessage(data, "We couldn't create your account. Please try again."));
       }
+      // Small delay to ensure cookie is set before redirect
+      await new Promise(resolve => setTimeout(resolve, 100));
       await router.push('/dashboard');
     } catch (err) {
-      setError(err.message || 'We couldn’t create your account. Please try again.');
+      setError(err.message || "We couldn't create your account. Please try again.");
     } finally {
       setLoading(false);
     }
