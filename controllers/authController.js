@@ -57,7 +57,8 @@ export async function signup(req, res) {
       roleRef: baseRole._id,
     });
     const token = signToken({ id: user._id, role: user.role });
-    setAuthCookie(res, token);
+    // Pass the request so the cookie secure flag reflects the real protocol
+    setAuthCookie(res, token, req);
     return jsonSuccess(res, 201, 'Signup successful', {
       user: sanitizeUser(user),
       token,
@@ -91,7 +92,8 @@ export async function login(req, res) {
       return jsonError(res, 500, 'Server misconfiguration: JWT_SECRET not set');
     }
     const token = signToken({ id: user._id, role: user.role });
-    setAuthCookie(res, token);
+    // Pass the request so the cookie secure flag reflects the real protocol
+    setAuthCookie(res, token, req);
     return jsonSuccess(res, 200, 'Login successful', {
       user: sanitizeUser(user),
       token,
