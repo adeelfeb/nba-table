@@ -10,14 +10,9 @@ export async function getServerSideProps(context) {
   const user = await getUserFromRequest(req);
 
   if (user) {
-    console.log('SSR home: user session detected, redirecting to dashboard', {
-      userId: user._id?.toString?.() || user.id,
-      role: user.role,
-    });
     return { redirect: { destination: '/dashboard', permanent: false } };
   }
 
-  console.log('SSR home: no user session, rendering marketing page');
   // No user session, show home page
   return { props: {} };
 }

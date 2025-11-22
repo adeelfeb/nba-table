@@ -33,11 +33,6 @@ export default function LoginPage() {
     if (isDisabled) return;
     setLoading(true);
     setError('');
-    console.log('[Login] Submit pressed', {
-      email: email.trim(),
-      timestamp: new Date().toISOString(),
-    });
-
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -45,15 +40,8 @@ export default function LoginPage() {
         credentials: 'include', // Include cookies for session management
         body: JSON.stringify({ email: email.trim(), password }),
       });
-      console.log('[Login] Response received', {
-        status: res.status,
-        ok: res.ok,
-        redirected: res.redirected,
-        url: res.url,
-      });
       
       const text = await res.text();
-      console.log('[Login] Raw response body', text);
       let data = {};
       if (text && text.trim()) {
         try {
@@ -74,15 +62,12 @@ export default function LoginPage() {
       
       // Small delay to ensure cookie is set before redirect
       await new Promise(resolve => setTimeout(resolve, 150));
-      console.log('[Login] Cookie delay complete, navigating to dashboard');
       // Use replace instead of push to avoid adding to browser history
       await router.replace('/dashboard');
-      console.log('[Login] Navigation to dashboard requested');
     } catch (err) {
       console.error('[Login] Error during sign-in flow', err);
       setError(err.message || "We couldn't sign you in with those credentials.");
     } finally {
-      console.log('[Login] Resetting loading state');
       setLoading(false);
     }
   }

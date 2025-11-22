@@ -32,16 +32,10 @@ export async function getServerSideProps(context) {
   const user = await getUserFromRequest(req);
 
   if (!user) {
-    console.warn('SSR dashboard: no user session, redirecting to /login');
     return { redirect: { destination: '/login', permanent: false } };
   }
 
   const serializedUser = serializeUser(user);
-  console.log('SSR dashboard: user session detected', {
-    userId: serializedUser.id,
-    role: serializedUser.role,
-  });
-
   return { props: { user: serializedUser } };
 }
 
