@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from '../../styles/AdminDataManager.module.css';
 import { useToast } from '../ToastProvider';
 
-const FULL_ACCESS_ROLES = new Set(['superadmin', 'hr_admin', 'hr', 'admin', 'marketer', 'marketing_admin', 'simple_user']);
-const READ_ACCESS_ROLES = new Set(['superadmin', 'hr_admin', 'hr', 'admin', 'marketer', 'marketing_admin', 'simple_user']);
+const DENIED_ROLES = new Set(['base_user']);
 
 const ONBOARD_STATUS_OPTIONS = [
   { value: 'pending', label: 'Pending' },
@@ -52,15 +51,12 @@ function normalizeRole(role) {
 
 function hasFullAccess(user) {
   if (!user) return false;
-  return FULL_ACCESS_ROLES.has(normalizeRole(user?.role));
+  const role = normalizeRole(user?.role);
+  return role && !DENIED_ROLES.has(role);
 }
 
 function hasReadAccess(user) {
-  if (!user) return false;
-  const role = normalizeRole(user?.role);
-  // Exclude base_user from access
-  if (role === 'base_user') return false;
-  return hasFullAccess(user) || READ_ACCESS_ROLES.has(role);
+  return hasFullAccess(user);
 }
 
 function formatDateTime(value) {

@@ -2,16 +2,20 @@ import connectDB from '../lib/db';
 import Job from '../models/Job';
 import { jsonError, jsonSuccess } from '../lib/response';
 
-const FULL_JOB_ACCESS_ROLES = new Set(['hr_admin', 'hr', 'superadmin']);
-const READ_JOB_ACCESS_ROLES = new Set(['base_user', 'simple_user', 'admin']);
+const DENIED_ROLES = new Set(['base_user']);
+
+function normalizeRole(role) {
+  return typeof role === 'string' ? role.trim().toLowerCase() : '';
+}
 
 function hasFullAccess(user) {
-  return !!user && FULL_JOB_ACCESS_ROLES.has(user.role);
+  if (!user) return false;
+  const role = normalizeRole(user.role);
+  return role && !DENIED_ROLES.has(role);
 }
 
 function hasReadAccess(user) {
-  if (!user) return false;
-  return hasFullAccess(user) || READ_JOB_ACCESS_ROLES.has(user.role);
+  return hasFullAccess(user);
 }
 
 function ensureReadAccess(res, user) {

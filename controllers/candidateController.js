@@ -11,8 +11,7 @@ function generateUUID() {
   });
 }
 
-const FULL_CANDIDATE_ACCESS_ROLES = new Set(['superadmin', 'hr_admin', 'hr', 'admin']);
-const READ_CANDIDATE_ACCESS_ROLES = new Set(['superadmin', 'hr_admin', 'hr', 'admin', 'simple_user']);
+const DENIED_ROLES = new Set(['base_user']);
 
 function normalizeRole(role) {
   return typeof role === 'string' ? role.trim().toLowerCase() : '';
@@ -20,15 +19,12 @@ function normalizeRole(role) {
 
 function hasFullAccess(user) {
   if (!user) return false;
-  return FULL_CANDIDATE_ACCESS_ROLES.has(normalizeRole(user.role));
+  const role = normalizeRole(user.role);
+  return role && !DENIED_ROLES.has(role);
 }
 
 function hasReadAccess(user) {
-  if (!user) return false;
-  const role = normalizeRole(user.role);
-  // Exclude base_user from access
-  if (role === 'base_user') return false;
-  return hasFullAccess(user) || READ_CANDIDATE_ACCESS_ROLES.has(role);
+  return hasFullAccess(user);
 }
 
 function ensureReadAccess(res, user) {
