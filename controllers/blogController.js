@@ -2,6 +2,7 @@ import connectDB from '../lib/db';
 import Blog from '../models/Blog';
 import User from '../models/User';
 import { jsonError, jsonSuccess } from '../lib/response';
+import mongoose from 'mongoose';
 
 // Helper to generate slug from title
 function generateSlug(title) {
@@ -121,14 +122,60 @@ export async function getBlogById(req, res) {
       return jsonError(res, 400, 'Blog ID or slug is required');
     }
 
-    const blog = await Blog.findOne({
-      $or: [{ _id: id }, { slug: id }],
-    })
+    // Build query conditions for ID or slug
+    const idOrSlugConditions = [];
+    
+    // Check if id is a valid ObjectId format (24 hex characters)
+    // Only include _id search if it's a valid ObjectId to avoid casting errors
+    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
+      idOrSlugConditions.push({ _id: id });
+    }
+    
+    // Always search by slug
+    idOrSlugConditions.push({ slug: id });
+
+    // Check if user is authenticated
+    const user = req.user;
+    const isAdmin = user && ['superadmin', 'admin', 'hr_admin'].includes(user.role?.toLowerCase());
+
+    // Build the complete query
+    let query;
+    
+    if (!user) {
+      // Public access: only show published blogs
+      query = {
+        $or: idOrSlugConditions,
+        status: 'published',
+      };
+    } else if (isAdmin) {
+      // Admins can see all blogs regardless of status
+      query = {
+        $or: idOrSlugConditions,
+      };
+    } else {
+      // Regular users can see published blogs OR their own blogs (any status)
+      query = {
+        $or: [
+          ...idOrSlugConditions.map(condition => ({ ...condition, status: 'published' })),
+          ...idOrSlugConditions.map(condition => ({ ...condition, author: user._id })),
+        ],
+      };
+    }
+
+    const blog = await Blog.findOne(query)
       .populate('author', 'name email')
       .lean();
 
     if (!blog) {
       return jsonError(res, 404, 'Blog not found');
+    }
+
+    // Double-check permissions for non-admin users accessing non-published blogs
+    if (user && !isAdmin && blog.status !== 'published') {
+      const blogAuthorId = blog.author?._id?.toString() || blog.author?.toString();
+      if (blogAuthorId !== user._id.toString()) {
+        return jsonError(res, 404, 'Blog not found');
+      }
     }
 
     // Increment views if published
@@ -435,6 +482,9 @@ export async function getCategories(req, res) {
     return jsonError(res, 500, 'Failed to fetch categories', error.message);
   }
 }
+
+
+
 
 
 

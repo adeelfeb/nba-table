@@ -1,6 +1,7 @@
 import connectDB from '../../../lib/db';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import { getPortfolioById, updatePortfolio, deletePortfolio, publishPortfolio } from '../../../controllers/portfolioController';
+import { getUserFromRequest } from '../../../lib/auth';
 import { applyCors } from '../../../utils';
 
 export default async function handler(req, res) {
@@ -13,7 +14,9 @@ export default async function handler(req, res) {
 
   switch (method) {
     case 'GET':
-      // GET doesn't require auth - public access
+      // GET doesn't require auth, but check if user is authenticated for permission checks
+      // This allows authors to view their own drafts
+      req.user = await getUserFromRequest(req);
       req.query.id = id;
       return getPortfolioById(req, res);
     

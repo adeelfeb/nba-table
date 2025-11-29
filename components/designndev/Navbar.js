@@ -4,6 +4,47 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 
+// Support both App Router and Pages Router
+function useRouterCompat() {
+  const [pathname, setPathname] = useState('')
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPathname(window.location.pathname)
+      
+      // Listen for route changes (works for both App Router and Pages Router)
+      const handleRouteChange = () => {
+        setPathname(window.location.pathname)
+      }
+      
+      // Listen to popstate for browser back/forward
+      window.addEventListener('popstate', handleRouteChange)
+      
+      // Also listen to pushstate/replacestate
+      const originalPushState = history.pushState
+      const originalReplaceState = history.replaceState
+      
+      history.pushState = function(...args) {
+        originalPushState.apply(history, args)
+        handleRouteChange()
+      }
+      
+      history.replaceState = function(...args) {
+        originalReplaceState.apply(history, args)
+        handleRouteChange()
+      }
+      
+      return () => {
+        window.removeEventListener('popstate', handleRouteChange)
+        history.pushState = originalPushState
+        history.replaceState = originalReplaceState
+      }
+    }
+  }, [])
+  
+  return { asPath: pathname, pathname }
+}
+
 /**
  * Navbar Component
  * 
@@ -14,11 +55,14 @@ import { motion, AnimatePresence } from 'framer-motion'
  * - Responsive design with tablet view
  */
 export default function Navbar() {
+  const router = useRouterCompat()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   // Handle scroll effect
   useEffect(() => {
+    setIsMounted(true)
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50)
     }
@@ -27,19 +71,16 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Animate navbar on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-  }, [])
-
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
 
-  // Check if a link is active
+  // Check if a link is active using Next.js router
+  // Only check after component is mounted to avoid hydration mismatch
   const isActive = (href) => {
-    if (typeof window === 'undefined') return false
-    const pathname = window.location.pathname
+    if (!isMounted) return false
+    const pathname = router.asPath || router.pathname
+    if (!pathname) return false
     if (href === '/') {
       return pathname === '/'
     }
@@ -130,22 +171,26 @@ export default function Navbar() {
 
             {/* CTA Button - Desktop */}
             <div className="hidden lg:block">
-              <Link
-                href="/contact"
+              <a
+                href="https://www.fiverr.com/s/EgQz3ey"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200"
               >
                 Get Quote
-              </Link>
+              </a>
             </div>
 
             {/* CTA Button - Tablet */}
             <div className="hidden md:block lg:hidden">
-              <Link
-                href="/contact"
+              <a
+                href="https://www.fiverr.com/s/EgQz3ey"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-4 py-2 text-xs font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 Get Quote
-              </Link>
+              </a>
             </div>
 
             {/* Mobile menu button */}
@@ -207,13 +252,15 @@ export default function Navbar() {
                     {item.label}
                   </Link>
                 ))}
-                <Link
-                  href="/contact"
+                <a
+                  href="https://www.fiverr.com/s/EgQz3ey"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="block w-full text-center mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Get Quote
-                </Link>
+                </a>
               </div>
             </motion.div>
           )}

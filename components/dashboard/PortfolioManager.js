@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
+// Configure axios to send cookies with requests
+axios.defaults.withCredentials = true;
+
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
   { value: 'pending', label: 'Pending Review' },
@@ -70,11 +73,19 @@ export default function PortfolioManager({ user }) {
       if (filters.category) params.append('category', filters.category);
       if (filters.search) params.append('search', filters.search);
 
-      const response = await axios.get(`/api/portfolios?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const config = {
+        withCredentials: true,
+      };
+      
+      // Only add Authorization header if token exists in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+
+      const response = await axios.get(`/api/portfolios?${params.toString()}`, config);
 
       if (response.data.success) {
         setPortfolios(response.data.data.portfolios || []);
@@ -320,16 +331,20 @@ export default function PortfolioManager({ user }) {
       const url = editingPortfolio ? `/api/portfolios/${editingPortfolio.id}` : '/api/portfolios';
       const method = editingPortfolio ? 'put' : 'post';
 
-      const response = await axios[method](
-        url,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const config = {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+
+      // Only add Authorization header if token exists in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await axios[method](url, formData, config);
 
       if (response.data.success) {
         setSuccess(editingPortfolio ? 'Portfolio updated successfully' : 'Portfolio created successfully');
@@ -349,11 +364,19 @@ export default function PortfolioManager({ user }) {
     if (!confirm('Are you sure you want to delete this portfolio?')) return;
 
     try {
-      await axios.delete(`/api/portfolios/${portfolioId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const config = {
+        withCredentials: true,
+      };
+
+      // Only add Authorization header if token exists in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+
+      await axios.delete(`/api/portfolios/${portfolioId}`, config);
       setSuccess('Portfolio deleted successfully');
       fetchPortfolios();
       setTimeout(() => setSuccess(''), 3000);
@@ -365,14 +388,22 @@ export default function PortfolioManager({ user }) {
   // Publish portfolio
   const handlePublish = async (portfolioId) => {
     try {
+      const config = {
+        withCredentials: true,
+      };
+
+      // Only add Authorization header if token exists in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+
       const response = await axios.patch(
         `/api/portfolios/${portfolioId}`,
         { action: 'publish' },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+        config
       );
       if (response.data.success) {
         setSuccess('Portfolio published successfully');

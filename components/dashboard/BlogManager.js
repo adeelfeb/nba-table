@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
+// Configure axios to send cookies with requests
+axios.defaults.withCredentials = true;
+
 const STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft' },
   { value: 'pending', label: 'Pending Review' },
@@ -62,11 +65,19 @@ export default function BlogManager({ user }) {
       if (filters.category) params.append('category', filters.category);
       if (filters.search) params.append('search', filters.search);
 
-      const response = await axios.get(`/api/blogs?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const config = {
+        withCredentials: true,
+      };
+      
+      // Only add Authorization header if token exists in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+
+      const response = await axios.get(`/api/blogs?${params.toString()}`, config);
 
       if (response.data.success) {
         setBlogs(response.data.data.blogs || []);
@@ -237,16 +248,21 @@ export default function BlogManager({ user }) {
       const url = editingBlog ? `/api/blogs/${editingBlog.id}` : '/api/blogs';
       const method = editingBlog ? 'put' : 'post';
 
-      const response = await axios[method](
-        url,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const config = {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+
+      // Only add Authorization header if token exists in localStorage
+      // Otherwise, rely on cookies for authentication
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await axios[method](url, formData, config);
 
       if (response.data.success) {
         setSuccess(editingBlog ? 'Blog updated successfully' : 'Blog created successfully');
@@ -255,7 +271,16 @@ export default function BlogManager({ user }) {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save blog');
+      const errorMessage = err.response?.data?.message || 'Failed to save blog';
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+        // Optionally redirect to login after a delay
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -266,30 +291,54 @@ export default function BlogManager({ user }) {
     if (!confirm('Are you sure you want to delete this blog?')) return;
 
     try {
-      await axios.delete(`/api/blogs/${blogId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const config = {
+        withCredentials: true,
+      };
+
+      // Only add Authorization header if token exists in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+
+      await axios.delete(`/api/blogs/${blogId}`, config);
       setSuccess('Blog deleted successfully');
       fetchBlogs();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete blog');
+      const errorMessage = err.response?.data?.message || 'Failed to delete blog';
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
   // Publish blog
   const handlePublish = async (blogId) => {
     try {
+      const config = {
+        withCredentials: true,
+      };
+
+      // Only add Authorization header if token exists in localStorage
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        };
+      }
+
       const response = await axios.patch(
         `/api/blogs/${blogId}`,
         { action: 'publish' },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
+        config
       );
       if (response.data.success) {
         setSuccess('Blog published successfully');
@@ -297,7 +346,15 @@ export default function BlogManager({ user }) {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to publish blog');
+      const errorMessage = err.response?.data?.message || 'Failed to publish blog';
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
@@ -884,6 +941,9 @@ export default function BlogManager({ user }) {
     </div>
   );
 }
+
+
+
 
 
 

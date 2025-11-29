@@ -81,6 +81,11 @@ export default function SignupPage() {
         throw new Error(formatErrorMessage(data, "We couldn't create your account. Please try again."));
       }
       
+      // Store token in localStorage for API requests
+      if (data.data && data.data.token) {
+        localStorage.setItem('token', data.data.token);
+      }
+      
       // Small delay to ensure cookie is set before redirect
       await new Promise(resolve => setTimeout(resolve, 150));
       console.log('[Signup] Cookie delay complete, navigating to dashboard');

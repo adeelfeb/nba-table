@@ -294,6 +294,30 @@ export default function Dashboard({ user }) {
   const navItems = NAVIGATION_BY_ROLE[normalizedRole] || FALLBACK_NAV;
   const router = useRouter();
 
+  // Fetch and store token from cookies if not in localStorage
+  useEffect(() => {
+    const fetchToken = async () => {
+      // Only fetch if token is not in localStorage
+      if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
+        try {
+          const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data?.token) {
+              localStorage.setItem('token', data.data.token);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch token:', error);
+        }
+      }
+    };
+    fetchToken();
+  }, []);
+
   const primaryNav = useMemo(() => navItems, [navItems]);
   const initialSection = useMemo(() => {
     return primaryNav[0]?.key || FALLBACK_NAV[0].key;
@@ -413,6 +437,10 @@ export default function Dashboard({ user }) {
       const response = await fetch('/api/auth/logout', { method: 'POST' });
       if (!response.ok) {
         throw new Error('Logout failed');
+      }
+      // Clear token from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
       }
       await router.replace('/login');
     } catch (error) {

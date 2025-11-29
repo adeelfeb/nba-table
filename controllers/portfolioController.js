@@ -1,6 +1,7 @@
 import connectDB from '../lib/db';
 import Portfolio from '../models/Portfolio';
 import { jsonError, jsonSuccess } from '../lib/response';
+import mongoose from 'mongoose';
 
 // Helper to generate slug from title
 function generateSlug(title) {
@@ -124,14 +125,60 @@ export async function getPortfolioById(req, res) {
       return jsonError(res, 400, 'Portfolio ID or slug is required');
     }
 
-    const portfolio = await Portfolio.findOne({
-      $or: [{ _id: id }, { slug: id }],
-    })
+    // Build query conditions for ID or slug
+    const idOrSlugConditions = [];
+    
+    // Check if id is a valid ObjectId format (24 hex characters)
+    // Only include _id search if it's a valid ObjectId to avoid casting errors
+    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
+      idOrSlugConditions.push({ _id: id });
+    }
+    
+    // Always search by slug
+    idOrSlugConditions.push({ slug: id });
+
+    // Check if user is authenticated
+    const user = req.user;
+    const isAdmin = user && ['superadmin', 'admin', 'hr_admin'].includes(user.role?.toLowerCase());
+
+    // Build the complete query
+    let query;
+    
+    if (!user) {
+      // Public access: only show published portfolios
+      query = {
+        $or: idOrSlugConditions,
+        status: 'published',
+      };
+    } else if (isAdmin) {
+      // Admins can see all portfolios regardless of status
+      query = {
+        $or: idOrSlugConditions,
+      };
+    } else {
+      // Regular users can see published portfolios OR their own portfolios (any status)
+      query = {
+        $or: [
+          ...idOrSlugConditions.map(condition => ({ ...condition, status: 'published' })),
+          ...idOrSlugConditions.map(condition => ({ ...condition, author: user._id })),
+        ],
+      };
+    }
+
+    const portfolio = await Portfolio.findOne(query)
       .populate('author', 'name email')
       .lean();
 
     if (!portfolio) {
       return jsonError(res, 404, 'Portfolio not found');
+    }
+
+    // Double-check permissions for non-admin users accessing non-published portfolios
+    if (user && !isAdmin && portfolio.status !== 'published') {
+      const portfolioAuthorId = portfolio.author?._id?.toString() || portfolio.author?.toString();
+      if (portfolioAuthorId !== user._id.toString()) {
+        return jsonError(res, 404, 'Portfolio not found');
+      }
     }
 
     // Increment views if published

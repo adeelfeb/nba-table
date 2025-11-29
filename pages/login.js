@@ -60,6 +60,11 @@ export default function LoginPage() {
         throw new Error(formatErrorMessage(data, "We couldn't sign you in with those credentials."));
       }
       
+      // Store token in localStorage for API requests
+      if (data.data && data.data.token) {
+        localStorage.setItem('token', data.data.token);
+      }
+      
       // Small delay to ensure cookie is set before redirect
       await new Promise(resolve => setTimeout(resolve, 150));
       // Use replace instead of push to avoid adding to browser history

@@ -141,10 +141,12 @@ export default function BlogPostPage() {
                 </div>
               )}
 
-              <div
-                className="prose prose-lg max-w-none mb-8 text-gray-700 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: blog.content.replace(/\n/g, '<br />') }}
-              />
+              {blog.content && (
+                <div
+                  className="prose prose-lg max-w-none mb-8 text-gray-700 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: (blog.content || '').replace(/\n/g, '<br />') }}
+                />
+              )}
 
               {blog.tags && blog.tags.length > 0 && (
                 <div className="pt-8 border-t border-gray-200 mb-8">

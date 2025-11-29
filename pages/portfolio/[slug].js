@@ -206,19 +206,21 @@ export default function PortfolioDetailPage() {
                 )}
 
                 {/* Full Description */}
-                <div className="prose prose-lg max-w-none mb-8">
-                  <div
-                    className="text-gray-700 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: portfolio.fullDescription.replace(/\n/g, '<br />') }}
-                  />
-                </div>
+                {portfolio.content && (
+                  <div className="prose prose-lg max-w-none mb-8">
+                    <div
+                      className="text-gray-700 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: (portfolio.content || '').replace(/\n/g, '<br />') }}
+                    />
+                  </div>
+                )}
 
                 {/* Additional Images */}
-                {portfolio.images && portfolio.images.length > 0 && (
+                {portfolio.galleryImages && portfolio.galleryImages.length > 0 && (
                   <div className="mb-8">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">Project Screenshots</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {portfolio.images.map((image, idx) => (
+                      {portfolio.galleryImages.map((image, idx) => (
                         <div key={idx} className="rounded-lg overflow-hidden">
                           <img
                             src={image}
@@ -265,4 +267,7 @@ export default function PortfolioDetailPage() {
     </>
   );
 }
+
+
+
 
