@@ -86,63 +86,65 @@ export default function Hero() {
         }}
       />
 
-      <section id="home" className="relative min-h-[65vh] flex items-center justify-center pt-8 md:pt-12 bg-black overflow-hidden">
+      <section id="home" className="relative min-h-[65vh] flex items-center pt-8 md:pt-12 bg-black overflow-hidden">
         {/* Vanta.js Globe Background */}
         <div ref={vantaRef} className="absolute inset-0 w-full h-full" />
         
         {/* Subtle overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/40 pointer-events-none z-0" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        <div className="text-center">
-          {/* Main Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-lg"
-          >
-            Turn Your Vision Into a{' '}
-            <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-              Powerful Digital Reality
-            </span>
-          </motion.h1>
-
-          {/* Subheadline */}
-          <motion.p
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="text-lg md:text-xl lg:text-2xl text-gray-200 max-w-4xl mx-auto mb-8 leading-relaxed drop-shadow-md"
-          >
-            We provide expert <strong className="text-white">Full-Stack Website Development Services</strong> for ambitious startups and growing businesses. From lightning-fast <strong className="text-blue-400">Next.js</strong> applications to robust <strong className="text-purple-400">MERN Stack</strong> platforms, we build the technology your business needs to scale.
-          </motion.p>
-
-          {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.5 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-          >
-            <a
-              href="https://www.fiverr.com/s/EgQz3ey"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 cursor-pointer"
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-8 md:py-12">
+        <div className="relative max-w-4xl">
+          <div className="text-left p-6 sm:p-8 md:p-10 lg:p-12">
+            {/* Main Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight drop-shadow-lg"
             >
-              Start Your Project
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </a>
-            <a
-              href="https://www.fiverr.com/s/EgQz3ey"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white/10 backdrop-blur-md text-white px-8 py-4 rounded-full font-semibold text-lg border-2 border-white/30 hover:bg-white/20 hover:border-white/50 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
+              Turn Your Vision Into a{' '}
+              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
+                Powerful Digital Reality
+              </span>
+            </motion.h1>
+
+            {/* Subheadline */}
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-6 sm:mb-8 leading-relaxed drop-shadow-md"
             >
-              View Our Work
-            </a>
-          </motion.div>
+              We provide expert <strong className="text-white">Full-Stack Website Development Services</strong> for ambitious startups and growing businesses. From lightning-fast <strong className="text-blue-400">Next.js</strong> applications to robust <strong className="text-purple-400">MERN Stack</strong> platforms, we build the technology your business needs to scale.
+            </motion.p>
+
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.5 }}
+              className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-start items-start sm:items-center"
+            >
+              <a
+                href="https://www.fiverr.com/s/EgQz3ey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 cursor-pointer"
+              >
+                Start Your Project
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </a>
+              <a
+                href="https://www.fiverr.com/s/EgQz3ey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white/10 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg border-2 border-white/30 hover:bg-white/20 hover:border-white/50 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
+              >
+                View Our Work
+              </a>
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>
