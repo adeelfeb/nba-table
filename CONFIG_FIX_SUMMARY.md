@@ -142,3 +142,5 @@ curl http://localhost:3000/api/debug/env
 If you still encounter issues after following these steps, check the debug endpoint output and verify your `.env` file format matches the examples above.
 
 
+
+
