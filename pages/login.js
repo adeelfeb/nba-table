@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../components/designndev/Navbar';
@@ -25,12 +25,22 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const hasCheckedAuth = useRef(false);
 
-  // Get redirect destination from query params
-  const redirectTo = router.query.redirect || '/dashboard';
+  // Get redirect destination from query params - memoize to prevent unnecessary re-renders
+  const redirectTo = useMemo(() => {
+    return router.query.redirect || '/dashboard';
+  }, [router.query.redirect]);
 
   // Check if user is already authenticated and redirect to dashboard
   useEffect(() => {
+    // Only check auth once and wait for router to be ready
+    if (!router.isReady || hasCheckedAuth.current) {
+      return; // Wait for router to be ready or already checked
+    }
+
+    hasCheckedAuth.current = true;
+
     async function checkAuth() {
       try {
         // Check if token exists in localStorage
@@ -53,8 +63,10 @@ export default function LoginPage() {
           if (data.data.token && typeof window !== 'undefined') {
             localStorage.setItem('token', data.data.token);
           }
+          // Get redirect destination from query params at redirect time
+          const redirectDestination = router.query.redirect || '/dashboard';
           // Redirect to dashboard or specified redirect destination
-          router.replace(redirectTo);
+          router.replace(redirectDestination);
           return;
         }
       } catch (err) {
@@ -66,7 +78,8 @@ export default function LoginPage() {
     }
 
     checkAuth();
-  }, [router, redirectTo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
 
   const isDisabled = useMemo(() => {
     return loading || !email.trim() || password.length < 6;

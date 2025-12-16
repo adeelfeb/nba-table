@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../components/designndev/Navbar';
@@ -24,9 +24,17 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const hasCheckedAuth = useRef(false);
 
   // Check if user is already authenticated and redirect to dashboard
   useEffect(() => {
+    // Only check auth once and wait for router to be ready
+    if (!router.isReady || hasCheckedAuth.current) {
+      return; // Wait for router to be ready or already checked
+    }
+
+    hasCheckedAuth.current = true;
+
     async function checkAuth() {
       try {
         // Check if token exists in localStorage
@@ -62,7 +70,8 @@ export default function SignupPage() {
     }
 
     checkAuth();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady]);
 
   const passwordHint = password && password.length < 6 ? 'Use at least 6 characters.' : '';
 
