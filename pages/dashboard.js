@@ -252,26 +252,9 @@ export default function Dashboard({ user }) {
     [primaryNav]
   );
 
-  // Initialize activeSection by checking hash first, then defaulting to first nav item
+  // Initialize activeSection - will be set properly by useEffect after mount
   const [activeSection, setActiveSection] = useState(() => {
-    if (typeof window !== 'undefined') {
-      let hashValue = window.location.hash.replace(/^#/, '');
-      if (hashValue) {
-        try {
-          hashValue = decodeURIComponent(hashValue);
-        } catch {
-          // ignore decode errors
-        }
-        // Try to resolve the hash value
-        const normalized = hashValue.toLowerCase().trim();
-        if (normalized) {
-          const match = navItems.find((item) => item.key.toLowerCase() === normalized);
-          if (match) {
-            return match.key;
-          }
-        }
-      }
-    }
+    // Default to first nav item, hash will be processed in useEffect
     return navItems[0]?.key || FALLBACK_NAV[0].key;
   });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -304,6 +287,7 @@ export default function Dashboard({ user }) {
     updateUrlHash(resolvedKey);
   }, [router.isReady, sectionParam, resolveSectionKey, updateUrlHash]);
 
+  // Process hash on mount and when hash changes
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
@@ -314,23 +298,36 @@ export default function Dashboard({ user }) {
       } catch {
         // ignore decode errors and fall back to raw hash
       }
-      if (!hashValue) return; // No hash, keep current section
-      const resolvedKey = resolveSectionKey(hashValue);
-      if (!resolvedKey) return;
+      if (hashValue) {
+        const resolvedKey = resolveSectionKey(hashValue);
+        if (resolvedKey) {
+          setActiveSection((prev) => {
+            // Only update if different to avoid unnecessary re-renders
+            return prev === resolvedKey ? prev : resolvedKey;
+          });
+          // Update URL hash to ensure it's properly formatted
+          updateUrlHash(resolvedKey);
+          return;
+        }
+      }
+      // If no valid hash, ensure we're showing the first nav item
+      const firstNavKey = navItems[0]?.key || FALLBACK_NAV[0].key;
       setActiveSection((prev) => {
-        // Only update if different to avoid unnecessary re-renders
-        return prev === resolvedKey ? prev : resolvedKey;
+        return prev === firstNavKey ? prev : firstNavKey;
       });
-      updateUrlHash(resolvedKey);
     };
 
-    // Apply hash on mount and when hash changes
-    applyHashToState();
+    // Apply hash on mount - use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      applyHashToState();
+    });
+    
     window.addEventListener('hashchange', applyHashToState);
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener('hashchange', applyHashToState);
     };
-  }, [resolveSectionKey, updateUrlHash]);
+  }, [resolveSectionKey, updateUrlHash, navItems]);
 
   const isOverviewSection = activeSection === 'overview' && normalizedRole !== 'base_user';
 

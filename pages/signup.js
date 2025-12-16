@@ -57,8 +57,8 @@ export default function SignupPage() {
           if (data.data.token && typeof window !== 'undefined') {
             localStorage.setItem('token', data.data.token);
           }
-          // Redirect to dashboard
-          router.replace('/dashboard#resolutions');
+          // Redirect to dashboard with hash - use window.location for proper hash handling
+          window.location.href = '/dashboard#resolutions';
           return;
         }
       } catch (err) {
@@ -145,7 +145,8 @@ export default function SignupPage() {
       
       // Redirect to dashboard only if user is fully authenticated
       if (data.data && data.data.user) {
-        await router.replace('/dashboard#resolutions');
+        // Use window.location for hash navigation as Next.js router doesn't handle hashes well
+        window.location.href = '/dashboard#resolutions';
       }
     } catch (err) {
       // Catch any unexpected errors (network errors, etc.)

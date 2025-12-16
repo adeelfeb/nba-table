@@ -64,9 +64,14 @@ export default function LoginPage() {
             localStorage.setItem('token', data.data.token);
           }
           // Get redirect destination from query params at redirect time
-          const redirectDestination = router.query.redirect || '/dashboard#resolutions';
+          const redirectDestination = router.query.redirect || '/dashboard';
           // Redirect to dashboard or specified redirect destination
-          router.replace(redirectDestination);
+          if (redirectDestination === '/dashboard' || !router.query.redirect) {
+            // Use window.location for hash navigation as Next.js router doesn't handle hashes well
+            window.location.href = '/dashboard#resolutions';
+          } else {
+            router.replace(redirectDestination);
+          }
           return;
         }
       } catch (err) {
@@ -144,8 +149,13 @@ export default function LoginPage() {
       await new Promise(resolve => setTimeout(resolve, 150));
       
       // Redirect to dashboard or specified redirect destination
-      const redirectTo = router.query.redirect || '/dashboard#resolutions';
-      await router.replace(redirectTo);
+      const redirectTo = router.query.redirect || '/dashboard';
+      if (redirectTo === '/dashboard' || !router.query.redirect) {
+        // Use window.location for hash navigation as Next.js router doesn't handle hashes well
+        window.location.href = '/dashboard#resolutions';
+      } else {
+        await router.replace(redirectTo);
+      }
     } catch (err) {
       console.error('[Login] Error during sign-in flow', err);
       
