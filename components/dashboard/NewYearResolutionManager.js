@@ -1,5 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Edit, X, Check, Plus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Clock, Edit, X, Check, Plus, Bell, BellOff } from 'lucide-react';
+import {
+  initializeNotificationSystem,
+  requestPermissionWithMessage,
+  getNotificationPermission,
+  scheduleAllResolutions,
+  clearAllScheduledNotifications,
+  showResolutionReminder,
+} from '../../utils/notificationService';
 
 export default function NewYearResolutionManager() {
   const [resolutions, setResolutions] = useState([]);
@@ -7,6 +15,9 @@ export default function NewYearResolutionManager() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [notificationPermission, setNotificationPermission] = useState('default');
+  const [notificationSupported, setNotificationSupported] = useState(false);
+  const scheduledTimeoutsRef = useRef([]);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -17,9 +28,70 @@ export default function NewYearResolutionManager() {
     notificationEnabled: true,
   });
 
+  // Initialize notifications on mount
+  useEffect(() => {
+    initializeNotifications();
+  }, []);
+
+  // Initialize notification system
+  const initializeNotifications = async () => {
+    try {
+      const result = await initializeNotificationSystem();
+      setNotificationSupported(result.supported);
+      setNotificationPermission(result.permission || 'default');
+    } catch (error) {
+      console.error('Error initializing notifications:', error);
+    }
+  };
+
+  // Request notification permission
+  const handleRequestNotificationPermission = async () => {
+    try {
+      await requestPermissionWithMessage(
+        (permission) => {
+          setNotificationPermission(permission);
+          // Schedule notifications for existing resolutions
+          scheduleNotificationsForResolutions(resolutions);
+        },
+        (error) => {
+          setError(error.message || 'Failed to enable notifications');
+        }
+      );
+    } catch (error) {
+      setError(error.message || 'Failed to enable notifications');
+    }
+  };
+
+  // Schedule notifications for all resolutions
+  const scheduleNotificationsForResolutions = (resolutionsList) => {
+    // Clear existing scheduled notifications
+    clearAllScheduledNotifications(scheduledTimeoutsRef.current);
+    scheduledTimeoutsRef.current = [];
+
+    // Only schedule if permission is granted
+    if (getNotificationPermission() === 'granted') {
+      const timeouts = scheduleAllResolutions(resolutionsList, (resolution) => {
+        console.log('Notification triggered for:', resolution.title);
+      });
+      scheduledTimeoutsRef.current = timeouts;
+    }
+  };
+
   useEffect(() => {
     fetchResolutions();
   }, []);
+
+  // Schedule notifications when resolutions change
+  useEffect(() => {
+    if (resolutions.length > 0 && notificationPermission === 'granted') {
+      scheduleNotificationsForResolutions(resolutions);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      clearAllScheduledNotifications(scheduledTimeoutsRef.current);
+    };
+  }, [resolutions, notificationPermission]);
 
   async function fetchResolutions() {
     try {
@@ -82,8 +154,16 @@ export default function NewYearResolutionManager() {
       const data = await res.json();
       
       if (data.success) {
-        fetchResolutions();
+        await fetchResolutions();
         resetForm();
+        // Reschedule notifications after adding/updating resolution
+        if (notificationPermission === 'granted') {
+          setTimeout(() => {
+            fetchResolutions().then(() => {
+              // Notifications will be rescheduled in the useEffect
+            });
+          }, 100);
+        }
       } else {
         setError(data.message || 'Operation failed');
       }
@@ -166,12 +246,55 @@ export default function NewYearResolutionManager() {
           <h2>My New Year Resolutions</h2>
           <p>Track your goals and get reminders to stay on track.</p>
         </div>
-        {!showForm && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>
-            <Plus className="icon-inline" size={18} />
-            New Resolution
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {notificationSupported && notificationPermission !== 'granted' && (
+            <button 
+              className="btn-notification" 
+              onClick={handleRequestNotificationPermission}
+              title="Enable browser notifications for reminders"
+            >
+              {notificationPermission === 'denied' ? (
+                <>
+                  <BellOff className="icon-inline" size={18} />
+                  Notifications Blocked
+                </>
+              ) : (
+                <>
+                  <Bell className="icon-inline" size={18} />
+                  Enable Notifications
+                </>
+              )}
+            </button>
+          )}
+          {notificationSupported && notificationPermission === 'granted' && (
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div className="notification-status" title="Notifications enabled">
+                <Bell className="icon-inline" size={18} />
+                <span>Notifications Enabled</span>
+              </div>
+              <button 
+                className="btn-test-notification" 
+                onClick={() => {
+                  showResolutionReminder({
+                    _id: 'test',
+                    title: 'Test Notification',
+                    description: 'This is a test notification. Your notifications are working correctly!',
+                    category: 'Personal',
+                  });
+                }}
+                title="Test notification"
+              >
+                Test
+              </button>
+            </div>
+          )}
+          {!showForm && (
+            <button className="btn-primary" onClick={() => setShowForm(true)}>
+              <Plus className="icon-inline" size={18} />
+              New Resolution
+            </button>
+          )}
+        </div>
       </div>
 
       {error && <div className="alert error">{error}</div>}
@@ -238,7 +361,7 @@ export default function NewYearResolutionManager() {
                   checked={formData.notificationEnabled}
                   onChange={e => setFormData({...formData, notificationEnabled: e.target.checked})}
                 />
-                Enable email notifications
+                Enable browser notifications
               </label>
             </div>
 
@@ -352,6 +475,52 @@ export default function NewYearResolutionManager() {
           transform: translateY(-2px);
           box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
           background: linear-gradient(135deg, #7c3aed, #2563eb);
+        }
+        .btn-notification {
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          border: none;
+          padding: 0.75rem 1.5rem;
+          border-radius: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+        }
+        .btn-notification:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+          background: linear-gradient(135deg, #059669, #047857);
+        }
+        .notification-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #10b981;
+          font-weight: 600;
+          padding: 0.75rem 1.5rem;
+          background: rgba(16, 185, 129, 0.1);
+          border-radius: 0.75rem;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .btn-test-notification {
+          background: white;
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s;
+          font-size: 0.875rem;
+        }
+        .btn-test-notification:hover {
+          background: rgba(16, 185, 129, 0.1);
+          border-color: #10b981;
+          transform: translateY(-1px);
         }
         .icon-inline {
           display: inline-block;
