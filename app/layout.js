@@ -12,6 +12,10 @@ export const metadata = {
   title: 'Design n Dev | Expert Full-Stack Web Development & Next.js Solutions',
   description: 'Turn your business idea into reality with Design n Dev. We specialize in fast, scalable custom development using Next.js, MERN Stack, and Node.js for startups and enterprises.',
   keywords: 'Next.js development, MERN stack agency, Startup MVP development, Full-stack web development, React development, Node.js development',
+  icons: {
+    icon: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
   openGraph: {
     title: 'Design n Dev | Expert Full-Stack Web Development & Next.js Solutions',
     description: 'Turn your business idea into reality with Design n Dev. We specialize in fast, scalable custom development using Next.js, MERN Stack, and Node.js for startups and enterprises.',

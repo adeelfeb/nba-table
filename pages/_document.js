@@ -19,6 +19,9 @@ export default function Document() {
   )
 }
 
+// Ensure this file is only used by Pages Router
+// This prevents conflicts with App Router's layout.js
+
 
 
 

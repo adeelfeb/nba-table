@@ -3,7 +3,6 @@ import User from '../../../models/User';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import roleMiddleware from '../../../middlewares/roleMiddleware';
 import { jsonError, jsonSuccess } from '../../../lib/response';
-import { ensureDefaultHrUser } from '../../../lib/defaultUsers';
 import { applyCors } from '../../../utils';
 
 export default async function handler(req, res) {
@@ -21,7 +20,6 @@ export default async function handler(req, res) {
   try {
     const db = await requireDB(res);
     if (!db) return;
-    await ensureDefaultHrUser();
     const users = await User.find()
       .select('name email role createdAt updatedAt')
       .sort({ createdAt: -1 });

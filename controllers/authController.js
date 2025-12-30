@@ -4,7 +4,6 @@ import { signToken, setAuthCookie, clearAuthCookie } from '../lib/auth';
 import { jsonError, jsonSuccess } from '../lib/response';
 import { env } from '../lib/config';
 import { ensureRole, ensureUserHasRole } from '../lib/roles';
-import { ensureDefaultHrUser } from '../lib/defaultUsers';
 import { generateOTP, generateOTPExpiry, verifyOTP } from '../utils/otp';
 import { sendOTPEmail, sendWelcomeEmail } from '../utils/email';
 import { logger } from '../utils/logger';
@@ -181,7 +180,6 @@ export async function login(req, res) {
     if (!dbResult.success) {
       return jsonError(res, 503, 'Database service is currently unavailable. Please try again later.');
     }
-    await ensureDefaultHrUser();
     
     // Find user by email (case-insensitive search)
     const user = await User.findOne({ email: email.trim().toLowerCase() });

@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   reactStrictMode: true,
   
@@ -21,9 +23,23 @@ const nextConfig = {
     ],
   },
   
-  // Generate static pages only for non-dynamic routes
+  // Generate stable build ID to prevent cache issues
+  // Using a stable ID based on environment or timestamp only for production builds
   generateBuildId: async () => {
-    return 'build-' + Date.now();
+    // For production, use a timestamp-based ID
+    // For deployments, this ensures consistent builds
+    if (process.env.NODE_ENV === 'production') {
+      // Use commit hash if available (from Vercel or CI), otherwise use timestamp
+      const commitHash = process.env.VERCEL_GIT_COMMIT_SHA || 
+                        process.env.GIT_COMMIT_SHA || 
+                        process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA;
+      if (commitHash) {
+        return commitHash.substring(0, 12); // Use first 12 chars of commit hash
+      }
+      return 'build-' + Date.now();
+    }
+    // For dev, use a fixed ID to improve caching
+    return 'dev-build';
   },
 
   // Build optimizations for faster builds
@@ -63,17 +79,22 @@ const nextConfig = {
       },
     ];
 
-    // In dev mode, disable webpack filesystem cache to prevent corruption issues
-    // Next.js handles its own caching mechanisms
+    // Improved cache handling to prevent intermittent build issues
+    // Next.js 15 has better built-in cache handling, but we ensure consistency
     if (dev) {
-      config.cache = false;
-    } else if (!isServer) {
-      // Production build optimizations
+      // In dev mode, use webpack's default caching (Next.js handles it)
+      // Don't override to prevent conflicts
+    } else {
+      // Production: Use filesystem cache for both server and client
+      // This improves build reliability and prevents _document not found issues
       config.cache = {
         type: 'filesystem',
         buildDependencies: {
           config: [__filename],
         },
+        cacheDirectory: path.join(process.cwd(), '.next', 'cache', 'webpack'),
+        // Ensure cache is properly invalidated on config changes
+        maxMemoryGenerations: 1,
       };
     }
     

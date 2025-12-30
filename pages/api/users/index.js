@@ -4,7 +4,6 @@ import authMiddleware from '../../../middlewares/authMiddleware';
 import roleMiddleware from '../../../middlewares/roleMiddleware';
 import { jsonError, jsonSuccess } from '../../../lib/response';
 import { ensureRole } from '../../../lib/roles';
-import { ensureDefaultHrUser } from '../../../lib/defaultUsers';
 import { applyCors } from '../../../utils';
 
 function isValidEmail(value) {
@@ -23,7 +22,6 @@ export default async function handler(req, res) {
   switch (method) {
     case 'GET': {
       try {
-        await ensureDefaultHrUser();
         const users = await User.find().select('-password').sort({ createdAt: -1 });
         return jsonSuccess(res, 200, 'Ok', { users });
       } catch (err) {
