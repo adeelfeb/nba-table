@@ -15,20 +15,20 @@
     "ag-grid-react": "^34.3.1",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
-    "cookie": "^0.6.0",
+    "cookie": "^1.1.1",
     "dotenv": "^16.4.5",
-    "framer-motion": "^12.23.24",
-    "jsonwebtoken": "^9.0.2",
+    "framer-motion": "^12.23.26",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.554.0",
     "mongoose": "^8.3.0",
-    "next": "^15.1.0",
-    "nodemailer": "^7.0.11",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "next": "^16.1.1",
+    "nodemailer": "^7.0.12",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.22",
+    "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18"
+    "tailwindcss": "^3.4.19"
   }
 }

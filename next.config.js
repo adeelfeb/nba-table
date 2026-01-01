@@ -57,6 +57,10 @@ const nextConfig = {
     optimizePackageImports: ['ag-grid-community', 'ag-grid-react'],
   },
 
+  // Next.js 16 uses Turbopack by default, but we have webpack config
+  // Explicitly use webpack to avoid conflicts
+  turbopack: {},
+
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
