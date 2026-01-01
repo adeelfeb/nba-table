@@ -12,10 +12,10 @@ Email configuration missing. Please configure either:
 
 ### ✅ Your .env file already has SMTP configuration!
 
-Your `.env` file contains the required SMTP settings:
-- `SMTP_USERNAME=noreply@designndev.com`
-- `SMTP_PASSWORD=000!!!@@@918815Cc9@@@!!!000`
-- `SMTP_FROM="noreply@designndev.com"`
+Your `.env` file should contain the required SMTP settings:
+- `SMTP_USERNAME=your_smtp_username`
+- `SMTP_PASSWORD=your_smtp_password`
+- `SMTP_FROM=your_sender_email@yourdomain.com`
 - `SMTP_HOST=mail.smtp2go.com`
 - `SMTP_PORT=25`
 
