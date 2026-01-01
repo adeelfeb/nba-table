@@ -11,11 +11,21 @@ const RoleSchema = new mongoose.Schema(
 );
 
 RoleSchema.pre('save', function (next) {
+  // Defensive check for next function
+  if (!next || typeof next !== 'function') {
+    this.updatedAt = new Date();
+    return;
+  }
   this.updatedAt = new Date();
   next();
 });
 
 RoleSchema.pre('findOneAndUpdate', function (next) {
+  // Defensive check for next function
+  if (!next || typeof next !== 'function') {
+    this.set({ updatedAt: new Date() });
+    return;
+  }
   this.set({ updatedAt: new Date() });
   next();
 });

@@ -23,6 +23,18 @@ const DEFAULT_ORIGINS = [
     description: 'Default production origin for Global Node TheFVG',
     isActive: true,
   },
+  {
+    origin: 'https://designndev.com',
+    label: 'Design n Dev (Production)',
+    description: 'Default production origin for Design n Dev',
+    isActive: true,
+  },
+  {
+    origin: 'http://designndev.com',
+    label: 'Design n Dev (HTTP)',
+    description: 'Default HTTP origin for Design n Dev',
+    isActive: true,
+  },
 ];
 
 export default async function handler(req, res) {

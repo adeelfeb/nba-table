@@ -105,9 +105,11 @@ const BlogSchema = new mongoose.Schema(
 
 // Generate slug from title before save
 BlogSchema.pre('save', function (next) {
-  if (this.isModified('title') && !this.slug) {
-    this.slug = this.title
-      .toLowerCase()
+  // Defensive check for next function
+  if (!next || typeof next !== 'function') {
+    if (this.isModified('title') && !this.slug) {
+      this.slug = this.title
+        .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
   }
@@ -122,18 +124,53 @@ BlogSchema.pre('save', function (next) {
     this.metaDescription = this.excerpt.substring(0, 160);
   }
   
-  // Calculate reading time (average 200 words per minute)
-  if (this.isModified('content') && this.content) {
-    const wordCount = this.content.split(/\s+/).length;
-    this.readingTime = Math.ceil(wordCount / 200);
+    // Calculate reading time (average 200 words per minute)
+    if (this.isModified('content') && this.content) {
+      const wordCount = this.content.split(/\s+/).length;
+      this.readingTime = Math.ceil(wordCount / 200);
+    }
+    
+    // Set publishedAt when status changes to published
+    if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
+      this.publishedAt = new Date();
+    }
+    return;
   }
-  
-  // Set publishedAt when status changes to published
-  if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
-    this.publishedAt = new Date();
+
+  // Normal hook execution with next callback
+  try {
+    if (this.isModified('title') && !this.slug) {
+      this.slug = this.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+    
+    // Auto-generate metaTitle if not provided
+    if (!this.metaTitle && this.title) {
+      this.metaTitle = this.title.substring(0, 60);
+    }
+    
+    // Auto-generate metaDescription from excerpt if not provided
+    if (!this.metaDescription && this.excerpt) {
+      this.metaDescription = this.excerpt.substring(0, 160);
+    }
+    
+    // Calculate reading time (average 200 words per minute)
+    if (this.isModified('content') && this.content) {
+      const wordCount = this.content.split(/\s+/).length;
+      this.readingTime = Math.ceil(wordCount / 200);
+    }
+    
+    // Set publishedAt when status changes to published
+    if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
+      this.publishedAt = new Date();
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
   }
-  
-  next();
 });
 
 // Index for better query performance

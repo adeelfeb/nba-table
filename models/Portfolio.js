@@ -127,29 +127,60 @@ const PortfolioSchema = new mongoose.Schema(
 
 // Generate slug from title before save
 PortfolioSchema.pre('save', function (next) {
-  if (this.isModified('title') && !this.slug) {
-    this.slug = this.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+  // Defensive check for next function
+  if (!next || typeof next !== 'function') {
+    if (this.isModified('title') && !this.slug) {
+      this.slug = this.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+    
+    // Auto-generate metaTitle if not provided
+    if (!this.metaTitle && this.title) {
+      this.metaTitle = this.title.substring(0, 60);
+    }
+    
+    // Auto-generate metaDescription from description if not provided
+    if (!this.metaDescription && this.description) {
+      this.metaDescription = this.description.substring(0, 160);
+    }
+    
+    // Set publishedAt when status changes to published
+    if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
+      this.publishedAt = new Date();
+    }
+    return;
   }
-  
-  // Auto-generate metaTitle if not provided
-  if (!this.metaTitle && this.title) {
-    this.metaTitle = this.title.substring(0, 60);
+
+  // Normal hook execution with next callback
+  try {
+    if (this.isModified('title') && !this.slug) {
+      this.slug = this.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+    }
+    
+    // Auto-generate metaTitle if not provided
+    if (!this.metaTitle && this.title) {
+      this.metaTitle = this.title.substring(0, 60);
+    }
+    
+    // Auto-generate metaDescription from description if not provided
+    if (!this.metaDescription && this.description) {
+      this.metaDescription = this.description.substring(0, 160);
+    }
+    
+    // Set publishedAt when status changes to published
+    if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
+      this.publishedAt = new Date();
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
   }
-  
-  // Auto-generate metaDescription from description if not provided
-  if (!this.metaDescription && this.description) {
-    this.metaDescription = this.description.substring(0, 160);
-  }
-  
-  // Set publishedAt when status changes to published
-  if (this.isModified('status') && this.status === 'published' && !this.publishedAt) {
-    this.publishedAt = new Date();
-  }
-  
-  next();
 });
 
 // Index for better query performance

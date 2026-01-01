@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../components/designndev/Navbar';
 import Footer from '../components/designndev/Footer';
+import { AuthCardSkeleton } from '../components/Skeleton';
 
 function formatErrorMessage(payload, fallback) {
   if (!payload) return fallback;
@@ -43,17 +44,29 @@ export default function LoginPage() {
 
     async function checkAuth() {
       try {
-        // Check if token exists in localStorage
+        // Check if token exists in localStorage first for faster check
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        
+        // If no token, skip API call and show login form immediately
+        if (!token) {
+          setCheckingAuth(false);
+          return;
+        }
         
         // Call /api/auth/me to verify authentication (checks both cookies and token)
         const res = await fetch('/api/auth/me', {
           method: 'GET',
           credentials: 'include', // Include cookies
-          headers: token ? {
+          headers: {
             'Authorization': `Bearer ${token}`,
-          } : {},
+          },
         });
+
+        // If request fails, show login page
+        if (!res.ok) {
+          setCheckingAuth(false);
+          return;
+        }
 
         const data = await res.json();
         
@@ -86,8 +99,13 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
+  // Optimized validation - check immediately on input change
   const isDisabled = useMemo(() => {
-    return loading || !email.trim() || password.length < 6;
+    // Fast validation without blocking
+    if (loading) return true;
+    const emailValid = email.trim().length > 0 && email.includes('@');
+    const passwordValid = password.length >= 6;
+    return !emailValid || !passwordValid;
   }, [email, password, loading]);
 
   async function onSubmit(e) {
@@ -140,21 +158,18 @@ export default function LoginPage() {
         return;
       }
       
-      // Success - store token and redirect
+      // Success - store token and redirect immediately
       if (data.data && data.data.token) {
         localStorage.setItem('token', data.data.token);
       }
       
-      // Small delay to ensure cookie is set before redirect
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // Redirect to dashboard or specified redirect destination
+      // Redirect immediately - cookies are set synchronously
       const redirectTo = router.query.redirect || '/dashboard';
       if (redirectTo === '/dashboard' || !router.query.redirect) {
         // Use window.location for hash navigation as Next.js router doesn't handle hashes well
         window.location.href = '/dashboard#resolutions';
       } else {
-        await router.replace(redirectTo);
+        router.replace(redirectTo);
       }
     } catch (err) {
       console.error('[Login] Error during sign-in flow', err);
@@ -170,18 +185,13 @@ export default function LoginPage() {
     }
   }
 
-  // Show loading state while checking authentication
+  // Show skeleton loading state while checking authentication
   if (checkingAuth) {
     return (
       <div className="auth-page">
         <Navbar />
         <div className="auth-shell">
-          <div className="auth-card">
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div className="spinner" style={{ margin: '0 auto 1rem' }} aria-hidden="true" />
-              <p style={{ color: '#4b5d73' }}>Checking authentication...</p>
-            </div>
-          </div>
+          <AuthCardSkeleton />
         </div>
         <Footer />
       </div>
@@ -195,7 +205,6 @@ export default function LoginPage() {
         <div className="auth-card">
           <header className="card-header">
             <h1>Welcome back</h1>
-            <p>Sign in to access your funding intelligence dashboard.</p>
           </header>
 
           {error && (
@@ -387,6 +396,17 @@ export default function LoginPage() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
         @media (max-width: 600px) {
           .auth-shell {

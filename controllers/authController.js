@@ -67,7 +67,26 @@ export async function signup(req, res) {
   try {
     const dbResult = await connectDB();
     if (!dbResult.success) {
-      return jsonError(res, 503, 'Database service is currently unavailable. Please try again later.');
+      // Log error details for debugging (server-side only)
+      if (dbResult.error) {
+        logger.error('Database connection failed during signup:', {
+          code: dbResult.code,
+          message: dbResult.error.message,
+          hasUri: !!env.MONGODB_URI,
+        });
+      }
+      
+      // Provide more helpful error message based on error code
+      let errorMessage = 'Database service is currently unavailable. Please try again later.';
+      if (dbResult.code === 'NO_DB_URI') {
+        errorMessage = 'Database configuration is missing. Please contact support.';
+      } else if (dbResult.code === 'CONNECTION_TIMEOUT') {
+        errorMessage = 'Database connection timed out. Please check your connection and try again.';
+      } else if (dbResult.code === 'DNS_RESOLUTION_FAILED') {
+        errorMessage = 'Cannot connect to database server. Please check your network connection.';
+      }
+      
+      return jsonError(res, 503, errorMessage);
     }
     
     // Check for existing user (case-insensitive)
@@ -178,7 +197,26 @@ export async function login(req, res) {
   try {
     const dbResult = await connectDB();
     if (!dbResult.success) {
-      return jsonError(res, 503, 'Database service is currently unavailable. Please try again later.');
+      // Log error details for debugging (server-side only)
+      if (dbResult.error) {
+        logger.error('Database connection failed during login:', {
+          code: dbResult.code,
+          message: dbResult.error.message,
+          hasUri: !!env.MONGODB_URI,
+        });
+      }
+      
+      // Provide more helpful error message based on error code
+      let errorMessage = 'Database service is currently unavailable. Please try again later.';
+      if (dbResult.code === 'NO_DB_URI') {
+        errorMessage = 'Database configuration is missing. Please contact support.';
+      } else if (dbResult.code === 'CONNECTION_TIMEOUT') {
+        errorMessage = 'Database connection timed out. Please check your connection and try again.';
+      } else if (dbResult.code === 'DNS_RESOLUTION_FAILED') {
+        errorMessage = 'Cannot connect to database server. Please check your network connection.';
+      }
+      
+      return jsonError(res, 503, errorMessage);
     }
     
     // Find user by email (case-insensitive search)

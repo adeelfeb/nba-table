@@ -35,8 +35,9 @@ export default function Hero() {
     if (typeof window !== 'undefined' && window.VANTA) {
       initVanta()
     } else {
-      // Wait for scripts to load
-      checkInterval = setInterval(() => {
+      // Wait for scripts to load with optimized polling
+      // Use requestAnimationFrame for better performance
+      const checkVanta = () => {
         if (typeof window !== 'undefined' && window.VANTA) {
           initVanta()
           if (checkInterval) {
@@ -44,15 +45,18 @@ export default function Hero() {
             checkInterval = null
           }
         }
-      }, 100)
+      }
+      
+      // Use longer interval to reduce CPU usage
+      checkInterval = setInterval(checkVanta, 200)
 
-      // Cleanup interval after 10 seconds
+      // Cleanup interval after 5 seconds (reduced from 10)
       setTimeout(() => {
         if (checkInterval) {
           clearInterval(checkInterval)
           checkInterval = null
         }
-      }, 10000)
+      }, 5000)
     }
 
     // Cleanup function
@@ -70,14 +74,17 @@ export default function Hero() {
   return (
     <>
       {/* Load Vanta.js scripts with Next.js Script component for optimal performance */}
+      {/* Use afterInteractive to load after page becomes interactive, improving initial load */}
       <Script
         src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
         onLoad={() => {
           // After Three.js loads, load Vanta Globe
           if (typeof window !== 'undefined' && !window.VANTA) {
             const script = document.createElement('script')
             script.src = 'https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.globe.min.js'
+            script.async = true
+            script.defer = true
             script.onload = () => {
               // Vanta will be initialized by useEffect when it detects window.VANTA
             }

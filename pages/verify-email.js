@@ -109,9 +109,7 @@ export default function VerifyEmailPage() {
         localStorage.setItem('token', data.data.token);
       }
       
-      // Small delay before redirect
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
+      // Redirect immediately - cookies are set synchronously
       // Use window.location for hash navigation as Next.js router doesn't handle hashes well
       window.location.href = '/dashboard#resolutions';
       

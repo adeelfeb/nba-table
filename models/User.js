@@ -25,10 +25,32 @@ const UserSchema = new mongoose.Schema(
 
 // Hash password before save if modified
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
+  // Defensive check for next function
+  if (!next || typeof next !== 'function') {
+    // If next is not a function, handle synchronously
+    if (this.isModified('password')) {
+      try {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+      } catch (error) {
+        console.error('Error hashing password:', error);
+        throw error;
+      }
+    }
+    return;
+  }
+
+  // Normal hook execution with next callback
+  try {
+    if (!this.isModified('password')) {
+      return next();
+    }
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 UserSchema.methods.comparePassword = function (candidatePassword) {

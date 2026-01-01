@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../components/designndev/Navbar';
 import Footer from '../components/designndev/Footer';
+import { AuthCardSkeleton } from '../components/Skeleton';
 
 function formatErrorMessage(payload, fallback) {
   if (!payload) return fallback;
@@ -37,17 +38,29 @@ export default function SignupPage() {
 
     async function checkAuth() {
       try {
-        // Check if token exists in localStorage
+        // Check if token exists in localStorage first for faster check
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        
+        // If no token, skip API call and show signup form immediately
+        if (!token) {
+          setCheckingAuth(false);
+          return;
+        }
         
         // Call /api/auth/me to verify authentication (checks both cookies and token)
         const res = await fetch('/api/auth/me', {
           method: 'GET',
           credentials: 'include', // Include cookies
-          headers: token ? {
+          headers: {
             'Authorization': `Bearer ${token}`,
-          } : {},
+          },
         });
+
+        // If request fails, show signup page
+        if (!res.ok) {
+          setCheckingAuth(false);
+          return;
+        }
 
         const data = await res.json();
         
@@ -73,15 +86,16 @@ export default function SignupPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady]);
 
+  // Optimized validation - check immediately on input change
   const passwordHint = password && password.length < 6 ? 'Use at least 6 characters.' : '';
 
   const isDisabled = useMemo(() => {
-    return (
-      loading ||
-      !name.trim() ||
-      !email.trim() ||
-      password.length < 6
-    );
+    if (loading) return true;
+    // Fast validation without blocking
+    const nameValid = name.trim().length >= 2;
+    const emailValid = email.trim().length > 0 && email.includes('@');
+    const passwordValid = password.length >= 6;
+    return !nameValid || !emailValid || !passwordValid;
   }, [name, email, password, loading]);
 
   async function onSubmit(e) {
@@ -140,10 +154,7 @@ export default function SignupPage() {
         localStorage.setItem('token', data.data.token);
       }
       
-      // Small delay to ensure cookie is set before redirect
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // Redirect to dashboard only if user is fully authenticated
+      // Redirect immediately if user is fully authenticated - cookies are set synchronously
       if (data.data && data.data.user) {
         // Use window.location for hash navigation as Next.js router doesn't handle hashes well
         window.location.href = '/dashboard#resolutions';
@@ -163,18 +174,13 @@ export default function SignupPage() {
     }
   }
 
-  // Show loading state while checking authentication
+  // Show skeleton loading state while checking authentication
   if (checkingAuth) {
     return (
       <div className="auth-page">
         <Navbar />
         <div className="auth-shell">
-          <div className="auth-card">
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <div className="spinner" style={{ margin: '0 auto 1rem' }} aria-hidden="true" />
-              <p style={{ color: '#4b5d73' }}>Checking authentication...</p>
-            </div>
-          </div>
+          <AuthCardSkeleton />
         </div>
         <Footer />
       </div>
@@ -188,7 +194,6 @@ export default function SignupPage() {
         <div className="auth-card">
           <header className="card-header">
             <h1>Create your account</h1>
-            <p>Join Proof Response to unlock your personalized funding insights.</p>
           </header>
 
           {error && (
@@ -413,6 +418,17 @@ export default function SignupPage() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+        .animate-pulse {
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
         @media (max-width: 600px) {
           .auth-shell {

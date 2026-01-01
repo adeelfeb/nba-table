@@ -21,6 +21,8 @@ function parseDefaultOrigins() {
     'https://googleweb.uk',
     'http://googleweb.uk',
     'https://global-node.thefvg.com',
+    'https://designndev.com',
+    'http://designndev.com',
   ];
   
   const configured = env.CORS_DEFAULT_ORIGINS || '';
