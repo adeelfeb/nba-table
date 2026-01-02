@@ -36,6 +36,14 @@ export default function VerifyEmailPage() {
     }
   }, [router.isReady, email, router]);
 
+  // Initialize 40 second cooldown when component mounts
+  useEffect(() => {
+    if (router.isReady && email) {
+      // Start with 40 second cooldown when page loads
+      setResendCooldown(40);
+    }
+  }, [router.isReady, email]);
+
   // Handle resend cooldown timer
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -143,6 +151,11 @@ export default function VerifyEmailPage() {
           <header className="card-header">
             <h1>Verify your email</h1>
             <p>We've sent a verification code to <strong>{email}</strong></p>
+            {resendCooldown > 0 && (
+              <p className="wait-note">
+                Wait for a while if you haven't received it, then resend.
+              </p>
+            )}
           </header>
 
           {error && (
@@ -242,6 +255,16 @@ export default function VerifyEmailPage() {
         .card-header p {
           color: #4b5d73;
           line-height: 1.5;
+        }
+        .wait-note {
+          color: #64748b;
+          font-size: 0.9rem;
+          font-style: italic;
+          margin-top: 0.5rem;
+          padding: 0.75rem;
+          background: rgba(0, 112, 243, 0.05);
+          border-left: 3px solid #0070f3;
+          border-radius: 0.5rem;
         }
         .alert {
           border-radius: 0.75rem;
