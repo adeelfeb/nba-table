@@ -15,16 +15,46 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DROPLET_SSH_KEY }}
+      - name: Setup SSH key
+        run: |
+          # Create .ssh directory if it doesn't exist
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          
+          # Clean the private key: remove carriage returns and ensure proper formatting
+          echo "${{ secrets.DROPLET_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          
+          # Ensure the key ends with a newline
+          echo "" >> ~/.ssh/id_rsa
+          
+          # Set proper permissions
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Verify key format (non-blocking check)
+          if ! ssh-keygen -l -f ~/.ssh/id_rsa > /dev/null 2>&1; then
+            echo "⚠️ Warning: SSH key format verification failed, but continuing..."
+          fi
 
       - name: Add server to known hosts
-        run: ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.DROPLET_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: |
+          ssh -o StrictHostKeyChecking=no -o BatchMode=yes root@${{ secrets.DROPLET_HOST }} 'echo "SSH connection successful"'
+        continue-on-error: true
 
       - name: Deploy to server
-        run: ssh root@${{ secrets.DROPLET_HOST }} 'bash /opt/projects/portfolio/scripts/deploy.sh'
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.DROPLET_HOST }} 'bash /opt/projects/portfolio/scripts/deploy.sh'
 
       - name: Deployment status
         run: echo "✅ Deployment completed successfully!"
+
+      - name: Cleanup SSH key
+        if: always()
+        run: |
+          rm -f ~/.ssh/id_rsa
+          echo "SSH key cleaned up"
