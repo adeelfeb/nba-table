@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 export default function Header({
-  title = 'Proof360',
+  title = 'Design n Dev',
   navItems = [
     { href: '/dashboard', label: 'Dashboard' },
   ],
@@ -14,7 +14,7 @@ export default function Header({
             <Link href="/" className="logo-link">
               <img 
                 src="/logo.svg" 
-                alt="Proof360 Logo" 
+                alt="Design n Dev Logo" 
                 className="logo-img"
               />
             </Link>

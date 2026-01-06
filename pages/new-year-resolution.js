@@ -7,7 +7,7 @@ export default function NewYearResolutionPage() {
   return (
     <>
       <Head>
-        <title>New Year Resolution Service - Proof360</title>
+        <title>New Year Resolution Service - Design n Dev</title>
         <meta 
           name="description" 
           content="Create, track, and achieve your New Year resolutions with our free service. Choose from templates or write your own." 
@@ -16,7 +16,7 @@ export default function NewYearResolutionPage() {
           name="keywords" 
           content="new year resolution, goal setting, yearly goals, free resolution tracker" 
         />
-        <meta property="og:title" content="New Year Resolution Service - Proof360" />
+        <meta property="og:title" content="New Year Resolution Service - Design n Dev" />
         <meta 
           property="og:description" 
           content="A dedicated space to define and conquer your goals for the year ahead." 

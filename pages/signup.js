@@ -17,6 +17,45 @@ function formatErrorMessage(payload, fallback) {
   return fallback;
 }
 
+// Helper to detect and break redirect loops
+function shouldSkipAuthRedirect() {
+  if (typeof window === 'undefined') return false;
+  
+  const redirectKey = 'auth_redirect_count';
+  const redirectTimeKey = 'auth_redirect_time';
+  const now = Date.now();
+  const lastRedirectTime = parseInt(sessionStorage.getItem(redirectTimeKey) || '0', 10);
+  const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
+  
+  // Reset counter if more than 5 seconds have passed
+  if (now - lastRedirectTime > 5000) {
+    sessionStorage.setItem(redirectKey, '0');
+    sessionStorage.setItem(redirectTimeKey, String(now));
+    return false;
+  }
+  
+  // If we've redirected more than 2 times in 5 seconds, we're in a loop
+  if (redirectCount >= 2) {
+    console.warn('[Signup] Redirect loop detected, clearing auth state');
+    // Clear potentially stale auth state
+    localStorage.removeItem('token');
+    sessionStorage.removeItem(redirectKey);
+    sessionStorage.removeItem(redirectTimeKey);
+    return true;
+  }
+  
+  return false;
+}
+
+function incrementRedirectCount() {
+  if (typeof window === 'undefined') return;
+  const redirectKey = 'auth_redirect_count';
+  const redirectTimeKey = 'auth_redirect_time';
+  const count = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
+  sessionStorage.setItem(redirectKey, String(count + 1));
+  sessionStorage.setItem(redirectTimeKey, String(Date.now()));
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState('');
@@ -38,6 +77,12 @@ export default function SignupPage() {
 
     async function checkAuth() {
       try {
+        // Check for redirect loop first
+        if (shouldSkipAuthRedirect()) {
+          setCheckingAuth(false);
+          return;
+        }
+        
         // Check if token exists in localStorage first for faster check
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         
@@ -47,36 +92,48 @@ export default function SignupPage() {
           return;
         }
         
-        // Call /api/auth/me to verify authentication (checks both cookies and token)
+        // Call /api/auth/me WITHOUT Authorization header to check cookie-only auth
+        // This matches what SSR will see, preventing redirect loops
         const res = await fetch('/api/auth/me', {
           method: 'GET',
-          credentials: 'include', // Include cookies
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include', // Include cookies only
         });
 
-        // If request fails, show signup page
+        // If request fails, clear localStorage and show signup page
         if (!res.ok) {
+          localStorage.removeItem('token');
           setCheckingAuth(false);
           return;
         }
 
         const data = await res.json();
         
-        // If user is authenticated, redirect to dashboard
+        // If user is authenticated via COOKIE (not just localStorage), redirect to dashboard
         if (data.success && data.data && data.data.user) {
-          // Store token in localStorage if provided by API
+          // Sync localStorage with cookie-based token
           if (data.data.token && typeof window !== 'undefined') {
             localStorage.setItem('token', data.data.token);
           }
-          // Redirect to dashboard with hash - use window.location for proper hash handling
-          window.location.href = '/dashboard#resolutions';
+          
+          // Track redirect to detect loops
+          incrementRedirectCount();
+          
+          // Use router.replace then set hash to avoid Next.js router issues
+          router.replace('/dashboard').then(() => {
+            if (typeof window !== 'undefined') {
+              window.location.hash = 'resolutions';
+            }
+          });
           return;
+        } else {
+          // Cookie auth failed but localStorage has token - they're out of sync
+          // Clear localStorage to prevent redirect loops
+          localStorage.removeItem('token');
         }
       } catch (err) {
-        // If check fails, just show signup page
+        // If check fails, clear potentially stale token and show signup page
         console.log('[Signup] Auth check failed, showing signup page:', err);
+        localStorage.removeItem('token');
       } finally {
         setCheckingAuth(false);
       }
@@ -154,10 +211,20 @@ export default function SignupPage() {
         localStorage.setItem('token', data.data.token);
       }
       
+      // Clear redirect loop counter on successful signup
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('auth_redirect_count');
+        sessionStorage.removeItem('auth_redirect_time');
+      }
+      
       // Redirect immediately if user is fully authenticated - cookies are set synchronously
       if (data.data && data.data.user) {
-        // Use window.location for hash navigation as Next.js router doesn't handle hashes well
-        window.location.href = '/dashboard#resolutions';
+        // Use router.replace then set hash to avoid Next.js router issues
+        router.replace('/dashboard').then(() => {
+          if (typeof window !== 'undefined') {
+            window.location.hash = 'resolutions';
+          }
+        });
       }
     } catch (err) {
       // Catch any unexpected errors (network errors, etc.)

@@ -19,6 +19,45 @@ function formatErrorMessage(payload, fallback) {
   return payload.message || fallback;
 }
 
+// Helper to detect and break redirect loops
+function shouldSkipAuthRedirect() {
+  if (typeof window === 'undefined') return false;
+  
+  const redirectKey = 'auth_redirect_count';
+  const redirectTimeKey = 'auth_redirect_time';
+  const now = Date.now();
+  const lastRedirectTime = parseInt(sessionStorage.getItem(redirectTimeKey) || '0', 10);
+  const redirectCount = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
+  
+  // Reset counter if more than 5 seconds have passed
+  if (now - lastRedirectTime > 5000) {
+    sessionStorage.setItem(redirectKey, '0');
+    sessionStorage.setItem(redirectTimeKey, String(now));
+    return false;
+  }
+  
+  // If we've redirected more than 2 times in 5 seconds, we're in a loop
+  if (redirectCount >= 2) {
+    console.warn('[Login] Redirect loop detected, clearing auth state');
+    // Clear potentially stale auth state
+    localStorage.removeItem('token');
+    sessionStorage.removeItem(redirectKey);
+    sessionStorage.removeItem(redirectTimeKey);
+    return true;
+  }
+  
+  return false;
+}
+
+function incrementRedirectCount() {
+  if (typeof window === 'undefined') return;
+  const redirectKey = 'auth_redirect_count';
+  const redirectTimeKey = 'auth_redirect_time';
+  const count = parseInt(sessionStorage.getItem(redirectKey) || '0', 10);
+  sessionStorage.setItem(redirectKey, String(count + 1));
+  sessionStorage.setItem(redirectTimeKey, String(Date.now()));
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -30,7 +69,7 @@ export default function LoginPage() {
 
   // Get redirect destination from query params - memoize to prevent unnecessary re-renders
   const redirectTo = useMemo(() => {
-    return router.query.redirect || '/dashboard#resolutions';
+    return router.query.redirect || '/dashboard';
   }, [router.query.redirect]);
 
   // Check if user is already authenticated and redirect to dashboard
@@ -44,6 +83,12 @@ export default function LoginPage() {
 
     async function checkAuth() {
       try {
+        // Check for redirect loop first
+        if (shouldSkipAuthRedirect()) {
+          setCheckingAuth(false);
+          return;
+        }
+        
         // Check if token exists in localStorage first for faster check
         const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         
@@ -53,43 +98,57 @@ export default function LoginPage() {
           return;
         }
         
-        // Call /api/auth/me to verify authentication (checks both cookies and token)
+        // Call /api/auth/me WITHOUT Authorization header to check cookie-only auth
+        // This matches what SSR will see, preventing redirect loops
         const res = await fetch('/api/auth/me', {
           method: 'GET',
-          credentials: 'include', // Include cookies
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+          credentials: 'include', // Include cookies only
         });
 
-        // If request fails, show login page
+        // If request fails, clear localStorage and show login page
         if (!res.ok) {
+          localStorage.removeItem('token');
           setCheckingAuth(false);
           return;
         }
 
         const data = await res.json();
         
-        // If user is authenticated, redirect to dashboard or specified redirect
+        // If user is authenticated via COOKIE (not just localStorage), redirect to dashboard
         if (data.success && data.data && data.data.user) {
-          // Store token in localStorage if provided by API
+          // Sync localStorage with cookie-based token
           if (data.data.token && typeof window !== 'undefined') {
             localStorage.setItem('token', data.data.token);
           }
+          
+          // Track redirect to detect loops
+          incrementRedirectCount();
+          
           // Get redirect destination from query params at redirect time
           const redirectDestination = router.query.redirect || '/dashboard';
-          // Redirect to dashboard or specified redirect destination
+          
+          // Use router.replace instead of window.location to let Next.js handle it properly
+          // Add hash as a separate step to avoid router issues
           if (redirectDestination === '/dashboard' || !router.query.redirect) {
-            // Use window.location for hash navigation as Next.js router doesn't handle hashes well
-            window.location.href = '/dashboard#resolutions';
+            router.replace('/dashboard').then(() => {
+              // Set hash after navigation completes
+              if (typeof window !== 'undefined') {
+                window.location.hash = 'resolutions';
+              }
+            });
           } else {
             router.replace(redirectDestination);
           }
           return;
+        } else {
+          // Cookie auth failed but localStorage has token - they're out of sync
+          // Clear localStorage to prevent redirect loops
+          localStorage.removeItem('token');
         }
       } catch (err) {
-        // If check fails, just show login page
+        // If check fails, clear potentially stale token and show login page
         console.log('[Login] Auth check failed, showing login page:', err);
+        localStorage.removeItem('token');
       } finally {
         setCheckingAuth(false);
       }
@@ -163,13 +222,23 @@ export default function LoginPage() {
         localStorage.setItem('token', data.data.token);
       }
       
+      // Clear redirect loop counter on successful login
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('auth_redirect_count');
+        sessionStorage.removeItem('auth_redirect_time');
+      }
+      
       // Redirect immediately - cookies are set synchronously
-      const redirectTo = router.query.redirect || '/dashboard';
-      if (redirectTo === '/dashboard' || !router.query.redirect) {
-        // Use window.location for hash navigation as Next.js router doesn't handle hashes well
-        window.location.href = '/dashboard#resolutions';
+      const redirectDest = router.query.redirect || '/dashboard';
+      if (redirectDest === '/dashboard' || !router.query.redirect) {
+        // Use router.replace then set hash to avoid Next.js router issues
+        router.replace('/dashboard').then(() => {
+          if (typeof window !== 'undefined') {
+            window.location.hash = 'resolutions';
+          }
+        });
       } else {
-        router.replace(redirectTo);
+        router.replace(redirectDest);
       }
     } catch (err) {
       console.error('[Login] Error during sign-in flow', err);

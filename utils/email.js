@@ -98,7 +98,8 @@ async function sendEmailViaSMTP({ to, subject, htmlBody, textBody, from, fromNam
  */
 async function sendEmailViaAPI({ to, subject, htmlBody, textBody, from, fromName }) {
   const apiKey = env.SMTP2GO_API_KEY;
-  const defaultFrom = env.SMTP2GO_FROM_EMAIL;
+  // Fall back to SMTP_FROM if SMTP2GO_FROM_EMAIL is not set
+  const defaultFrom = env.SMTP2GO_FROM_EMAIL || env.SMTP_FROM;
   const defaultFromName = env.SMTP2GO_FROM_NAME || 'The Server';
 
   if (!apiKey || apiKey.trim() === '') {
@@ -107,8 +108,8 @@ async function sendEmailViaAPI({ to, subject, htmlBody, textBody, from, fromName
   }
 
   if (!defaultFrom || defaultFrom.trim() === '') {
-    logger.error('SMTP2GO_FROM_EMAIL is not configured. Check your .env file.');
-    throw new Error('SMTP2GO_FROM_EMAIL is not configured. Please add it to your .env or .env.local file.');
+    logger.error('SMTP2GO_FROM_EMAIL or SMTP_FROM is not configured. Check your .env file.');
+    throw new Error('SMTP2GO_FROM_EMAIL (or SMTP_FROM as fallback) is not configured. Please add it to your .env or .env.local file.');
   }
 
   // Normalize 'to' to array

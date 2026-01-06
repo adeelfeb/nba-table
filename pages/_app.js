@@ -10,7 +10,7 @@ export default function App({ Component, pageProps }) {
     <ErrorBoundary>
       <ToastProvider>
         <Head>
-          <title>Proof360 - Funding Intelligence Platform</title>
+          <title>Design n Dev</title>
           <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
           <link rel="alternate icon" href="/favicon.svg" />
           <link rel="apple-touch-icon" href="/favicon.svg" />

@@ -29,10 +29,12 @@ function serializeUser(user) {
 
 export async function getServerSideProps(context) {
   try {
-    const { req } = context;
+    const { req, resolvedUrl } = context;
     const user = await getUserFromRequest(req);
 
     if (!user) {
+      // Don't include hash in redirect - it causes issues
+      // The login page will handle redirecting back after auth
       return { redirect: { destination: '/login', permanent: false } };
     }
 
@@ -398,9 +400,11 @@ export default function Dashboard({ user }) {
       if (!response.ok) {
         throw new Error('Logout failed');
       }
-      // Clear token from localStorage
+      // Clear all auth-related storage
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
+        sessionStorage.removeItem('auth_redirect_count');
+        sessionStorage.removeItem('auth_redirect_time');
       }
       await router.replace('/login');
     } catch (error) {
