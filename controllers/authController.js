@@ -22,6 +22,7 @@ function sanitizeUser(userDoc) {
     id: userDoc._id,
     name: userDoc.name,
     email: userDoc.email,
+    username: userDoc.username,
     role: userDoc.role || 'base_user',
     roleRef: userDoc.roleRef,
     createdAt: userDoc.createdAt,
@@ -55,8 +56,8 @@ export async function signup(req, res) {
   }
   
   // Validate password strength
-  if (typeof password !== 'string' || password.length < 6) {
-    return jsonError(res, 400, 'Password must be at least 6 characters long');
+  if (typeof password !== 'string' || password.length < 5) {
+    return jsonError(res, 400, 'Password must be at least 5 characters long');
   }
   
   // Validate name
@@ -204,20 +205,15 @@ export async function signup(req, res) {
 }
 
 export async function login(req, res) {
-  const { email, password } = req.body || {};
+  const { email, username, password } = req.body || {};
+  const identifier = email || username;
   
   // Validate input - provide user-friendly error messages
-  if (!email || !password) {
+  if (!identifier || !password) {
     const missing = [];
-    if (!email) missing.push('email');
+    if (!identifier) missing.push('email or username');
     if (!password) missing.push('password');
     return jsonError(res, 400, `Please provide ${missing.join(' and ')}`);
-  }
-  
-  // Validate email format
-  const emailOk = typeof email === 'string' && /.+@.+\..+/.test(email.trim());
-  if (!emailOk) {
-    return jsonError(res, 400, 'Please provide a valid email address');
   }
   
   // Validate password is not empty
@@ -250,22 +246,31 @@ export async function login(req, res) {
       return jsonError(res, 503, errorMessage);
     }
     
-    // Find user by email (case-insensitive search)
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
+    // Determine if identifier is email or username
+    const trimmedIdentifier = identifier.trim().toLowerCase();
+    const isEmail = /.+@.+\..+/.test(trimmedIdentifier);
     
-    // Don't reveal if email exists or not - use generic message for security
+    // Find user by email or username
+    let user;
+    if (isEmail) {
+      user = await User.findOne({ email: trimmedIdentifier });
+    } else {
+      user = await User.findOne({ username: trimmedIdentifier });
+    }
+    
+    // Don't reveal if user exists or not - use generic message for security
     if (!user) {
-      return jsonError(res, 401, 'Invalid email or password');
+      return jsonError(res, 401, 'Invalid credentials');
     }
     
     // Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return jsonError(res, 401, 'Invalid email or password');
+      return jsonError(res, 401, 'Invalid credentials');
     }
     
-    // Check if email is verified
-    if (!user.isEmailVerified) {
+    // Check if email is verified (skip for loved_one role)
+    if (user.role !== 'loved_one' && !user.isEmailVerified) {
       // Offer to resend OTP
       return jsonError(res, 403, 'Please verify your email before logging in. Check your inbox for the verification code, or request a new one.');
     }
@@ -284,7 +289,7 @@ export async function login(req, res) {
     // Pass the request so the cookie secure flag reflects the real protocol
     setAuthCookie(res, token, req);
     
-    logger.info(`User logged in successfully: ${user.email}`);
+    logger.info(`User logged in successfully: ${user.email || user.username}`);
     return jsonSuccess(res, 200, 'Login successful', {
       user: sanitizeUser(user),
       token,

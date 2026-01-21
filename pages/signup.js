@@ -144,14 +144,14 @@ export default function SignupPage() {
   }, [router.isReady]);
 
   // Optimized validation - check immediately on input change
-  const passwordHint = password && password.length < 6 ? 'Use at least 6 characters.' : '';
+  const passwordHint = password && password.length < 5 ? 'Use at least 5 characters.' : '';
 
   const isDisabled = useMemo(() => {
     if (loading) return true;
     // Fast validation without blocking
     const nameValid = name.trim().length >= 2;
     const emailValid = email.trim().length > 0 && email.includes('@');
-    const passwordValid = password.length >= 6;
+    const passwordValid = password.length >= 5;
     return !nameValid || !emailValid || !passwordValid;
   }, [name, email, password, loading]);
 
@@ -314,7 +314,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={5}
                 disabled={loading}
               />
               {passwordHint && <small className="helper">{passwordHint}</small>}

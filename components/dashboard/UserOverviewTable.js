@@ -24,9 +24,11 @@ const ROLE_OPTIONS = [
   { value: 'hr', label: 'HR' },
   { value: 'base_user', label: 'Base User' },
   { value: 'simple_user', label: 'Simple User' },
+  { value: 'loved_one', label: 'Loved One' },
 ];
 const DEFAULT_ROLE = 'base_user';
-const MIN_PASSWORD_LENGTH = 6;
+const MIN_PASSWORD_LENGTH = 5;
+const ROLES_WITH_USERNAME = ['loved_one'];
 
 function isValidEmail(value) {
   if (typeof value !== 'string') return false;
@@ -100,7 +102,7 @@ export default function UserOverviewTable({ currentUser = null }) {
   const [actionMessage, setActionMessage] = useState('');
   const [actionError, setActionError] = useState('');
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+  const [editForm, setEditForm] = useState({ name: '', email: '', username: '', role: DEFAULT_ROLE, newPassword: '' });
   const [isSaving, setIsSaving] = useState(false);
   const [isDeletingId, setIsDeletingId] = useState(null);
   const [roleOptions, setRoleOptions] = useState(ROLE_OPTIONS);
@@ -108,7 +110,7 @@ export default function UserOverviewTable({ currentUser = null }) {
   const [roleLoadError, setRoleLoadError] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', email: '', role: DEFAULT_ROLE, password: '' });
+  const [createForm, setCreateForm] = useState({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '' });
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState('');
 
@@ -119,7 +121,7 @@ export default function UserOverviewTable({ currentUser = null }) {
 
   const normalizeUser = useCallback((user) => {
     if (!user || typeof user !== 'object') return null;
-    const safeId = user.id || user._id || user.email;
+    const safeId = user.id || user._id || user.email || user.username;
     if (!safeId) return null;
     const normalizedRole =
       typeof user.role === 'string' && user.role.trim()
@@ -130,6 +132,7 @@ export default function UserOverviewTable({ currentUser = null }) {
       _id: user._id || safeId,
       name: user.name || '',
       email: user.email || '',
+      username: user.username || '',
       role: normalizedRole,
       createdAt: user.createdAt || user.created_at || null,
       updatedAt: user.updatedAt || user.updated_at || null,
@@ -167,6 +170,14 @@ export default function UserOverviewTable({ currentUser = null }) {
         field: 'email',
         minWidth: 200,
         filter: 'agTextColumnFilter',
+        valueFormatter: (params) => params.value || '—',
+      },
+      {
+        headerName: 'Username',
+        field: 'username',
+        minWidth: 150,
+        filter: 'agTextColumnFilter',
+        valueFormatter: (params) => params.value || '—',
       },
       {
         headerName: 'Role',
@@ -318,7 +329,7 @@ export default function UserOverviewTable({ currentUser = null }) {
       setActionMessage('');
       if (isCreateOpen) {
         setIsCreateOpen(false);
-        setCreateForm({ name: '', email: '', role: DEFAULT_ROLE, password: '' });
+        setCreateForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '' });
         setCreateError('');
         setCreateSuccess('');
       }
@@ -331,6 +342,7 @@ export default function UserOverviewTable({ currentUser = null }) {
       setEditForm({
         name: snapshot.name || '',
         email: snapshot.email || '',
+        username: snapshot.username || '',
         role: normalizedRole,
         newPassword: '',
       });
@@ -351,7 +363,7 @@ export default function UserOverviewTable({ currentUser = null }) {
   const handleCancelEdit = useCallback(() => {
     if (isSaving) return;
     setEditingUser(null);
-    setEditForm({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+    setEditForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, newPassword: '' });
     setActionError('');
   }, [isSaving]);
 
@@ -377,8 +389,8 @@ export default function UserOverviewTable({ currentUser = null }) {
         setActionError('Role is required');
         return;
       }
-      if (trimmedPassword && trimmedPassword.length < 6) {
-        setActionError('New password must be at least 6 characters long');
+      if (trimmedPassword && trimmedPassword.length < 5) {
+        setActionError('New password must be at least 5 characters long');
         return;
       }
 
@@ -418,7 +430,7 @@ export default function UserOverviewTable({ currentUser = null }) {
         }
         setActionMessage('User updated successfully');
         setEditingUser(null);
-        setEditForm({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+        setEditForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, newPassword: '' });
         loadRoles();
       } catch (err) {
         setActionError(err.message || 'Unable to update user');
@@ -470,7 +482,7 @@ export default function UserOverviewTable({ currentUser = null }) {
         setRowData((prev) => prev.filter((row) => row.id !== safeRowId));
         if (editingUser?.id === safeRowId) {
           setEditingUser(null);
-          setEditForm({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+          setEditForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, newPassword: '' });
         }
         setActionMessage('User deleted successfully');
       } catch (err) {
@@ -499,7 +511,7 @@ export default function UserOverviewTable({ currentUser = null }) {
     setActionError('');
     if (!isCreateOpen) {
       setEditingUser(null);
-      setEditForm({ name: '', email: '', role: DEFAULT_ROLE, newPassword: '' });
+      setEditForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, newPassword: '' });
     }
     setCreateForm({ name: '', email: '', role: DEFAULT_ROLE, password: '' });
     setIsCreateOpen((prev) => !prev);
@@ -510,19 +522,40 @@ export default function UserOverviewTable({ currentUser = null }) {
       event.preventDefault();
       if (!canEditUsers) return;
 
-      const trimmedName = createForm.name.trim();
-      const trimmedEmail = createForm.email.trim().toLowerCase();
-      const trimmedPassword = createForm.password.trim();
+      const trimmedName = (createForm.name || '').trim();
+      const trimmedEmail = (createForm.email || '').trim().toLowerCase();
+      const trimmedUsername = (createForm.username || '').trim().toLowerCase();
+      const trimmedPassword = (createForm.password || '').trim();
       const normalizedRoleValue = ((createForm.role || '').trim() || DEFAULT_ROLE).toLowerCase();
+      
+      const isLovedOneRole = ROLES_WITH_USERNAME.includes(normalizedRoleValue);
 
       if (!trimmedName) {
         setCreateError('Name is required');
         return;
       }
-      if (!trimmedEmail || !isValidEmail(trimmedEmail)) {
-        setCreateError('A valid email is required');
-        return;
+      
+      // For Loved One role, username is required; for others, email is required
+      if (isLovedOneRole) {
+        if (!trimmedUsername) {
+          setCreateError('Username is required for Loved One role');
+          return;
+        }
+        if (trimmedUsername.length < 3) {
+          setCreateError('Username must be at least 3 characters long');
+          return;
+        }
+        if (!/^[a-z0-9_]+$/.test(trimmedUsername)) {
+          setCreateError('Username can only contain lowercase letters, numbers, and underscores');
+          return;
+        }
+      } else {
+        if (!trimmedEmail || !isValidEmail(trimmedEmail)) {
+          setCreateError('A valid email is required');
+          return;
+        }
       }
+      
       if (!trimmedPassword || trimmedPassword.length < MIN_PASSWORD_LENGTH) {
         setCreateError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`);
         return;
@@ -535,16 +568,28 @@ export default function UserOverviewTable({ currentUser = null }) {
       setActionError('');
 
       try {
+        const body = {
+          name: trimmedName,
+          password: trimmedPassword,
+          role: normalizedRoleValue,
+        };
+        
+        // Add username for Loved One role, email for others
+        if (isLovedOneRole) {
+          body.username = trimmedUsername;
+          // Add email only if provided for Loved One role
+          if (trimmedEmail && isValidEmail(trimmedEmail)) {
+            body.email = trimmedEmail;
+          }
+        } else {
+          body.email = trimmedEmail;
+        }
+
         const response = await fetch('/api/users', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: trimmedName,
-            email: trimmedEmail,
-            password: trimmedPassword,
-            role: normalizedRoleValue,
-          }),
+          body: JSON.stringify(body),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || payload.success === false) {
@@ -559,7 +604,7 @@ export default function UserOverviewTable({ currentUser = null }) {
           }
         }
         setCreateSuccess('User created successfully');
-        setCreateForm({ name: '', email: '', role: DEFAULT_ROLE, password: '' });
+        setCreateForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '' });
         loadRoles();
       } catch (err) {
         setCreateError(err.message || 'Unable to create user');
@@ -605,8 +650,9 @@ export default function UserOverviewTable({ currentUser = null }) {
             <div className={styles.editPanelHeaderText}>
               <span className={styles.editPanelTitle}>Create New User</span>
               <p className={styles.panelDescription}>
-                Add a teammate by assigning their role and temporary password. They can update their
-                details after logging in.
+                {ROLES_WITH_USERNAME.includes(createForm.role) 
+                  ? 'Create a Loved One account with a unique username. They can login using their username instead of email.'
+                  : 'Add a teammate by assigning their role and temporary password. They can update their details after logging in.'}
               </p>
             </div>
           </div>
@@ -623,7 +669,9 @@ export default function UserOverviewTable({ currentUser = null }) {
           )}
           <div className={styles.editFormGrid}>
             <label className={styles.editField}>
-              <span>Name</span>
+              <span>
+                Name <span className={styles.requiredMark}>*</span>
+              </span>
               <input
                 type="text"
                 name="name"
@@ -631,21 +679,14 @@ export default function UserOverviewTable({ currentUser = null }) {
                 onChange={handleCreateFieldChange}
                 disabled={isCreating}
                 required
+                placeholder="Enter full name"
+                autoComplete="name"
               />
             </label>
             <label className={styles.editField}>
-              <span>Email</span>
-              <input
-                type="email"
-                name="email"
-                value={createForm.email}
-                onChange={handleCreateFieldChange}
-                disabled={isCreating}
-                required
-              />
-            </label>
-            <label className={styles.editField}>
-              <span>Role</span>
+              <span>
+                Role <span className={styles.requiredMark}>*</span>
+              </span>
               <select
                 name="role"
                 value={createForm.role}
@@ -659,17 +700,75 @@ export default function UserOverviewTable({ currentUser = null }) {
                 ))}
               </select>
             </label>
-            <label className={styles.editField}>
-              <span>Password</span>
+            {ROLES_WITH_USERNAME.includes(createForm.role) ? (
+              <>
+                <label className={styles.editField} style={{ gridColumn: '1 / -1' }}>
+                  <span>
+                    Username <span className={styles.requiredMark}>*</span>
+                  </span>
+                  <input
+                    type="text"
+                    name="username"
+                    value={createForm.username}
+                    onChange={handleCreateFieldChange}
+                    disabled={isCreating}
+                    required
+                    placeholder="john_doe"
+                    pattern="[a-z0-9_]+"
+                    title="Only lowercase letters, numbers, and underscores"
+                    autoComplete="off"
+                  />
+                  <small>
+                    Unique username for login • Lowercase letters, numbers, and underscores only • Minimum 3 characters
+                  </small>
+                </label>
+                <label className={styles.editField} style={{ gridColumn: '1 / -1' }}>
+                  <span>Email <span style={{ fontWeight: 400, color: '#94a3b8' }}>(Optional)</span></span>
+                  <input
+                    type="email"
+                    name="email"
+                    value={createForm.email}
+                    onChange={handleCreateFieldChange}
+                    disabled={isCreating}
+                    placeholder="email@example.com (optional)"
+                    autoComplete="email"
+                  />
+                  <small>
+                    Email can be added later if needed
+                  </small>
+                </label>
+              </>
+            ) : (
+              <label className={styles.editField} style={{ gridColumn: '1 / -1' }}>
+                <span>
+                  Email <span className={styles.requiredMark}>*</span>
+                </span>
+                <input
+                  type="email"
+                  name="email"
+                  value={createForm.email}
+                  onChange={handleCreateFieldChange}
+                  disabled={isCreating}
+                  required
+                  placeholder="email@example.com"
+                  autoComplete="email"
+                />
+              </label>
+            )}
+            <label className={styles.editField} style={{ gridColumn: '1 / -1' }}>
+              <span>
+                Password <span className={styles.requiredMark}>*</span>
+              </span>
               <input
                 type="password"
                 name="password"
                 value={createForm.password}
                 onChange={handleCreateFieldChange}
                 disabled={isCreating}
-                placeholder={`Minimum ${MIN_PASSWORD_LENGTH} characters`}
+                placeholder={`Create a password (minimum ${MIN_PASSWORD_LENGTH} characters)`}
                 required
                 minLength={MIN_PASSWORD_LENGTH}
+                autoComplete="new-password"
               />
             </label>
           </div>
@@ -703,6 +802,12 @@ export default function UserOverviewTable({ currentUser = null }) {
                     <span className={styles.cardLabel}>Email</span>
                     <span className={styles.cardValue}>{user.email || '—'}</span>
                   </div>
+                  {user.username && (
+                    <div className={styles.cardRow}>
+                      <span className={styles.cardLabel}>Username</span>
+                      <span className={styles.cardValue}>{user.username}</span>
+                    </div>
+                  )}
                   <div className={styles.cardRow}>
                     <span className={styles.cardLabel}>Role</span>
                     <span className={styles.cardValue}>
@@ -823,15 +928,31 @@ export default function UserOverviewTable({ currentUser = null }) {
                 required
               />
             </label>
+            {editForm.username ? (
+              <label className={styles.editField}>
+                <span>Username</span>
+                <input
+                  type="text"
+                  name="username"
+                  value={editForm.username}
+                  disabled
+                  title="Username cannot be changed"
+                  style={{ cursor: 'not-allowed', opacity: 0.7 }}
+                />
+                <small style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
+                  Username cannot be changed
+                </small>
+              </label>
+            ) : null}
             <label className={styles.editField}>
-              <span>Email</span>
+              <span>Email {ROLES_WITH_USERNAME.includes(editForm.role) ? '(Optional)' : ''}</span>
               <input
                 type="email"
                 name="email"
                 value={editForm.email}
                 onChange={handleEditFieldChange}
                 disabled={isSaving}
-                required
+                required={!ROLES_WITH_USERNAME.includes(editForm.role)}
               />
             </label>
             <label className={styles.editField}>
@@ -859,7 +980,7 @@ export default function UserOverviewTable({ currentUser = null }) {
                 onChange={handleEditFieldChange}
                 disabled={isSaving}
                 placeholder="Leave blank to keep current password"
-                minLength={6}
+                minLength={5}
               />
             </label>
           </div>

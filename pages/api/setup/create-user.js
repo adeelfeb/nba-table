@@ -49,8 +49,8 @@ export default async function handler(req, res) {
       return jsonError(res, 400, 'Invalid email format');
     }
 
-    if (typeof password !== 'string' || password.length < 6) {
-      return jsonError(res, 400, 'Password must be at least 6 characters long');
+    if (typeof password !== 'string' || password.length < 5) {
+      return jsonError(res, 400, 'Password must be at least 5 characters long');
     }
 
     // Check if user already exists

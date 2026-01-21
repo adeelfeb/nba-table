@@ -4,8 +4,23 @@ import bcrypt from 'bcryptjs';
 const UserSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6 },
+    email: { 
+      type: String, 
+      required: false,
+      unique: true, 
+      sparse: true, // Allows multiple null/undefined values while enforcing uniqueness for actual emails
+      lowercase: true, 
+      trim: true 
+    },
+    username: { 
+      type: String, 
+      unique: true,
+      sparse: true, // Allows null values but enforces uniqueness when present
+      trim: true,
+      lowercase: true,
+      index: true 
+    },
+    password: { type: String, required: true, minlength: 5 },
     role: { type: String, default: 'base_user', index: true },
     /**
      * Optional pointer to a role document.

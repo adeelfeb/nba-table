@@ -60,8 +60,8 @@ export async function changePassword(req, res) {
   if (!currentPassword || !newPassword) {
     return jsonError(res, 400, 'Current and new password are required');
   }
-  if (typeof newPassword !== 'string' || newPassword.length < 6) {
-    return jsonError(res, 400, 'New password must be at least 6 characters long');
+  if (typeof newPassword !== 'string' || newPassword.length < 5) {
+    return jsonError(res, 400, 'New password must be at least 5 characters long');
   }
 
   try {

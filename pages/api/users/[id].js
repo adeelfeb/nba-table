@@ -72,8 +72,8 @@ export default async function handler(req, res) {
 
         if (typeof newPassword === 'string' && newPassword.trim()) {
           const trimmedPassword = newPassword.trim();
-          if (trimmedPassword.length < 6) {
-            return jsonError(res, 400, 'New password must be at least 6 characters long');
+          if (trimmedPassword.length < 5) {
+            return jsonError(res, 400, 'New password must be at least 5 characters long');
           }
           userDoc.password = trimmedPassword;
         }

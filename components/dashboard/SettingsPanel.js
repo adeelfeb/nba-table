@@ -22,7 +22,7 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
       passwordLoading ||
       !passwords.currentPassword ||
       !passwords.newPassword ||
-      passwords.newPassword.length < 6 ||
+      passwords.newPassword.length < 5 ||
       passwords.newPassword !== passwords.confirm
     );
   }, [passwordLoading, passwords]);

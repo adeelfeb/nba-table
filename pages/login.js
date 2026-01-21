@@ -60,7 +60,7 @@ function incrementRedirectCount() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Can be email or username
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -162,10 +162,10 @@ export default function LoginPage() {
   const isDisabled = useMemo(() => {
     // Fast validation without blocking
     if (loading) return true;
-    const emailValid = email.trim().length > 0 && email.includes('@');
-    const passwordValid = password.length >= 6;
-    return !emailValid || !passwordValid;
-  }, [email, password, loading]);
+    const identifierValid = identifier.trim().length > 0;
+    const passwordValid = password.length >= 5;
+    return !identifierValid || !passwordValid;
+  }, [identifier, password, loading]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -174,11 +174,22 @@ export default function LoginPage() {
     setError('');
     
     try {
+      const trimmedIdentifier = identifier.trim();
+      const isEmail = trimmedIdentifier.includes('@');
+      
+      // Send either email or username based on format
+      const loginPayload = { password };
+      if (isEmail) {
+        loginPayload.email = trimmedIdentifier;
+      } else {
+        loginPayload.username = trimmedIdentifier;
+      }
+      
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Include cookies for session management
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify(loginPayload),
       });
       
       const text = await res.text();
@@ -284,16 +295,16 @@ export default function LoginPage() {
 
           <form onSubmit={onSubmit} className="form" noValidate>
             <label className="field">
-              <span>Email</span>
+              <span>Email or Username</span>
               <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                id="login-email"
-                name="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                inputMode="text"
+                autoComplete="username email"
+                id="login-identifier"
+                name="identifier"
+                placeholder="you@example.com or username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
                 disabled={loading}
               />
@@ -309,7 +320,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={5}
                 disabled={loading}
               />
             </label>
