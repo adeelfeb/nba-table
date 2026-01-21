@@ -121,9 +121,19 @@ export default function Hero() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-6 sm:mb-8 leading-relaxed drop-shadow-md"
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-4 sm:mb-5 leading-relaxed drop-shadow-md"
             >
               We provide expert <strong className="text-white">Full-Stack Website Development Services</strong> for ambitious startups and growing businesses. From lightning-fast <strong className="text-blue-400">Next.js</strong> applications to robust <strong className="text-purple-400">MERN Stack</strong> platforms, we build the technology your business needs to scale.
+            </motion.p>
+
+            {/* Deployment Services */}
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.4 }}
+              className="text-sm sm:text-base md:text-lg text-gray-300 mb-6 sm:mb-8 leading-relaxed drop-shadow-md"
+            >
+              Plus <strong className="text-white">Docker deployment</strong>, setup configuration, bug fixes, and hosting on <strong className="text-blue-400">GoDaddy</strong>, <strong className="text-blue-400">Hostinger</strong>, <strong className="text-blue-400">DigitalOcean</strong>, and <strong className="text-blue-400">AWS</strong>.
             </motion.p>
 
             {/* CTA Buttons */}

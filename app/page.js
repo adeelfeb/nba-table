@@ -1,5 +1,7 @@
 import Navbar from '../components/designndev/Navbar'
 import Hero from '../components/designndev/Hero'
+import Reviews from '../components/designndev/Reviews'
+import ContactForm from '../components/designndev/ContactForm'
 import ValueProp from '../components/designndev/ValueProp'
 import Services from '../components/designndev/Services'
 import TechStack from '../components/designndev/TechStack'
@@ -27,6 +29,8 @@ export default function Home() {
     <main className="min-h-screen bg-white">
       <Navbar />
       <Hero />
+      <Reviews />
+      <ContactForm />
       <ValueProp />
       <Services />
       <TechStack />
