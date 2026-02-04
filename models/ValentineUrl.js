@@ -31,6 +31,24 @@ const ValentineUrlSchema = new mongoose.Schema(
       lowercase: true,
       maxlength: 254,
     },
+    emailSubject: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 200,
+    },
+    emailBody: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 2000,
+    },
+    emailTheme: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 32,
+    },
     welcomeText: {
       type: String,
       default: "You've got something special",

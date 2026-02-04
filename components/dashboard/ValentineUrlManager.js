@@ -17,6 +17,39 @@ const COLORS = [
   { value: 'coral', label: 'Coral' },
 ];
 
+const EMAIL_THEME_OPTIONS = [
+  { value: 'classic_rose', label: 'Classic Rose' },
+  { value: 'classic_crimson', label: 'Classic Crimson' },
+  { value: 'classic_blush', label: 'Classic Blush' },
+  { value: 'classic_gold', label: 'Classic Gold' },
+  { value: 'classic_lavender', label: 'Classic Lavender' },
+  { value: 'classic_coral', label: 'Classic Coral' },
+  { value: 'romantic_rose', label: 'Romantic Rose' },
+  { value: 'romantic_crimson', label: 'Romantic Crimson' },
+  { value: 'romantic_blush', label: 'Romantic Blush' },
+  { value: 'romantic_gold', label: 'Romantic Gold' },
+  { value: 'romantic_lavender', label: 'Romantic Lavender' },
+  { value: 'romantic_coral', label: 'Romantic Coral' },
+  { value: 'minimal_rose', label: 'Minimal Rose' },
+  { value: 'minimal_crimson', label: 'Minimal Crimson' },
+  { value: 'minimal_blush', label: 'Minimal Blush' },
+  { value: 'minimal_gold', label: 'Minimal Gold' },
+  { value: 'minimal_lavender', label: 'Minimal Lavender' },
+  { value: 'minimal_coral', label: 'Minimal Coral' },
+  { value: 'vintage_rose', label: 'Vintage Rose' },
+  { value: 'vintage_crimson', label: 'Vintage Crimson' },
+  { value: 'vintage_blush', label: 'Vintage Blush' },
+  { value: 'vintage_gold', label: 'Vintage Gold' },
+  { value: 'vintage_lavender', label: 'Vintage Lavender' },
+  { value: 'vintage_coral', label: 'Vintage Coral' },
+  { value: 'blush_rose', label: 'Blush Rose' },
+  { value: 'blush_crimson', label: 'Blush Crimson' },
+  { value: 'blush_blush', label: 'Blush Pink' },
+  { value: 'blush_gold', label: 'Blush Gold' },
+  { value: 'blush_lavender', label: 'Blush Lavender' },
+  { value: 'blush_coral', label: 'Blush Coral' },
+];
+
 function HeartIcon({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -68,12 +101,16 @@ export default function ValentineUrlManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [copiedSlug, setCopiedSlug] = useState(null);
   const [formData, setFormData] = useState({
     recipientName: '',
     recipientEmail: '',
+    emailSubject: '',
+    emailBody: '',
+    emailTheme: 'classic_rose',
     welcomeText: "You've got something special",
     mainMessage: '',
     buttonText: 'Open',
@@ -125,6 +162,7 @@ export default function ValentineUrlManager() {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
+    setSaving(true);
     try {
       const url = editingId ? `/api/valentine/${editingId.id}` : '/api/valentine';
       const method = editingId ? 'PUT' : 'POST';
@@ -148,6 +186,8 @@ export default function ValentineUrlManager() {
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -173,6 +213,9 @@ export default function ValentineUrlManager() {
     setFormData({
       recipientName: '',
       recipientEmail: '',
+      emailSubject: '',
+      emailBody: '',
+      emailTheme: 'classic_rose',
       welcomeText: "You've got something special",
       mainMessage: '',
       buttonText: 'Open',
@@ -187,6 +230,9 @@ export default function ValentineUrlManager() {
     setFormData({
       recipientName: item.recipientName,
       recipientEmail: item.recipientEmail || '',
+      emailSubject: item.emailSubject || '',
+      emailBody: item.emailBody || '',
+      emailTheme: item.emailTheme || 'classic_rose',
       welcomeText: item.welcomeText || "You've got something special",
       mainMessage: item.mainMessage || '',
       buttonText: item.buttonText || 'Open',
@@ -196,6 +242,8 @@ export default function ValentineUrlManager() {
     setEditingId({ id: item.id });
     setShowForm(true);
   }
+
+  const showEmailOptions = formData.recipientEmail && formData.recipientEmail.trim().length > 0;
 
   return (
     <div className="valentine-manager">
@@ -241,9 +289,50 @@ export default function ValentineUrlManager() {
                 value={formData.recipientEmail}
                 onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
                 placeholder="e.g. jane@example.com"
+                disabled={saving}
               />
-              <span className="valentine-hint">If provided, we&apos;ll send the link to this address with themed styling.</span>
+              <span className="valentine-hint">If provided, we&apos;ll send the link to this address. When set, you can customize the email below.</span>
             </div>
+            {showEmailOptions && (
+              <div className="valentine-email-options">
+                <h4 className="valentine-email-options-title">Email options</h4>
+                <div className="valentine-form-group">
+                  <label>Email subject</label>
+                  <input
+                    type="text"
+                    value={formData.emailSubject}
+                    onChange={(e) => setFormData({ ...formData, emailSubject: e.target.value })}
+                    placeholder="e.g. You've got something special, Jane 💝"
+                    maxLength={200}
+                    disabled={saving}
+                  />
+                </div>
+                <div className="valentine-form-group">
+                  <label>Email body</label>
+                  <textarea
+                    value={formData.emailBody}
+                    onChange={(e) => setFormData({ ...formData, emailBody: e.target.value })}
+                    placeholder="Optional message shown in the email before the link button. Leave blank for default text."
+                    rows={3}
+                    maxLength={2000}
+                    disabled={saving}
+                  />
+                </div>
+                <div className="valentine-form-group">
+                  <label>Email theme</label>
+                  <select
+                    value={formData.emailTheme}
+                    onChange={(e) => setFormData({ ...formData, emailTheme: e.target.value })}
+                    disabled={saving}
+                  >
+                    {EMAIL_THEME_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <span className="valentine-hint">Visual style of the email (colors and layout).</span>
+                </div>
+              </div>
+            )}
             <div className="valentine-form-group">
               <label>Welcome text</label>
               <input
@@ -299,8 +388,8 @@ export default function ValentineUrlManager() {
               </div>
             </div>
             <div className="valentine-form-actions">
-              <button type="button" className="valentine-btn-secondary" onClick={resetForm}>Cancel</button>
-              <button type="submit" className="valentine-btn-primary">Save</button>
+              <button type="button" className="valentine-btn-secondary" onClick={resetForm} disabled={saving}>Cancel</button>
+              <button type="submit" className="valentine-btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </form>
         </div>
@@ -472,10 +561,27 @@ export default function ValentineUrlManager() {
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
         }
+        .valentine-email-options {
+          margin-bottom: 1rem;
+          padding: 1rem;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.75rem;
+        }
+        .valentine-email-options-title {
+          margin: 0 0 0.75rem 0;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #334155;
+        }
         .valentine-form-actions {
           display: flex;
           gap: 0.75rem;
           margin-top: 1.25rem;
+        }
+        .valentine-form-actions button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
         .valentine-loading {
           color: #64748b;

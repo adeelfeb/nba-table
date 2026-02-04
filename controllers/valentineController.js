@@ -30,6 +30,9 @@ function sanitizeForOwner(valentine) {
     slug: valentine.slug,
     recipientName: valentine.recipientName,
     recipientEmail: valentine.recipientEmail || null,
+    emailSubject: valentine.emailSubject || null,
+    emailBody: valentine.emailBody || null,
+    emailTheme: valentine.emailTheme || null,
     welcomeText: valentine.welcomeText,
     mainMessage: valentine.mainMessage,
     buttonText: valentine.buttonText,
@@ -82,6 +85,9 @@ export async function createValentineUrl(req, res) {
     const {
       recipientName,
       recipientEmail,
+      emailSubject,
+      emailBody,
+      emailTheme,
       welcomeText,
       mainMessage,
       buttonText,
@@ -113,6 +119,9 @@ export async function createValentineUrl(req, res) {
       secretToken,
       recipientName: recipientName.trim(),
       recipientEmail: emailTrimmed || null,
+      emailSubject: emailSubject && typeof emailSubject === 'string' ? emailSubject.trim() : null,
+      emailBody: emailBody && typeof emailBody === 'string' ? emailBody.trim() : null,
+      emailTheme: emailTheme && typeof emailTheme === 'string' ? emailTheme.trim() : null,
       welcomeText: (welcomeText || '').trim() || "You've got something special",
       mainMessage: (mainMessage || '').trim(),
       buttonText: (buttonText || '').trim() || 'Open',
@@ -131,6 +140,9 @@ export async function createValentineUrl(req, res) {
           linkUrl: fullUrl,
           theme: doc.theme,
           themeColor: doc.themeColor,
+          emailTheme: doc.emailTheme || undefined,
+          subject: doc.emailSubject || undefined,
+          body: doc.emailBody || undefined,
         });
         emailSent = true;
       } catch (err) {
@@ -202,6 +214,9 @@ export async function updateValentineUrl(req, res) {
     const {
       recipientName,
       recipientEmail,
+      emailSubject,
+      emailBody,
+      emailTheme,
       welcomeText,
       mainMessage,
       buttonText,
@@ -213,6 +228,9 @@ export async function updateValentineUrl(req, res) {
       ? recipientEmail.trim().toLowerCase()
       : (doc.recipientEmail || null);
     if (recipientEmail !== undefined) doc.recipientEmail = emailTrimmed || null;
+    if (emailSubject !== undefined) doc.emailSubject = emailSubject && typeof emailSubject === 'string' ? emailSubject.trim() : null;
+    if (emailBody !== undefined) doc.emailBody = emailBody && typeof emailBody === 'string' ? emailBody.trim() : null;
+    if (emailTheme !== undefined) doc.emailTheme = emailTheme && typeof emailTheme === 'string' ? emailTheme.trim() : null;
     if (welcomeText !== undefined) doc.welcomeText = welcomeText.trim();
     if (mainMessage !== undefined) doc.mainMessage = mainMessage.trim();
     if (buttonText !== undefined) doc.buttonText = buttonText.trim();
@@ -230,6 +248,9 @@ export async function updateValentineUrl(req, res) {
           linkUrl: fullUrl,
           theme: doc.theme,
           themeColor: doc.themeColor,
+          emailTheme: doc.emailTheme || undefined,
+          subject: doc.emailSubject || undefined,
+          body: doc.emailBody || undefined,
         });
         emailSent = true;
       } catch (err) {

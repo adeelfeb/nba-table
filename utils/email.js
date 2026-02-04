@@ -494,18 +494,30 @@ function getValentineEmailTheme(theme, themeColor) {
   return VALENTINE_EMAIL_THEMES[key] || VALENTINE_EMAIL_THEMES.classic_rose;
 }
 
+function parseEmailThemeKey(emailThemeKey) {
+  if (!emailThemeKey || typeof emailThemeKey !== 'string') return { theme: 'classic', themeColor: 'rose' };
+  const parts = emailThemeKey.trim().split('_');
+  if (parts.length >= 2) return { theme: parts[0], themeColor: parts[1] };
+  return { theme: 'classic', themeColor: 'rose' };
+}
+
 /**
  * Send Valentine link email to recipient
  * @param {string} to - Recipient email
- * @param {Object} opts - { recipientName, linkUrl, theme, themeColor }
+ * @param {Object} opts - { recipientName, linkUrl, theme, themeColor, emailTheme?, subject?, body? }
  * @returns {Promise<Object>} Response from sendEmail
  */
-export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme, themeColor }) {
-  const themeStyles = getValentineEmailTheme(theme, themeColor);
-  const isDark = theme === 'vintage' && themeColor === 'crimson';
+export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme, themeColor, emailTheme, subject: customSubject, body: customBody }) {
+  const themeKey = emailTheme || (theme && themeColor ? `${theme}_${themeColor}` : null);
+  const { theme: t, themeColor: c } = themeKey ? parseEmailThemeKey(themeKey) : { theme: theme || 'classic', themeColor: themeColor || 'rose' };
+  const themeStyles = getValentineEmailTheme(t, c);
+  const isDark = t === 'vintage' && c === 'crimson';
   const textColor = isDark ? '#fef2f2' : '#1f2937';
   const mutedColor = isDark ? '#d6d3d1' : '#6b7280';
-  const subject = `You've got something special, ${recipientName || 'there'} 💝`;
+  const subject = customSubject && customSubject.trim() ? customSubject.trim() : `You've got something special, ${recipientName || 'there'} 💝`;
+  const defaultIntro = 'Click the link below to open your message. This link is just for you.';
+  const introParagraph = customBody && customBody.trim() ? customBody.trim() : defaultIntro;
+  const introEscaped = introParagraph.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\n/g, '<br />');
 
   const htmlBody = `
     <!DOCTYPE html>
@@ -513,7 +525,7 @@ export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
+      <title>${subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
     </head>
     <body style="margin:0; padding:0; font-family: Arial, Helvetica, sans-serif; background-color: ${themeStyles.bg};">
       <table role="presentation" style="width:100%; border-collapse: collapse; background-color: ${themeStyles.bg}; padding: 32px 16px;">
@@ -525,10 +537,10 @@ export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme
                   <p style="font-size: 32px; margin: 0 0 16px 0; line-height: 1;">❤</p>
                   <h1 style="color: ${textColor}; font-size: 22px; font-weight: 700; margin: 0 0 8px 0;">You've got something special</h1>
                   ${recipientName ? `<p style="color: ${mutedColor}; font-size: 16px; margin: 0 0 24px 0;">For ${recipientName}</p>` : ''}
-                  <p style="color: ${mutedColor}; font-size: 15px; margin: 0 0 24px 0; line-height: 1.5;">Click the link below to open your message. This link is just for you.</p>
-                  <a href="${linkUrl}" style="display: inline-block; background-color: ${themeStyles.primary}; color: ${themeStyles.primary === '#fecaca' || themeStyles.primary === '#fca5a5' ? '#1f2937' : '#ffffff'}; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 28px; border-radius: 9999px; margin: 8px 0;">Open your message</a>
+                  <p style="color: ${mutedColor}; font-size: 15px; margin: 0 0 24px 0; line-height: 1.5;">${introEscaped}</p>
+                  <a href="${linkUrl.replace(/&/g, '&amp;')}" style="display: inline-block; background-color: ${themeStyles.primary}; color: ${themeStyles.primary === '#fecaca' || themeStyles.primary === '#fca5a5' ? '#1f2937' : '#ffffff'}; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 28px; border-radius: 9999px; margin: 8px 0;">Open your message</a>
                   <p style="color: ${mutedColor}; font-size: 13px; margin: 24px 0 0 0;">If the button doesn't work, copy and paste this link into your browser:</p>
-                  <p style="color: ${mutedColor}; font-size: 12px; margin: 8px 0 0 0; word-break: break-all;">${linkUrl}</p>
+                  <p style="color: ${mutedColor}; font-size: 12px; margin: 8px 0 0 0; word-break: break-all;">${linkUrl.replace(/&/g, '&amp;')}</p>
                 </td>
               </tr>
               <tr>
@@ -544,15 +556,12 @@ export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme
     </html>
   `;
 
-  const textBody = `
-You've got something special${recipientName ? `, ${recipientName}` : ''} 💝
-
-Open your message by visiting this link (it's just for you):
-
-${linkUrl}
-
-This link is private. Do not share it with others.
-  `.trim();
+  const textBody = (customBody && customBody.trim()
+    ? customBody.trim() + '\n\n'
+    : `You've got something special${recipientName ? `, ${recipientName}` : ''} 💝\n\n`) +
+    'Open your message by visiting this link (it\'s just for you):\n\n' +
+    linkUrl + '\n\n' +
+    'This link is private. Do not share it with others.';
 
   return sendEmail({
     to,
