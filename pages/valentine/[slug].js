@@ -401,6 +401,9 @@ export default function ValentinePage() {
         .valentine-main-icon {
           margin-bottom: 1rem;
           line-height: 1;
+          display: flex;
+          justify-content: center;
+          align-items: center;
           animation: v-heart-soft 2.5s ease-in-out infinite;
         }
         .valentine-heart-explode {
