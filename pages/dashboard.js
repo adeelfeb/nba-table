@@ -9,6 +9,7 @@ import ApiEndpointsPanel from '../components/dashboard/ApiEndpointsPanel';
 import BlogManager from '../components/dashboard/BlogManager';
 import PortfolioManager from '../components/dashboard/PortfolioManager';
 import NewYearResolutionManager from '../components/dashboard/NewYearResolutionManager';
+import ValentineUrlManager from '../components/dashboard/ValentineUrlManager';
 import SupportPanel from '../components/dashboard/SupportPanel';
 import ResourcesPanel from '../components/dashboard/ResourcesPanel';
 import HelpPanel from '../components/dashboard/HelpPanel';
@@ -54,6 +55,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'user-management', label: 'User Management' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
+    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -64,6 +66,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'user-management', label: 'User Management' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
+    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -73,6 +76,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
+    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -82,6 +86,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
+    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -91,6 +96,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
+    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -99,6 +105,7 @@ const NAVIGATION_BY_ROLE = {
   base_user: [
     { key: 'blogs', label: 'Blogs' },
     { key: 'resolutions', label: 'New Year Resolutions' },
+    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'resources', label: 'Resources' },
     { key: 'support', label: 'Support' },
     { key: 'help', label: 'Help' },
@@ -126,6 +133,11 @@ const SECTION_DESCRIPTORS = {
     subtitle: 'Manage and track your New Year resolutions.',
     hideHeader: true,
     body: (user) => <NewYearResolutionManager />,
+  },
+  'valentine-urls': {
+    subtitle: 'Create secure Valentine links with custom messages and themes.',
+    hideHeader: true,
+    body: () => <ValentineUrlManager />,
   },
   resources: {
     subtitle: 'Centralize guidelines, FAQs, and documentation.',
