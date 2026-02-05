@@ -31,6 +31,8 @@ const UserSchema = new mongoose.Schema(
     isEmailVerified: { type: Boolean, default: false, index: true },
     otp: { type: String, default: null },
     otpExpires: { type: Date, default: null },
+    // Account status - when true, user cannot login
+    isPaused: { type: Boolean, default: false, index: true },
   },
   {
     timestamps: true,

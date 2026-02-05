@@ -33,7 +33,7 @@ export default async function handler(req, res) {
         const user = await authMiddleware(req, res);
         if (!user) return;
         if (!roleMiddleware(['admin', 'superadmin', 'hr', 'hr_admin', 'developer'])(req, res)) return;
-        const { name, email, username, password, role } = req.body || {};
+        const { name, email, username, password, role, isEmailVerified } = req.body || {};
         const trimmedName = typeof name === 'string' ? name.trim() : '';
         const trimmedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
         const trimmedUsername = typeof username === 'string' ? username.trim().toLowerCase() : '';
@@ -102,6 +102,10 @@ export default async function handler(req, res) {
           userData.isEmailVerified = true;
         } else {
           userData.email = trimmedEmail;
+          // Allow admin to pre-verify users when creating
+          if (typeof isEmailVerified === 'boolean') {
+            userData.isEmailVerified = isEmailVerified;
+          }
         }
 
         const created = await User.create(userData);
@@ -112,6 +116,8 @@ export default async function handler(req, res) {
           email: created.email,
           username: created.username,
           role: created.role,
+          isEmailVerified: Boolean(created.isEmailVerified),
+          isPaused: Boolean(created.isPaused),
           createdAt: created.createdAt,
           updatedAt: created.updatedAt,
         };

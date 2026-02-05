@@ -96,6 +96,14 @@ function TrashIcon({ size = 18 }) {
   );
 }
 
+function CheckIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
 export default function ValentineUrlManager() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -263,55 +271,83 @@ export default function ValentineUrlManager() {
 
   return (
     <div className="valentine-manager">
-      <div className="valentine-header">
-        <div>
-          <h2>
-            <span className="valentine-title-icon"><HeartIcon size={28} /></span>
+      <header className="valentine-hero">
+        <div className="valentine-hero-content">
+          <div className="valentine-hero-badge">
+            <HeartIcon size={16} />
+            <span>Share something special</span>
+          </div>
+          <h2 className="valentine-hero-title">
+            <span className="valentine-title-icon" aria-hidden><HeartIcon size={28} /></span>
             Valentine Links
           </h2>
-          <p>Create a unique, secure link with a custom message and theme. Only people with the link can see the page.</p>
+          <p className="valentine-hero-desc">
+            Create a unique, secure link with a custom message and theme. Only people with the link can see the page.
+          </p>
+          {!showForm && (
+            <button
+              type="button"
+              className="valentine-btn-primary"
+              onClick={() => setShowForm(true)}
+              aria-label="Create new Valentine link"
+            >
+              <HeartIcon size={20} />
+              Create New Link
+            </button>
+          )}
         </div>
-        {!showForm && (
-          <button type="button" className="valentine-btn-primary" onClick={() => setShowForm(true)}>
-            <HeartIcon size={20} />
-            Create New Link
-          </button>
-        )}
-      </div>
+      </header>
 
-      {error && <div className="valentine-alert">{error}</div>}
-      {successMessage && <div className="valentine-success">{successMessage}</div>}
+      {error && (
+        <div className="valentine-alert" role="alert">
+          {error}
+        </div>
+      )}
+      {successMessage && (
+        <div className="valentine-success" role="status">
+          {successMessage}
+        </div>
+      )}
 
       {showForm && (
-        <div className="valentine-form-card">
-          <h3>{editingId ? 'Edit Valentine Link' : 'Create Valentine Link'}</h3>
-          <form onSubmit={handleSubmit}>
+        <article className="valentine-form-card" aria-labelledby="valentine-form-title">
+          <h3 id="valentine-form-title" className="valentine-form-title">
+            {editingId ? 'Edit Valentine Link' : 'Create Valentine Link'}
+          </h3>
+          <form onSubmit={handleSubmit} className="valentine-form">
+            <fieldset className="valentine-fieldset">
+              <legend className="valentine-legend">Link & recipient</legend>
             <div className="valentine-form-group">
-              <label>Recipient name (for you; used in the URL slug)</label>
+              <label htmlFor="valentine-recipient-name">Recipient name (for you; used in the URL slug)</label>
               <input
+                id="valentine-recipient-name"
                 type="text"
                 value={formData.recipientName}
                 onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
                 placeholder="e.g. Jane"
                 required
                 disabled={!!editingId}
+                autoComplete="off"
               />
               {editingId && <span className="valentine-hint">Slug cannot be changed after creation.</span>}
             </div>
             <div className="valentine-form-group">
-              <label>Recipient email (optional)</label>
+              <label htmlFor="valentine-recipient-email">Recipient email (optional)</label>
               <input
+                id="valentine-recipient-email"
                 type="email"
                 value={formData.recipientEmail}
                 onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
                 placeholder="e.g. jane@example.com"
                 disabled={saving}
+                autoComplete="email"
               />
               <span className="valentine-hint">If provided, we&apos;ll send the link to this address. When set, you can customize the email below.</span>
             </div>
+            </fieldset>
             {showEmailOptions && (
-              <div className="valentine-email-options">
-                <h4 className="valentine-email-options-title">Email options</h4>
+              <fieldset className="valentine-fieldset valentine-email-options">
+                <legend className="valentine-legend">Email options</legend>
                 <div className="valentine-form-group">
                   <label>Email subject</label>
                   <input
@@ -347,16 +383,20 @@ export default function ValentineUrlManager() {
                   </select>
                   <span className="valentine-hint">Visual style of the email (colors and layout).</span>
                 </div>
-              </div>
+              </fieldset>
             )}
+            <fieldset className="valentine-fieldset">
+              <legend className="valentine-legend">Page content & theme</legend>
             <div className="valentine-form-group">
-              <label>Welcome text</label>
+              <label htmlFor="valentine-welcome">Welcome text</label>
               <input
+                id="valentine-welcome"
                 type="text"
                 value={formData.welcomeText}
                 onChange={(e) => setFormData({ ...formData, welcomeText: e.target.value })}
                 placeholder="You've got something special"
                 maxLength={200}
+                autoComplete="off"
               />
             </div>
             <div className="valentine-form-group">
@@ -420,54 +460,87 @@ export default function ValentineUrlManager() {
                 ))}
               </div>
             </div>
+            </fieldset>
             <div className="valentine-form-actions">
               <button type="button" className="valentine-btn-secondary" onClick={resetForm} disabled={saving}>Cancel</button>
               <button type="submit" className="valentine-btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </form>
-        </div>
+        </article>
       )}
 
       {loading ? (
-        <div className="valentine-loading">Loading your Valentine links...</div>
+        <div className="valentine-loading-wrap" aria-busy="true" aria-live="polite">
+          <div className="valentine-loading-dots">
+            <span /><span /><span />
+          </div>
+          <p className="valentine-loading-text">Loading your Valentine links…</p>
+        </div>
       ) : (
-        <div className="valentine-list">
+        <div className="valentine-list-wrap">
           {list.length === 0 && !showForm ? (
-            <div className="valentine-empty">
-              <HeartIcon size={48} />
-              <p>No Valentine links yet. Create one and share the link with someone special.</p>
-            </div>
-          ) : (
-            list.map((item) => (
-              <div key={item.id} className="valentine-card">
-                <div className="valentine-card-top">
-                  <span className="valentine-card-recipient">For: {item.recipientName}</span>
-                  <span className="valentine-card-theme">{item.theme} / {item.themeColor}</span>
-                  <div className="valentine-card-actions">
-                    <button type="button" className="valentine-icon-btn" onClick={() => copyLink(item.slug)} title="Copy link">
-                      <CopyIcon size={18} />
-                      {copiedSlug === item.slug ? ' Copied!' : ' Copy'}
-                    </button>
-                    <a href={getFullUrl(item.slug)} target="_blank" rel="noopener noreferrer" className="valentine-icon-btn" title="Open">
-                      <LinkIcon size={18} />
-                      Open
-                    </a>
-                    <button type="button" className="valentine-icon-btn" onClick={() => handleEdit(item)} title="Edit">
-                      <EditIcon size={18} />
-                      Edit
-                    </button>
-                    <button type="button" className="valentine-icon-btn valentine-delete" onClick={() => handleDelete(item)} title="Delete">
-                      <TrashIcon size={18} />
-                    </button>
-                  </div>
-                </div>
-                <div className="valentine-card-url">
-                  <code>{getFullUrl(item.slug)}</code>
-                </div>
-                {item.welcomeText && <p className="valentine-card-preview">Welcome: &ldquo;{item.welcomeText}&rdquo;</p>}
+            <div className="valentine-empty" role="status">
+              <div className="valentine-empty-icon">
+                <HeartIcon size={56} />
               </div>
-            ))
-          )}
+              <h3 className="valentine-empty-title">No Valentine links yet</h3>
+              <p className="valentine-empty-desc">Create one and share the link with someone special.</p>
+              <button
+                type="button"
+                className="valentine-btn-primary valentine-empty-cta"
+                onClick={() => setShowForm(true)}
+              >
+                <HeartIcon size={20} />
+                Create your first link
+              </button>
+            </div>
+          ) : list.length > 0 ? (
+            <ul className="valentine-list" aria-label="Your Valentine links">
+              {list.map((item) => (
+                <li key={item.id} className="valentine-card">
+                  <div className="valentine-card-accent" aria-hidden />
+                  <div className="valentine-card-body">
+                    <div className="valentine-card-top">
+                      <span className="valentine-card-recipient">For: {item.recipientName}</span>
+                      <span className="valentine-card-theme">{item.theme} / {item.themeColor}</span>
+                      <div className="valentine-card-actions">
+                        <button
+                          type="button"
+                          className={`valentine-icon-btn ${copiedSlug === item.slug ? 'valentine-copied' : ''}`}
+                          onClick={() => copyLink(item.slug)}
+                          title={copiedSlug === item.slug ? 'Copied' : 'Copy link'}
+                          aria-label={copiedSlug === item.slug ? 'Link copied' : 'Copy link'}
+                        >
+                          {copiedSlug === item.slug ? <CheckIcon size={18} /> : <CopyIcon size={18} />}
+                          {copiedSlug === item.slug ? ' Copied!' : ' Copy'}
+                        </button>
+                        <a href={getFullUrl(item.slug)} target="_blank" rel="noopener noreferrer" className="valentine-icon-btn" title="Open in new tab">
+                          <LinkIcon size={18} />
+                          Open
+                        </a>
+                        <button type="button" className="valentine-icon-btn" onClick={() => handleEdit(item)} title="Edit">
+                          <EditIcon size={18} />
+                          Edit
+                        </button>
+                        <button type="button" className="valentine-icon-btn valentine-delete" onClick={() => handleDelete(item)} title="Delete">
+                          <TrashIcon size={18} />
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="valentine-card-url"
+                      onClick={() => copyLink(item.slug)}
+                      title="Click to copy URL"
+                    >
+                      <code>{getFullUrl(item.slug)}</code>
+                    </button>
+                    {item.welcomeText && <p className="valentine-card-preview">Welcome: &ldquo;{item.welcomeText}&rdquo;</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       )}
 
@@ -475,33 +548,76 @@ export default function ValentineUrlManager() {
         .valentine-manager {
           display: flex;
           flex-direction: column;
-          gap: 1.5rem;
+          gap: 1.75rem;
         }
-        .valentine-header {
+
+        /* Hero header */
+        .valentine-hero {
+          position: relative;
+          padding: 1.75rem 1.5rem;
+          background: linear-gradient(145deg, #fef7f8 0%, #fff5f7 50%, #fef2f2 100%);
+          border: 1px solid rgba(225, 29, 72, 0.12);
+          border-radius: 1.25rem;
+          overflow: hidden;
+        }
+        .valentine-hero::before {
+          content: '';
+          position: absolute;
+          top: -40%;
+          right: -20%;
+          width: 60%;
+          height: 140%;
+          background: radial-gradient(ellipse, rgba(225, 29, 72, 0.08) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .valentine-hero-content {
+          position: relative;
           display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          flex-wrap: wrap;
-          gap: 1rem;
+          flex-direction: column;
+          gap: 0.75rem;
+          max-width: 52ch;
         }
-        .valentine-header h2 {
+        .valentine-hero-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          align-self: flex-start;
+          padding: 0.35rem 0.85rem;
+          background: rgba(225, 29, 72, 0.12);
+          color: #be123c;
+          font-size: 0.8rem;
+          font-weight: 600;
+          letter-spacing: 0.03em;
+          border-radius: 999px;
+        }
+        .valentine-hero-badge :global(svg) {
+          flex-shrink: 0;
+        }
+        .valentine-hero-title {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 1.5rem;
+          font-size: 1.6rem;
           font-weight: 700;
           color: #0f172a;
-          margin: 0 0 0.25rem 0;
+          margin: 0;
+          letter-spacing: -0.02em;
         }
         .valentine-title-icon {
           color: #e11d48;
+          flex-shrink: 0;
         }
-        .valentine-header p {
+        .valentine-hero-desc {
           margin: 0;
           color: #64748b;
           font-size: 0.95rem;
-          max-width: 52ch;
+          line-height: 1.6;
         }
+        .valentine-hero-content .valentine-btn-primary {
+          align-self: flex-start;
+          margin-top: 0.25rem;
+        }
+
         .valentine-btn-primary {
           display: inline-flex;
           align-items: center;
@@ -509,16 +625,21 @@ export default function ValentineUrlManager() {
           background: linear-gradient(135deg, #e11d48, #be123c);
           color: white;
           border: none;
-          padding: 0.75rem 1.25rem;
+          padding: 0.75rem 1.35rem;
           border-radius: 0.75rem;
           font-weight: 600;
+          font-size: 0.95rem;
           cursor: pointer;
-          transition: transform 0.2s, box-shadow 0.2s;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
           box-shadow: 0 4px 14px rgba(225, 29, 72, 0.35);
         }
         .valentine-btn-primary:hover {
           transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(225, 29, 72, 0.45);
+          box-shadow: 0 6px 20px rgba(225, 29, 72, 0.4);
+        }
+        .valentine-btn-primary:focus-visible {
+          outline: 2px solid #e11d48;
+          outline-offset: 2px;
         }
         .valentine-btn-secondary {
           background: #f1f5f9;
@@ -528,66 +649,110 @@ export default function ValentineUrlManager() {
           border-radius: 0.75rem;
           font-weight: 500;
           cursor: pointer;
+          transition: background 0.2s ease;
         }
         .valentine-btn-secondary:hover {
           background: #e2e8f0;
         }
+        .valentine-btn-secondary:focus-visible {
+          outline: 2px solid #64748b;
+          outline-offset: 2px;
+        }
+
         .valentine-alert {
-          padding: 0.75rem 1rem;
+          padding: 0.85rem 1.1rem;
           background: #fef2f2;
           border: 1px solid #fecaca;
           color: #b91c1c;
-          border-radius: 0.5rem;
+          border-radius: 0.75rem;
           font-size: 0.9rem;
+          line-height: 1.5;
         }
         .valentine-success {
-          padding: 0.75rem 1rem;
+          padding: 0.85rem 1.1rem;
           background: #ecfdf5;
           border: 1px solid #a7f3d0;
           color: #047857;
-          border-radius: 0.5rem;
+          border-radius: 0.75rem;
           font-size: 0.9rem;
+          line-height: 1.5;
         }
+
+        /* Form card */
         .valentine-form-card {
           background: #fff;
           border: 1px solid #e2e8f0;
-          border-radius: 1rem;
-          padding: 1.5rem;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+          border-radius: 1.25rem;
+          padding: 1.75rem;
+          box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
         }
-        .valentine-form-card h3 {
-          margin: 0 0 1rem 0;
-          font-size: 1.15rem;
+        .valentine-form-title {
+          margin: 0 0 1.25rem 0;
+          font-size: 1.2rem;
+          font-weight: 700;
           color: #0f172a;
+          letter-spacing: -0.01em;
+        }
+        .valentine-form {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .valentine-fieldset {
+          border: none;
+          margin: 0 0 1.5rem 0;
+          padding: 0;
+        }
+        .valentine-legend {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #475569;
+          margin-bottom: 0.75rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 1px solid #e2e8f0;
+          width: 100%;
         }
         .valentine-form-group {
           margin-bottom: 1rem;
+        }
+        .valentine-form-group:last-child {
+          margin-bottom: 0;
         }
         .valentine-form-group label {
           display: block;
           font-size: 0.875rem;
           font-weight: 600;
           color: #334155;
-          margin-bottom: 0.35rem;
+          margin-bottom: 0.4rem;
         }
         .valentine-form-group input,
         .valentine-form-group textarea,
         .valentine-form-group select {
           width: 100%;
-          padding: 0.6rem 0.75rem;
+          padding: 0.65rem 0.85rem;
           border: 1px solid #cbd5e1;
-          border-radius: 0.5rem;
+          border-radius: 0.6rem;
           font-size: 0.95rem;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .valentine-form-group input:focus,
+        .valentine-form-group textarea:focus,
+        .valentine-form-group select:focus {
+          outline: none;
+          border-color: #e11d48;
+          box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.12);
         }
         .valentine-form-group input:disabled {
           background: #f8fafc;
           color: #64748b;
+          cursor: not-allowed;
         }
         .valentine-hint {
           display: block;
           font-size: 0.8rem;
           color: #64748b;
-          margin-top: 0.25rem;
+          margin-top: 0.3rem;
+          line-height: 1.45;
         }
         .valentine-form-row {
           display: grid;
@@ -595,17 +760,13 @@ export default function ValentineUrlManager() {
           gap: 1rem;
         }
         .valentine-email-options {
-          margin-bottom: 1rem;
-          padding: 1rem;
+          padding: 1.25rem;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
-          border-radius: 0.75rem;
+          border-radius: 0.85rem;
         }
-        .valentine-email-options-title {
-          margin: 0 0 0.75rem 0;
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #334155;
+        .valentine-email-options .valentine-legend {
+          margin-bottom: 1rem;
         }
         .valentine-decorations {
           display: flex;
@@ -620,66 +781,145 @@ export default function ValentineUrlManager() {
           font-size: 0.9rem;
           color: #334155;
           cursor: pointer;
+          padding: 0.4rem 0;
         }
         .valentine-decoration-check input {
-          width: 1rem;
-          height: 1rem;
+          width: 1.1rem;
+          height: 1.1rem;
+          accent-color: #e11d48;
         }
         .valentine-form-actions {
           display: flex;
           gap: 0.75rem;
-          margin-top: 1.25rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e2e8f0;
         }
         .valentine-form-actions button:disabled {
           opacity: 0.7;
           cursor: not-allowed;
         }
-        .valentine-loading {
-          color: #64748b;
-          padding: 1.5rem;
+
+        /* Loading state */
+        .valentine-loading-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+          padding: 2.5rem;
         }
+        .valentine-loading-dots {
+          display: flex;
+          gap: 0.5rem;
+        }
+        .valentine-loading-dots span {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #e11d48;
+          animation: valentine-dot 1.2s ease-in-out infinite;
+        }
+        .valentine-loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .valentine-loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes valentine-dot {
+          0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; }
+          40% { transform: scale(1.2); opacity: 1; }
+        }
+        .valentine-loading-text {
+          margin: 0;
+          color: #64748b;
+          font-size: 0.95rem;
+        }
+
+        /* Empty state */
         .valentine-empty {
           text-align: center;
-          padding: 2.5rem;
-          background: #fef2f2;
-          border: 1px dashed #fecaca;
-          border-radius: 1rem;
+          padding: 2.75rem 1.5rem;
+          background: linear-gradient(180deg, #fef7f8 0%, #fff 100%);
+          border: 1px dashed rgba(225, 29, 72, 0.25);
+          border-radius: 1.25rem;
           color: #64748b;
         }
-        .valentine-empty :global(svg) {
+        .valentine-empty-icon {
+          margin-bottom: 1rem;
           color: #e11d48;
-          margin-bottom: 0.75rem;
-          opacity: 0.8;
+          opacity: 0.85;
+        }
+        .valentine-empty-title {
+          margin: 0 0 0.5rem 0;
+          font-size: 1.15rem;
+          font-weight: 600;
+          color: #0f172a;
+        }
+        .valentine-empty-desc {
+          margin: 0 0 1.25rem 0;
+          font-size: 0.95rem;
+          line-height: 1.5;
+          max-width: 36ch;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .valentine-empty-cta {
+          margin: 0 auto;
+        }
+
+        /* Link list & cards */
+        .valentine-list-wrap {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
         }
         .valentine-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
           display: flex;
           flex-direction: column;
           gap: 1rem;
         }
         .valentine-card {
+          position: relative;
           background: #fff;
           border: 1px solid #e2e8f0;
-          border-radius: 1rem;
-          padding: 1.25rem;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          border-radius: 1.1rem;
+          overflow: hidden;
+          box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+          transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .valentine-card:hover {
+          box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+          border-color: #fecaca;
+        }
+        .valentine-card-accent {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: linear-gradient(90deg, #e11d48, #f43f5e);
+        }
+        .valentine-card-body {
+          padding: 1.25rem 1.25rem 1.25rem;
         }
         .valentine-card-top {
           display: flex;
           flex-wrap: wrap;
           align-items: center;
           gap: 0.75rem;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.75rem;
         }
         .valentine-card-recipient {
           font-weight: 600;
           color: #0f172a;
+          font-size: 1rem;
         }
         .valentine-card-theme {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           color: #64748b;
           background: #f1f5f9;
-          padding: 0.25rem 0.5rem;
-          border-radius: 0.35rem;
+          padding: 0.3rem 0.6rem;
+          border-radius: 0.4rem;
+          font-weight: 500;
         }
         .valentine-card-actions {
           display: flex;
@@ -690,8 +930,8 @@ export default function ValentineUrlManager() {
         .valentine-icon-btn {
           display: inline-flex;
           align-items: center;
-          gap: 0.35rem;
-          padding: 0.4rem 0.65rem;
+          gap: 0.4rem;
+          padding: 0.45rem 0.75rem;
           font-size: 0.85rem;
           background: #f8fafc;
           border: 1px solid #e2e8f0;
@@ -699,10 +939,20 @@ export default function ValentineUrlManager() {
           color: #475569;
           text-decoration: none;
           cursor: pointer;
-          transition: background 0.2s;
+          transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
         }
         .valentine-icon-btn:hover {
           background: #e2e8f0;
+          color: #334155;
+        }
+        .valentine-icon-btn:focus-visible {
+          outline: 2px solid #64748b;
+          outline-offset: 2px;
+        }
+        .valentine-icon-btn.valentine-copied {
+          background: #ecfdf5;
+          color: #047857;
+          border-color: #a7f3d0;
         }
         .valentine-icon-btn.valentine-delete:hover {
           background: #fef2f2;
@@ -710,24 +960,46 @@ export default function ValentineUrlManager() {
           border-color: #fecaca;
         }
         .valentine-card-url {
-          margin-top: 0.5rem;
+          display: block;
+          width: 100%;
+          margin: 0;
+          padding: 0.6rem 0.75rem;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          text-align: left;
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .valentine-card-url:hover {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
         }
         .valentine-card-url code {
           font-size: 0.8rem;
           color: #64748b;
           word-break: break-all;
+          font-family: ui-monospace, monospace;
         }
         .valentine-card-preview {
-          margin: 0.5rem 0 0 0;
+          margin: 0.6rem 0 0 0;
           font-size: 0.9rem;
           color: #64748b;
+          line-height: 1.5;
         }
+
         @media (max-width: 640px) {
           .valentine-form-row {
             grid-template-columns: 1fr;
           }
           .valentine-card-actions {
             margin-left: 0;
+          }
+          .valentine-hero {
+            padding: 1.25rem 1.25rem;
+          }
+          .valentine-hero-title {
+            font-size: 1.4rem;
           }
         }
       `}</style>

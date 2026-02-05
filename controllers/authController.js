@@ -268,6 +268,11 @@ export async function login(req, res) {
     if (!isMatch) {
       return jsonError(res, 401, 'Invalid credentials');
     }
+
+    // Block login for paused accounts
+    if (user.isPaused) {
+      return jsonError(res, 403, 'Your account has been paused. Please contact support.');
+    }
     
     // Check if email is verified (skip for loved_one role)
     if (user.role !== 'loved_one' && !user.isEmailVerified) {

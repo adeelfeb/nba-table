@@ -161,7 +161,7 @@
   --ag-row-hover-color: rgba(59, 130, 246, 0.1);
   --ag-range-selection-border-color: rgba(37, 99, 235, 0.45);
 
-  width: min(100%, 1400px);
+  width: 100%;
   min-width: 640px;
   border-radius: 0.75rem;
   border: 1px solid #e2e8f0;
@@ -244,7 +244,9 @@
   gap: 0.5rem;
   justify-content: flex-end;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
 }
 
 .cardActions .actionButtons {
@@ -257,9 +259,11 @@
   line-height: 1.2;
   border-radius: 0.55rem;
   border: 1px solid transparent;
-  padding: 0.35rem 0.7rem;
+  padding: 0.4rem 0.9rem;
+  min-width: 4.5rem;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
 }
 
 .actionButtonSecondary {
@@ -270,6 +274,103 @@
 .actionButtonDanger {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.actionButtonView {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #ffffff;
+}
+
+.actionButtonTertiary {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.actionButtonResume {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.actionButtonPause {
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.statusBadgeSuccess {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.statusBadgeWarning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #b45309;
+}
+
+.statusBadgeDanger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #b91c1c;
+}
+
+.viewModalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.viewModalGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.viewModalField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.viewModalLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.viewModalValue {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.viewModalValueId {
+  font-size: 0.8rem;
+  font-family: ui-monospace, monospace;
+  color: #64748b;
+  word-break: break-all;
+}
+
+.viewModalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .actionButton:disabled {

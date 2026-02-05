@@ -64,6 +64,7 @@ const NAVIGATION_BY_ROLE = {
   developer: [
     { key: 'overview', label: 'Overview' },
     { key: 'user-management', label: 'User Management' },
+    { key: 'resolutions', label: 'New Year Resolutions' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
@@ -121,6 +122,11 @@ const FALLBACK_NAV = [
 
 const SECTION_DESCRIPTORS = {
   overview: {
+    subtitle: (user) => {
+      const normalizedRole = (user?.role || '').toLowerCase();
+      if (normalizedRole === 'base_user') return null;
+      return 'View, manage, and monitor all users. Create accounts, mark verification status, pause or resume access.';
+    },
     body: (user) => {
       const normalizedRole = (user?.role || '').toLowerCase();
       if (normalizedRole === 'base_user') {
@@ -458,7 +464,9 @@ export default function Dashboard({ user }) {
   const sectionSubtitle =
     activeSection === 'settings'
       ? 'Manage your personal details and keep your account secure.'
-      : sectionDescriptor.subtitle;
+      : typeof sectionDescriptor.subtitle === 'function'
+        ? sectionDescriptor.subtitle(sessionUser)
+        : sectionDescriptor.subtitle;
   const hideHeader = Boolean(sectionDescriptor.hideHeader);
 
   // Ensure sectionTitle is always a string to prevent React warnings

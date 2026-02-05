@@ -21,14 +21,18 @@ export default async function handler(req, res) {
     const db = await requireDB(res);
     if (!db) return;
     const users = await User.find()
-      .select('name email role createdAt updatedAt')
+      .select('name email username role createdAt updatedAt isEmailVerified isPaused')
       .sort({ createdAt: -1 });
 
     const normalizedUsers = users.map((userDoc) => ({
       id: userDoc._id.toString(),
+      _id: userDoc._id.toString(),
       name: userDoc.name,
       email: userDoc.email,
+      username: userDoc.username,
       role: userDoc.role,
+      isEmailVerified: Boolean(userDoc.isEmailVerified),
+      isPaused: Boolean(userDoc.isPaused),
       createdAt: userDoc.createdAt,
       updatedAt: userDoc.updatedAt,
     }));

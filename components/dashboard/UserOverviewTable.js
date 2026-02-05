@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import Modal from '../Modal';
 import styles from '../../styles/UserOverviewTable.module.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -46,17 +47,42 @@ function formatDateCell(value, formatter) {
   }
 }
 
+function VerifiedBadgeCellRenderer(params) {
+  const verified = Boolean(params.value);
+  return (
+    <span className={`${styles.statusBadge} ${verified ? styles.statusBadgeSuccess : styles.statusBadgeWarning}`}>
+      {verified ? 'Verified' : 'Unverified'}
+    </span>
+  );
+}
+
+function StatusBadgeCellRenderer(params) {
+  const paused = Boolean(params.value);
+  return (
+    <span className={`${styles.statusBadge} ${paused ? styles.statusBadgeDanger : styles.statusBadgeSuccess}`}>
+      {paused ? 'Paused' : 'Active'}
+    </span>
+  );
+}
+
 function ActionCellRenderer(params) {
   const { data, context } = params;
   const canEditUsers = Boolean(context?.canEditUsers);
+  const onView = typeof context?.onView === 'function' ? context.onView : null;
   const onEdit = typeof context?.onEdit === 'function' ? context.onEdit : null;
   const onDelete = typeof context?.onDelete === 'function' ? context.onDelete : null;
   const deletingId = context?.deletingId || null;
   const editingId = context?.editingId || null;
   const isSaving = Boolean(context?.isSaving);
-  const isProcessing = deletingId === data?.id;
+  const processingId = context?.processingId || null;
+  const isProcessing = deletingId === data?.id || processingId === data?.id;
   const isEditingThisRow = editingId === data?.id;
   const disableActions = !canEditUsers || isProcessing || isSaving;
+
+  const handleViewClick = (event) => {
+    event?.stopPropagation();
+    onView?.(data);
+  };
 
   const handleEditClick = (event) => {
     event?.stopPropagation();
@@ -74,25 +100,148 @@ function ActionCellRenderer(params) {
     <div className={styles.actionButtons}>
       <button
         type="button"
-        className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-        disabled={disableActions}
-        onClick={handleEditClick}
+        className={`${styles.actionButton} ${styles.actionButtonView}`}
+        onClick={handleViewClick}
+        title="View details"
       >
-        {isSaving && isEditingThisRow ? 'Saving…' : 'Edit'}
+        View
       </button>
-      <button
-        type="button"
-        className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-        disabled={disableActions}
-        onClick={handleDeleteClick}
-      >
-        {isProcessing ? 'Deleting…' : 'Delete'}
-      </button>
+      {canEditUsers && (
+        <>
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+            disabled={disableActions}
+            onClick={handleEditClick}
+          >
+            {isSaving && isEditingThisRow ? 'Saving…' : 'Edit'}
+          </button>
+          <button
+            type="button"
+            className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+            disabled={disableActions}
+            onClick={handleDeleteClick}
+          >
+            {isProcessing ? 'Deleting…' : 'Delete'}
+          </button>
+        </>
+      )}
     </div>
   );
 }
 
 const COMPACT_TABLE_BREAKPOINT = 960;
+
+function UserViewModal({
+  user,
+  onClose,
+  onEdit,
+  onToggleVerified,
+  onTogglePause,
+  isProcessing,
+  dateFormatter,
+}) {
+  if (!user) return null;
+  const canEdit = Boolean(onEdit);
+  const canToggleVerified = Boolean(onToggleVerified);
+  const canTogglePause = Boolean(onTogglePause);
+
+  return (
+    <Modal
+      isOpen={Boolean(user)}
+      onClose={onClose}
+      title="User Details"
+      size="lg"
+    >
+      <div className={styles.viewModalContent}>
+        <div className={styles.viewModalGrid}>
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>Name</span>
+            <span className={styles.viewModalValue}>{user.name || '—'}</span>
+          </div>
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>Email</span>
+            <span className={styles.viewModalValue}>{user.email || '—'}</span>
+          </div>
+          {user.username && (
+            <div className={styles.viewModalField}>
+              <span className={styles.viewModalLabel}>Username</span>
+              <span className={styles.viewModalValue}>{user.username}</span>
+            </div>
+          )}
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>Role</span>
+            <span className={styles.viewModalValue}>
+              {user.role?.replace(/_/g, ' ') || '—'}
+            </span>
+          </div>
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>Verification</span>
+            <span className={`${styles.statusBadge} ${user.isEmailVerified ? styles.statusBadgeSuccess : styles.statusBadgeWarning}`}>
+              {user.isEmailVerified ? 'Verified' : 'Unverified'}
+            </span>
+          </div>
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>Status</span>
+            <span className={`${styles.statusBadge} ${user.isPaused ? styles.statusBadgeDanger : styles.statusBadgeSuccess}`}>
+              {user.isPaused ? 'Paused' : 'Active'}
+            </span>
+          </div>
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>Created</span>
+            <span className={styles.viewModalValue}>
+              {formatDateCell(user.createdAt, dateFormatter)}
+            </span>
+          </div>
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>Last Updated</span>
+            <span className={styles.viewModalValue}>
+              {formatDateCell(user.updatedAt, dateFormatter)}
+            </span>
+          </div>
+          <div className={styles.viewModalField}>
+            <span className={styles.viewModalLabel}>User ID</span>
+            <span className={styles.viewModalValueId}>{user.id || user._id || '—'}</span>
+          </div>
+        </div>
+        <div className={styles.viewModalActions}>
+          {canEdit && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => onEdit(user)}
+            >
+              Edit User
+            </button>
+          )}
+          {canToggleVerified && (
+            <button
+              type="button"
+              className={`${styles.actionButton} ${styles.actionButtonTertiary}`}
+              disabled={isProcessing}
+              onClick={() => onToggleVerified(user)}
+            >
+              {isProcessing ? 'Updating…' : user.isEmailVerified ? 'Mark Unverified' : 'Mark Verified'}
+            </button>
+          )}
+          {canTogglePause && (
+            <button
+              type="button"
+              className={`${styles.actionButton} ${user.isPaused ? styles.actionButtonResume : styles.actionButtonPause}`}
+              disabled={isProcessing}
+              onClick={() => onTogglePause(user)}
+            >
+              {isProcessing ? 'Updating…' : user.isPaused ? 'Resume User' : 'Pause User'}
+            </button>
+          )}
+          <button type="button" className={styles.secondaryButton} onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 export default function UserOverviewTable({ currentUser = null }) {
   const [rowData, setRowData] = useState([]);
@@ -110,9 +259,11 @@ export default function UserOverviewTable({ currentUser = null }) {
   const [roleLoadError, setRoleLoadError] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '' });
+  const [createForm, setCreateForm] = useState({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '', isEmailVerified: false });
   const [createError, setCreateError] = useState('');
   const [createSuccess, setCreateSuccess] = useState('');
+  const [viewUser, setViewUser] = useState(null);
+  const [processingId, setProcessingId] = useState(null);
 
   const dateFormatter = useMemo(() => new Intl.DateTimeFormat(undefined, DATE_FORMAT_OPTIONS), []);
 
@@ -134,6 +285,8 @@ export default function UserOverviewTable({ currentUser = null }) {
       email: user.email || '',
       username: user.username || '',
       role: normalizedRole,
+      isEmailVerified: Boolean(user.isEmailVerified),
+      isPaused: Boolean(user.isPaused),
       createdAt: user.createdAt || user.created_at || null,
       updatedAt: user.updatedAt || user.updated_at || null,
     };
@@ -162,55 +315,68 @@ export default function UserOverviewTable({ currentUser = null }) {
       {
         headerName: 'Name',
         field: 'name',
-        minWidth: 180,
+        minWidth: 160,
         filter: 'agTextColumnFilter',
       },
       {
         headerName: 'Email',
         field: 'email',
-        minWidth: 200,
+        minWidth: 180,
         filter: 'agTextColumnFilter',
         valueFormatter: (params) => params.value || '—',
       },
       {
         headerName: 'Username',
         field: 'username',
-        minWidth: 150,
+        minWidth: 120,
         filter: 'agTextColumnFilter',
         valueFormatter: (params) => params.value || '—',
       },
       {
         headerName: 'Role',
         field: 'role',
-        minWidth: 130,
+        minWidth: 110,
         filter: 'agTextColumnFilter',
         valueFormatter: (params) => params.value?.replace(/_/g, ' ') || '—',
       },
       {
-        headerName: 'Created At',
+        headerName: 'Verified',
+        field: 'isEmailVerified',
+        minWidth: 110,
+        filter: 'agTextColumnFilter',
+        cellRenderer: VerifiedBadgeCellRenderer,
+      },
+      {
+        headerName: 'Status',
+        field: 'isPaused',
+        minWidth: 100,
+        filter: 'agTextColumnFilter',
+        valueFormatter: (params) => (params.value ? 'Paused' : 'Active'),
+        cellRenderer: StatusBadgeCellRenderer,
+      },
+      {
+        headerName: 'Created',
         field: 'createdAt',
-        minWidth: 150,
+        minWidth: 140,
         valueFormatter: (params) => formatDateCell(params.value, dateFormatter),
       },
       {
-        headerName: 'Updated At',
+        headerName: 'Updated',
         field: 'updatedAt',
-        minWidth: 150,
+        minWidth: 140,
         valueFormatter: (params) => formatDateCell(params.value, dateFormatter),
       },
       {
         headerName: 'Actions',
         field: 'id',
-        minWidth: 150,
-        maxWidth: 180,
+        minWidth: 280,
         sortable: false,
         filter: false,
         cellRenderer: ActionCellRenderer,
         suppressMenu: true,
-        hide: !canEditUsers,
       },
     ],
-    [dateFormatter, canEditUsers]
+    [dateFormatter]
   );
 
   const defaultColDef = useMemo(
@@ -494,6 +660,93 @@ export default function UserOverviewTable({ currentUser = null }) {
     [canEditUsers, editingUser]
   );
 
+  const handleViewUser = useCallback((user) => {
+    if (!user) return;
+    setViewUser(user);
+    setActionError('');
+    setActionMessage('');
+  }, []);
+
+  const handleCloseView = useCallback(() => {
+    setViewUser(null);
+  }, []);
+
+  const handleToggleVerified = useCallback(
+    async (user) => {
+      if (!canEditUsers || !user) return;
+      const targetId = user._id || user.id;
+      if (!targetId) return;
+      setProcessingId(targetId);
+      setActionError('');
+      setActionMessage('');
+      try {
+        const response = await fetch(`/api/users/${encodeURIComponent(targetId)}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isEmailVerified: !user.isEmailVerified }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success === false) {
+          throw new Error(payload?.message || 'Failed to update verification status');
+        }
+        const updated = payload?.data?.user;
+        const newVerified = Boolean(updated?.isEmailVerified ?? !user.isEmailVerified);
+        setRowData((prev) =>
+          prev.map((row) =>
+            row.id === user.id ? { ...row, isEmailVerified: newVerified } : row
+          )
+        );
+        if (viewUser?.id === user.id) {
+          setViewUser((u) => (u ? { ...u, isEmailVerified: newVerified } : null));
+        }
+        setActionMessage(newVerified ? 'User marked as verified' : 'User marked as unverified');
+      } catch (err) {
+        setActionError(err.message || 'Unable to update verification status');
+      } finally {
+        setProcessingId(null);
+      }
+    },
+    [canEditUsers, viewUser]
+  );
+
+  const handleTogglePause = useCallback(
+    async (user) => {
+      if (!canEditUsers || !user) return;
+      const targetId = user._id || user.id;
+      if (!targetId) return;
+      setProcessingId(targetId);
+      setActionError('');
+      setActionMessage('');
+      try {
+        const response = await fetch(`/api/users/${encodeURIComponent(targetId)}`, {
+          method: 'PUT',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isPaused: !user.isPaused }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success === false) {
+          throw new Error(payload?.message || 'Failed to update account status');
+        }
+        const updated = payload?.data?.user;
+        const newPaused = Boolean(updated?.isPaused ?? !user.isPaused);
+        setRowData((prev) =>
+          prev.map((row) => (row.id === user.id ? { ...row, isPaused: newPaused } : row))
+        );
+        if (viewUser?.id === user.id) {
+          setViewUser((u) => (u ? { ...u, isPaused: newPaused } : null));
+        }
+        setActionMessage(newPaused ? 'User paused—they cannot log in' : 'User resumed—they can log in again');
+      } catch (err) {
+        setActionError(err.message || 'Unable to update account status');
+      } finally {
+        setProcessingId(null);
+      }
+    },
+    [canEditUsers, viewUser]
+  );
+
   const handleCreateFieldChange = useCallback((event) => {
     const { name, value } = event.target;
     setCreateForm((prev) => ({
@@ -513,7 +766,7 @@ export default function UserOverviewTable({ currentUser = null }) {
       setEditingUser(null);
       setEditForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, newPassword: '' });
     }
-    setCreateForm({ name: '', email: '', role: DEFAULT_ROLE, password: '' });
+    setCreateForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '', isEmailVerified: false });
     setIsCreateOpen((prev) => !prev);
   }, [isCreateOpen]);
 
@@ -573,6 +826,9 @@ export default function UserOverviewTable({ currentUser = null }) {
           password: trimmedPassword,
           role: normalizedRoleValue,
         };
+        if (!isLovedOneRole && typeof createForm.isEmailVerified === 'boolean') {
+          body.isEmailVerified = createForm.isEmailVerified;
+        }
         
         // Add username for Loved One role, email for others
         if (isLovedOneRole) {
@@ -604,7 +860,7 @@ export default function UserOverviewTable({ currentUser = null }) {
           }
         }
         setCreateSuccess('User created successfully');
-        setCreateForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '' });
+        setCreateForm({ name: '', email: '', username: '', role: DEFAULT_ROLE, password: '', isEmailVerified: false });
         loadRoles();
       } catch (err) {
         setCreateError(err.message || 'Unable to create user');
@@ -620,6 +876,15 @@ export default function UserOverviewTable({ currentUser = null }) {
 
   return (
     <div className={styles.container}>
+      <UserViewModal
+        user={viewUser}
+        onClose={handleCloseView}
+        onEdit={canEditUsers ? (u) => { handleCloseView(); handleEditUser(u); } : null}
+        onToggleVerified={canEditUsers ? handleToggleVerified : null}
+        onTogglePause={canEditUsers ? handleTogglePause : null}
+        isProcessing={viewUser ? processingId === (viewUser._id || viewUser.id) : false}
+        dateFormatter={dateFormatter}
+      />
       {error && <div className={`${styles.feedback} ${styles.feedbackError}`}>{error}</div>}
       {!error && isLoading && (
         <div className={`${styles.feedback} ${styles.feedbackInfo}`}>Loading users…</div>
@@ -771,6 +1036,18 @@ export default function UserOverviewTable({ currentUser = null }) {
                 autoComplete="new-password"
               />
             </label>
+            {!ROLES_WITH_USERNAME.includes(createForm.role) && (
+              <label className={styles.editField} style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '0.5rem', flexDirection: 'row' }}>
+                <input
+                  type="checkbox"
+                  name="isEmailVerified"
+                  checked={createForm.isEmailVerified}
+                  onChange={(e) => setCreateForm((prev) => ({ ...prev, isEmailVerified: e.target.checked }))}
+                  disabled={isCreating}
+                />
+                <span>Mark email as verified (user can log in without verifying)</span>
+              </label>
+            )}
           </div>
           <div className={styles.editActions}>
             <button type="submit" className={styles.primaryButton} disabled={isCreating}>
@@ -815,6 +1092,18 @@ export default function UserOverviewTable({ currentUser = null }) {
                     </span>
                   </div>
                   <div className={styles.cardRow}>
+                    <span className={styles.cardLabel}>Verified</span>
+                    <span className={`${styles.statusBadge} ${user.isEmailVerified ? styles.statusBadgeSuccess : styles.statusBadgeWarning}`}>
+                      {user.isEmailVerified ? 'Verified' : 'Unverified'}
+                    </span>
+                  </div>
+                  <div className={styles.cardRow}>
+                    <span className={styles.cardLabel}>Status</span>
+                    <span className={`${styles.statusBadge} ${user.isPaused ? styles.statusBadgeDanger : styles.statusBadgeSuccess}`}>
+                      {user.isPaused ? 'Paused' : 'Active'}
+                    </span>
+                  </div>
+                  <div className={styles.cardRow}>
                     <span className={styles.cardLabel}>Created</span>
                     <span className={styles.cardValue}>
                       {formatDateCell(user.createdAt, dateFormatter)}
@@ -826,29 +1115,38 @@ export default function UserOverviewTable({ currentUser = null }) {
                       {formatDateCell(user.updatedAt, dateFormatter)}
                     </span>
                   </div>
-                  {canEditUsers && (
-                    <div className={`${styles.cardRow} ${styles.cardActions}`}>
-                      <span className={styles.cardLabel}>Actions</span>
-                      <div className={styles.actionButtons}>
-                        <button
-                          type="button"
-                          className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-                          disabled={isSaving || isDeletingId === user.id}
-                          onClick={() => handleEditUser(user)}
-                        >
-                          {isSaving && editingId === user.id ? 'Saving…' : 'Edit'}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                          disabled={isSaving || isDeletingId === user.id}
-                          onClick={() => handleDeleteUser(user)}
-                        >
-                          {isDeletingId === user.id ? 'Deleting…' : 'Delete'}
-                        </button>
-                      </div>
+                  <div className={`${styles.cardRow} ${styles.cardActions}`}>
+                    <span className={styles.cardLabel}>Actions</span>
+                    <div className={styles.actionButtons}>
+                      <button
+                        type="button"
+                        className={`${styles.actionButton} ${styles.actionButtonView}`}
+                        onClick={() => handleViewUser(user)}
+                      >
+                        View
+                      </button>
+                      {canEditUsers && (
+                        <>
+                          <button
+                            type="button"
+                            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                            disabled={isSaving || isDeletingId === user.id || processingId === user.id}
+                            onClick={() => handleEditUser(user)}
+                          >
+                            {isSaving && editingId === user.id ? 'Saving…' : 'Edit'}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                            disabled={isSaving || isDeletingId === user.id || processingId === user.id}
+                            onClick={() => handleDeleteUser(user)}
+                          >
+                            {isDeletingId === user.id ? 'Deleting…' : 'Delete'}
+                          </button>
+                        </>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -873,10 +1171,12 @@ export default function UserOverviewTable({ currentUser = null }) {
                 suppressRowClickSelection
                 stopEditingWhenCellsLoseFocus
                 context={{
+                  onView: handleViewUser,
                   onEdit: handleEditUser,
                   onDelete: handleDeleteUser,
                   canEditUsers,
                   deletingId: isDeletingId,
+                  processingId,
                   editingId,
                   isSaving,
                 }}

@@ -78,6 +78,16 @@ export default async function handler(req, res) {
           userDoc.password = trimmedPassword;
         }
 
+        if (Object.prototype.hasOwnProperty.call(body, 'isEmailVerified')) {
+          if (!roleMiddleware(['admin', 'superadmin', 'hr', 'hr_admin', 'developer'])(req, res)) return;
+          userDoc.isEmailVerified = Boolean(body.isEmailVerified);
+        }
+
+        if (Object.prototype.hasOwnProperty.call(body, 'isPaused')) {
+          if (!roleMiddleware(['admin', 'superadmin', 'hr', 'hr_admin', 'developer'])(req, res)) return;
+          userDoc.isPaused = Boolean(body.isPaused);
+        }
+
         try {
           await userDoc.save();
         } catch (err) {
