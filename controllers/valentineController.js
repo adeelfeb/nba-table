@@ -285,6 +285,10 @@ export async function fulfillCreditRequest(req, res) {
     if (request.status !== 'pending') {
       return jsonError(res, 400, 'Request already processed');
     }
+    const raw = req.body.creditsToAdd != null ? Number(req.body.creditsToAdd) : null;
+    const creditsToAdd = (raw != null && !Number.isNaN(raw) && raw >= 1 && raw <= 1000)
+      ? Math.floor(raw)
+      : request.requestedCredits;
     await ValentineCreditRequest.findByIdAndUpdate(id, {
       status: 'paid',
       processedAt: new Date(),
@@ -292,11 +296,11 @@ export async function fulfillCreditRequest(req, res) {
       notes: (request.notes || '') + (req.body.notes ? `\n${String(req.body.notes).trim().slice(0, 500)}` : ''),
     });
     await User.findByIdAndUpdate(request.user, {
-      $inc: { valentineCredits: request.requestedCredits },
+      $inc: { valentineCredits: creditsToAdd },
     });
     return jsonSuccess(res, 200, 'Credits added to user', {
       requestId: id,
-      creditsAdded: request.requestedCredits,
+      creditsAdded: creditsToAdd,
     });
   } catch (error) {
     console.error('Error fulfilling credit request:', error);

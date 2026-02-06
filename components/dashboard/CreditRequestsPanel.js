@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
-export default function CreditRequestsPanel() {
+export default function CreditRequestsPanel({ user }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [fulfillingId, setFulfillingId] = useState(null);
+  const [fulfillModal, setFulfillModal] = useState(null);
+  const [creditsToAssign, setCreditsToAssign] = useState(5);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     fetchRequests();
@@ -30,8 +33,21 @@ export default function CreditRequestsPanel() {
     }
   }
 
-  async function handleFulfill(id) {
-    if (!confirm('Mark this request as paid and add credits to the user?')) return;
+  function openFulfillModal(request) {
+    setFulfillModal({ id: request.id, userName: request.userName, userEmail: request.userEmail, requestedCredits: request.requestedCredits });
+    setCreditsToAssign(request.requestedCredits ?? 5);
+    setError('');
+  }
+
+  function closeFulfillModal() {
+    setFulfillModal(null);
+    setCreditsToAssign(5);
+  }
+
+  async function handleFulfillSubmit(e) {
+    e.preventDefault();
+    if (!fulfillModal) return;
+    const id = fulfillModal.id;
     setFulfillingId(id);
     setError('');
     try {
@@ -41,11 +57,14 @@ export default function CreditRequestsPanel() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ creditsToAdd: Math.max(1, Math.min(1000, Number(creditsToAssign) || 5)) }),
       });
       const data = await res.json();
       if (data.success) {
+        closeFulfillModal();
         setList((prev) => prev.filter((r) => r.id !== id));
+        setSuccessMessage(`Credits added: ${data.data?.creditsAdded ?? creditsToAssign} credits assigned to user.`);
+        setTimeout(() => setSuccessMessage(''), 6000);
       } else {
         setError(data.message || 'Failed to fulfill request');
       }
@@ -59,6 +78,9 @@ export default function CreditRequestsPanel() {
   const pending = list.filter((r) => r.status === 'pending');
   const others = list.filter((r) => r.status !== 'pending');
 
+  const role = (user?.role || '').toLowerCase();
+  const isDeveloper = role === 'developer' || role === 'superadmin';
+
   return (
     <div className="credit-requests-panel">
       <header className="credit-requests-header">
@@ -66,11 +88,66 @@ export default function CreditRequestsPanel() {
         <p className="credit-requests-desc">
           Users request more credits here. Pricing: 5 credits for $2 USD / Rs 500 PKR (Pakistani Rupees). Mark as paid and add credits after receiving payment.
         </p>
+        {isDeveloper && (
+          <p className="credit-requests-dev-options">
+            <a href="/dashboard#valentine-urls" className="credit-requests-dev-link">Valentine Links</a>
+            {' · '}
+            <a href="/dashboard#credit-requests" className="credit-requests-dev-link">Credit Requests</a> (this page)
+          </p>
+        )}
       </header>
 
       {error && (
         <div className="credit-requests-alert" role="alert">
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="credit-requests-success" role="status">
+          {successMessage}
+        </div>
+      )}
+
+      {fulfillModal && (
+        <div className="credit-requests-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="credit-requests-fulfill-title">
+          <div className="credit-requests-modal">
+            <h3 id="credit-requests-fulfill-title" className="credit-requests-modal-title">Assign credits</h3>
+            <p className="credit-requests-modal-p">
+              {fulfillModal.userName || '—'} ({fulfillModal.userEmail || '—'}) — requested {fulfillModal.requestedCredits} credits. Choose how many credits to add to their account.
+            </p>
+            <form onSubmit={handleFulfillSubmit} className="credit-requests-fulfill-form">
+              <div className="credit-requests-form-group">
+                <label htmlFor="credit-requests-credits-input">Credits to assign</label>
+                <input
+                  id="credit-requests-credits-input"
+                  type="number"
+                  min={1}
+                  max={1000}
+                  value={creditsToAssign}
+                  onChange={(e) => setCreditsToAssign(Number(e.target.value) || 5)}
+                  disabled={fulfillingId === fulfillModal.id}
+                />
+              </div>
+              <div className="credit-requests-modal-actions">
+                <button
+                  type="button"
+                  className="credit-requests-btn-secondary"
+                  onClick={closeFulfillModal}
+                  disabled={fulfillingId === fulfillModal.id}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="credit-requests-btn-fulfill"
+                  disabled={fulfillingId === fulfillModal.id}
+                >
+                  {fulfillingId === fulfillModal.id ? 'Adding…' : 'Mark paid & add credits'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -100,7 +177,7 @@ export default function CreditRequestsPanel() {
                       <button
                         type="button"
                         className="credit-requests-btn-fulfill"
-                        onClick={() => handleFulfill(r.id)}
+                        onClick={() => openFulfillModal(r)}
                         disabled={fulfillingId === r.id}
                       >
                         {fulfillingId === r.id ? 'Adding…' : 'Mark paid & add credits'}
@@ -154,6 +231,19 @@ export default function CreditRequestsPanel() {
           color: #64748b;
           margin: 0;
           line-height: 1.5;
+        }
+        .credit-requests-dev-options {
+          font-size: 0.85rem;
+          color: #475569;
+          margin: 0.5rem 0 0 0;
+        }
+        .credit-requests-dev-link {
+          color: #2563eb;
+          font-weight: 500;
+          text-decoration: none;
+        }
+        .credit-requests-dev-link:hover {
+          text-decoration: underline;
         }
         .credit-requests-alert {
           padding: 0.75rem 1rem;
@@ -240,6 +330,86 @@ export default function CreditRequestsPanel() {
           background: #047857;
         }
         .credit-requests-btn-fulfill:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        .credit-requests-success {
+          padding: 0.75rem 1rem;
+          background: #ecfdf5;
+          color: #059669;
+          border-radius: 0.5rem;
+          font-size: 0.9rem;
+        }
+        .credit-requests-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 1rem;
+        }
+        .credit-requests-modal {
+          background: #fff;
+          border-radius: 1rem;
+          padding: 1.5rem;
+          max-width: 420px;
+          width: 100%;
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+        }
+        .credit-requests-modal-title {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0 0 0.75rem 0;
+        }
+        .credit-requests-modal-p {
+          font-size: 0.9rem;
+          color: #64748b;
+          margin: 0 0 1rem 0;
+          line-height: 1.5;
+        }
+        .credit-requests-fulfill-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .credit-requests-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .credit-requests-form-group label {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #334155;
+        }
+        .credit-requests-form-group input {
+          padding: 0.5rem 0.75rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+        }
+        .credit-requests-modal-actions {
+          display: flex;
+          gap: 0.75rem;
+          justify-content: flex-end;
+        }
+        .credit-requests-btn-secondary {
+          padding: 0.5rem 1rem;
+          background: #f1f5f9;
+          color: #475569;
+          border: none;
+          border-radius: 0.5rem;
+          font-weight: 500;
+          font-size: 0.9rem;
+          cursor: pointer;
+        }
+        .credit-requests-btn-secondary:hover:not(:disabled) {
+          background: #e2e8f0;
+        }
+        .credit-requests-btn-secondary:disabled {
           opacity: 0.7;
           cursor: not-allowed;
         }

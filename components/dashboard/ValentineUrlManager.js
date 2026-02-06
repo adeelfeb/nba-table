@@ -114,7 +114,7 @@ function ChartIcon({ size = 18 }) {
   );
 }
 
-export default function ValentineUrlManager() {
+export default function ValentineUrlManager({ user }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -131,7 +131,7 @@ export default function ValentineUrlManager() {
   const [creditRequestCredits, setCreditRequestCredits] = useState(5);
   const [creditRequestMessage, setCreditRequestMessage] = useState('');
   const [requestSubmitting, setRequestSubmitting] = useState(false);
-  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [creditRequestSuccessMessage, setCreditRequestSuccessMessage] = useState('');
   const [formData, setFormData] = useState({
     recipientName: '',
     recipientEmail: '',
@@ -267,13 +267,11 @@ export default function ValentineUrlManager() {
       });
       const data = await res.json();
       if (data.success) {
-        setRequestSuccess(true);
-        setTimeout(() => {
-          setShowNoCreditsModal(false);
-          setRequestSuccess(false);
-          setCreditRequestMessage('');
-          setCreditRequestCredits(5);
-        }, 3000);
+        setShowNoCreditsModal(false);
+        setCreditRequestMessage('');
+        setCreditRequestCredits(5);
+        setCreditRequestSuccessMessage('Credit request submitted. You will receive an invoice; after payment, credits will be added to your account.');
+        setTimeout(() => setCreditRequestSuccessMessage(''), 8000);
       } else {
         setError(data.message || 'Failed to submit request');
       }
@@ -419,6 +417,13 @@ export default function ValentineUrlManager() {
               Credits left: <strong>{credits}</strong> {credits === 1 ? 'link' : 'links'}
             </p>
           )}
+          {(user?.role === 'developer' || user?.role === 'superadmin') && (
+            <p className="valentine-hero-dev-options">
+              <a href="/dashboard#credit-requests" className="valentine-dev-link">Fulfill credit requests</a>
+              {' · '}
+              <a href="/dashboard#valentine-urls" className="valentine-dev-link">Valentine Links</a> (this page)
+            </p>
+          )}
           {!showForm && (
             <button
               type="button"
@@ -444,65 +449,65 @@ export default function ValentineUrlManager() {
         </div>
       )}
 
+      {creditRequestSuccessMessage && (
+        <div className="valentine-success valentine-credit-request-success" role="status">
+          {creditRequestSuccessMessage}
+        </div>
+      )}
+
       {showNoCreditsModal && (
         <div className="valentine-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="valentine-no-credits-title">
           <div className="valentine-modal">
             <h3 id="valentine-no-credits-title" className="valentine-modal-title">No credits left</h3>
-            {!requestSuccess ? (
-              <>
-                <p className="valentine-modal-p">
-                  You need more credits to create additional Valentine links. Request more credits and pay the invoice; after payment the developer will add credits to your account.
-                </p>
-                <p className="valentine-modal-p valentine-modal-pricing">
-                  <strong>5 credits</strong> for <strong>$2 USD</strong> / <strong>Rs 500 PKR</strong> (Pakistani Rupees). You can request any number of credits; the developer will send you an invoice. After paying, your credits will be added.
-                </p>
-                <form onSubmit={submitCreditRequest} className="valentine-credit-request-form">
-                  <div className="valentine-form-group">
-                    <label htmlFor="valentine-request-credits">Number of credits to request</label>
-                    <input
-                      id="valentine-request-credits"
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={creditRequestCredits}
-                      onChange={(e) => setCreditRequestCredits(Number(e.target.value) || 5)}
-                      disabled={requestSubmitting}
-                    />
-                  </div>
-                  <div className="valentine-form-group">
-                    <label htmlFor="valentine-request-message">Message (optional)</label>
-                    <textarea
-                      id="valentine-request-message"
-                      value={creditRequestMessage}
-                      onChange={(e) => setCreditRequestMessage(e.target.value)}
-                      placeholder="e.g. I need 10 credits for multiple links"
-                      rows={2}
-                      maxLength={500}
-                      disabled={requestSubmitting}
-                    />
-                  </div>
-                  <div className="valentine-modal-actions">
-                    <button
-                      type="button"
-                      className="valentine-btn-secondary"
-                      onClick={() => { setShowNoCreditsModal(false); setCreditRequestMessage(''); setCreditRequestCredits(5); }}
-                      disabled={requestSubmitting}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="valentine-btn-primary"
-                      disabled={requestSubmitting}
-                    >
-                      {requestSubmitting ? 'Submitting…' : 'Request'}
-                    </button>
-                  </div>
-                </form>
-              </>
-            ) : (
-              <p className="valentine-modal-success">Request submitted. After payment the developer will add your credits.</p>
-            )}
+            <p className="valentine-modal-p">
+              You need more credits to create additional Valentine links. Request more credits and pay the invoice; after payment the developer will add credits to your account.
+            </p>
+            <p className="valentine-modal-p valentine-modal-pricing">
+              <strong>5 credits</strong> for <strong>$2 USD</strong> / <strong>Rs 500 PKR</strong> (Pakistani Rupees). You can request any number of credits; the developer will send you an invoice. After paying, your credits will be added.
+            </p>
+            <form onSubmit={submitCreditRequest} className="valentine-credit-request-form">
+              <div className="valentine-form-group">
+                <label htmlFor="valentine-request-credits">Number of credits to request</label>
+                <input
+                  id="valentine-request-credits"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={creditRequestCredits}
+                  onChange={(e) => setCreditRequestCredits(Number(e.target.value) || 5)}
+                  disabled={requestSubmitting}
+                />
+              </div>
+              <div className="valentine-form-group">
+                <label htmlFor="valentine-request-message">Message (optional)</label>
+                <textarea
+                  id="valentine-request-message"
+                  value={creditRequestMessage}
+                  onChange={(e) => setCreditRequestMessage(e.target.value)}
+                  placeholder="e.g. I need 10 credits for multiple links"
+                  rows={2}
+                  maxLength={500}
+                  disabled={requestSubmitting}
+                />
+              </div>
+              <div className="valentine-modal-actions">
+                <button
+                  type="button"
+                  className="valentine-btn-secondary"
+                  onClick={() => { setShowNoCreditsModal(false); setCreditRequestMessage(''); setCreditRequestCredits(5); }}
+                  disabled={requestSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="valentine-btn-primary"
+                  disabled={requestSubmitting}
+                >
+                  {requestSubmitting ? 'Submitting…' : 'Request'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -955,6 +960,19 @@ export default function ValentineUrlManager() {
         }
         .valentine-hero-credits strong {
           color: #be123c;
+        }
+        .valentine-hero-dev-options {
+          margin: 0.5rem 0 0 0;
+          font-size: 0.85rem;
+          color: #475569;
+        }
+        .valentine-dev-link {
+          color: #2563eb;
+          font-weight: 500;
+          text-decoration: none;
+        }
+        .valentine-dev-link:hover {
+          text-decoration: underline;
         }
         .valentine-hero-content .valentine-btn-primary {
           align-self: flex-start;

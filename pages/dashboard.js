@@ -56,7 +56,6 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'user-management', label: 'User Management' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'credit-requests', label: 'Credit Requests' },
     { key: 'requests', label: 'Requests' },
@@ -82,7 +81,6 @@ const NAVIGATION_BY_ROLE = {
   admin: [
     { key: 'overview', label: 'Overview' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
@@ -93,7 +91,6 @@ const NAVIGATION_BY_ROLE = {
   hr: [
     { key: 'overview', label: 'Overview' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
@@ -104,7 +101,6 @@ const NAVIGATION_BY_ROLE = {
   hr_admin: [
     { key: 'overview', label: 'Overview' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
@@ -150,14 +146,26 @@ const SECTION_DESCRIPTORS = {
     body: (user) => <NewYearResolutionManager />,
   },
   'valentine-urls': {
-    subtitle: 'Create secure Valentine links with custom messages and themes.',
+    subtitle: (user) => {
+      const role = (user?.role || '').toLowerCase();
+      if (role === 'developer' || role === 'superadmin') {
+        return 'Create secure Valentine links. As developer: fulfill credit requests, manage links, and view analytics.';
+      }
+      return 'Create secure Valentine links with custom messages and themes.';
+    },
     hideHeader: true,
-    body: () => <ValentineUrlManager />,
+    body: (user) => <ValentineUrlManager user={user} />,
   },
   'credit-requests': {
-    subtitle: 'View and fulfill Valentine credit requests. Mark as paid and add credits to users.',
+    subtitle: (user) => {
+      const role = (user?.role || '').toLowerCase();
+      if (role === 'developer' || role === 'superadmin') {
+        return 'Fulfill Valentine credit requests: choose how many credits to assign, mark as paid, and add credits to users.';
+      }
+      return 'View and fulfill Valentine credit requests. Mark as paid and add credits to users.';
+    },
     hideHeader: true,
-    body: () => <CreditRequestsPanel />,
+    body: (user) => <CreditRequestsPanel user={user} />,
   },
   resources: {
     subtitle: 'Centralize guidelines, FAQs, and documentation.',
