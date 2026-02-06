@@ -147,18 +147,14 @@ export default function Hero() {
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-start items-start sm:items-center"
             >
               <a
-                href="https://www.fiverr.com/s/EgQz3ey"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/contact"
                 className="group bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg hover:shadow-2xl hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-2 cursor-pointer"
               >
                 Start Your Project
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </a>
               <a
-                href="https://www.fiverr.com/s/EgQz3ey"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#work"
                 className="bg-white/10 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-full font-semibold text-base sm:text-lg border-2 border-white/30 hover:bg-white/20 hover:border-white/50 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer"
               >
                 View Our Work

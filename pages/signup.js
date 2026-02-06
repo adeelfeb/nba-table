@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { Eye, EyeOff } from 'lucide-react';
 import Navbar from '../components/designndev/Navbar';
 import Footer from '../components/designndev/Footer';
 import { AuthCardSkeleton } from '../components/Skeleton';
@@ -61,6 +62,7 @@ export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -305,18 +307,30 @@ export default function SignupPage() {
             </label>
             <label className="field">
               <span>Password</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                id="signup-password"
-                name="password"
-                placeholder="Create a secure password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={5}
-                disabled={loading}
-              />
+              <div className="password-wrap">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  id="signup-password"
+                  name="password"
+                  placeholder="Create a secure password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={5}
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword((p) => !p)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  disabled={loading}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {passwordHint && <small className="helper">{passwordHint}</small>}
             </label>
             <button type="submit" disabled={isDisabled}>
@@ -427,6 +441,39 @@ export default function SignupPage() {
         }
         input:disabled {
           background: #f5f7fb;
+        }
+        .password-wrap {
+          position: relative;
+          display: flex;
+          align-items: stretch;
+        }
+        .password-wrap input {
+          padding-right: 2.75rem;
+        }
+        .password-toggle {
+          position: absolute;
+          right: 0.5rem;
+          top: 50%;
+          transform: translateY(-50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.4rem;
+          background: transparent;
+          border: none;
+          color: #6b7280;
+          cursor: pointer;
+          border-radius: 0.5rem;
+          transition: color 0.2s ease, background 0.2s ease;
+        }
+        .password-toggle:hover:not(:disabled) {
+          color: #374151;
+          background: rgba(13, 48, 89, 0.06);
+          transform: translateY(-50%);
+        }
+        .password-toggle:disabled {
+          cursor: not-allowed;
+          opacity: 0.6;
         }
         .helper {
           font-size: 0.8rem;
