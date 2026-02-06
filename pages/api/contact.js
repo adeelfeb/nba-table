@@ -2,6 +2,8 @@ import { sendEmail } from '../../utils/email';
 import { jsonError, jsonSuccess } from '../../lib/response';
 import { applyCors } from '../../utils';
 import { logger } from '../../utils/logger';
+import connectDB from '../../lib/db';
+import ContactSubmission from '../../models/ContactSubmission';
 
 /**
  * Contact form endpoint
@@ -23,13 +25,19 @@ export default async function handler(req, res) {
     return jsonError(res, 400, 'Name and email are required');
   }
 
-  const emailOk = typeof email === 'string' && /.+@.+\..+/.test(email);
+  const nameStr = typeof name === 'string' ? name.trim() : '';
+  const emailStr = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  if (!nameStr || !emailStr) {
+    return jsonError(res, 400, 'Name and email are required');
+  }
+
+  const emailOk = /.+@.+\..+/.test(emailStr);
   if (!emailOk) {
     return jsonError(res, 400, 'Invalid email format');
   }
 
   try {
-    const subject = `New Contact Form Submission from ${name}`;
+    const subject = `New Contact Form Submission from ${nameStr}`;
     
     const htmlBody = `
       <!DOCTYPE html>
@@ -42,8 +50,8 @@ export default async function handler(req, res) {
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #f4f4f4; padding: 20px; border-radius: 5px;">
           <h2 style="color: #333; margin-top: 0;">New Contact Form Submission</h2>
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Name:</strong> ${nameStr}</p>
+          <p><strong>Email:</strong> ${emailStr}</p>
           <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
           <p style="font-size: 12px; color: #777;">This is an automated message from the contact form on designndev.com</p>
         </div>
@@ -54,8 +62,8 @@ export default async function handler(req, res) {
     const textBody = `
 New Contact Form Submission
 
-Name: ${name}
-Email: ${email}
+Name: ${nameStr}
+Email: ${emailStr}
 
 ---
 This is an automated message from the contact form on designndev.com
@@ -69,7 +77,15 @@ This is an automated message from the contact form on designndev.com
       textBody,
     });
 
-    logger.info(`Contact form submission received from: ${name} (${email})`);
+    logger.info(`Contact form submission received from: ${nameStr} (${emailStr})`);
+
+    // Save to database for dashboard viewing (non-blocking)
+    try {
+      await connectDB();
+      await ContactSubmission.create({ name: nameStr, email: emailStr });
+    } catch (dbErr) {
+      logger.warn('Contact submission save to DB failed:', dbErr.message);
+    }
 
     return jsonSuccess(res, 200, 'Thank you for contacting us! We will get back to you soon.', {
       messageId: result.messageId,

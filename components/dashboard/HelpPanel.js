@@ -1,7 +1,45 @@
-import React from 'react';
-import { Code, Globe, Smartphone, Rocket, Search, Mail, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { Code, Globe, Smartphone, Rocket, Search, Mail, Send } from 'lucide-react';
 
 export default function HelpPanel() {
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState(null); // { type: 'success' | 'error', text: string }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const trimmed = message.trim();
+    if (!trimmed) {
+      setStatus({ type: 'error', text: 'Please enter your request.' });
+      return;
+    }
+    setSubmitting(true);
+    setStatus(null);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch('/api/help-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({ message: trimmed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        setMessage('');
+        setStatus({ type: 'success', text: data.message || 'Request submitted successfully. We will get back to you.' });
+      } else {
+        setStatus({ type: 'error', text: data.message || 'Failed to submit request. Please try again.' });
+      }
+    } catch (err) {
+      setStatus({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="help-panel">
       <div className="help-header">
@@ -16,13 +54,47 @@ export default function HelpPanel() {
           </div>
           <div className="help-intro-content">
             <h3>Let's Accomplish Your Goals</h3>
-            <p>Let's accomplish your goals in the coming years with cutting-edge AI and functionality that you can sell and grow with. <strong>Connect with us today!</strong></p>
+            <p>Let's accomplish your goals in the coming years with cutting-edge AI and functionality that you can sell and grow with. <strong>Send us a request below!</strong></p>
             <div className="help-offer">
               <span className="offer-badge">✨ Special Offer</span>
               <p>Get <strong>discounted prices</strong> and <strong>free guidance</strong> for your project workflow!</p>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="help-request-section">
+        <h3 className="request-title">Submit a request</h3>
+        <p className="request-desc">Describe what you need and we’ll get back to you. Your request is saved to your account.</p>
+        <form onSubmit={handleSubmit} className="help-request-form">
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="e.g. I need help with a website, app, or deployment..."
+            className="help-request-textarea"
+            rows={4}
+            maxLength={2000}
+            disabled={submitting}
+          />
+          <div className="help-request-footer">
+            <span className="help-request-count">{message.length} / 2000</span>
+            <button type="submit" className="help-request-btn" disabled={submitting}>
+              {submitting ? (
+                <>Sending…</>
+              ) : (
+                <>
+                  <Send size={18} />
+                  Submit request
+                </>
+              )}
+            </button>
+          </div>
+          {status && (
+            <div className={`help-request-status ${status.type}`} role="alert">
+              {status.text}
+            </div>
+          )}
+        </form>
       </div>
 
       <div className="help-services">
@@ -70,61 +142,6 @@ export default function HelpPanel() {
             <h4>Email Marketing</h4>
             <p>Effective email campaigns and automation</p>
           </div>
-        </div>
-      </div>
-
-      <div className="help-connect">
-        <h3 className="connect-title">Connect With Us</h3>
-        <div className="connect-links">
-          <a 
-            href="https://www.fiverr.com/s/EgQz3ey" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="connect-link fiverr"
-          >
-            <div className="link-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M23.004 15.588a.995.995 0 1 0 .002-1.99.995.995 0 0 0-.002 1.99zm-.996-3.705h-.85c-.546 0-.84.41-.84 1.105v2.535h-1.6v-3.64h-.85v-.89h.85v-.74c0-1.19.345-2.09 1.23-2.7.735-.48 1.67-.57 2.52-.57v.9c-.405 0-.795.03-1.14.15-.525.21-.78.75-.78 1.38v.58h1.52v.89zm-5.025 0h-3.6v6.24h1.6v-2.25h1.7c.99 0 1.65-.65 1.65-1.8 0-1.02-.62-2.19-2.35-2.19zm.1 2.7h-1.8v-1.8h1.8c.6 0 .9.35.9.9s-.3.9-.9.9zm-4.125-2.7h-1.6v6.24h1.6v-6.24zm-2.7 0H4.9v.9h1.375v5.34h1.6v-5.34h1.125v-.9zm-3.6 0H.9v.9h1.6v5.34h1.6v-5.34h1.125v-.9z"/>
-              </svg>
-            </div>
-            <div className="link-content">
-              <span className="link-label">Fiverr</span>
-              <span className="link-meta">View Profile</span>
-            </div>
-            <ExternalLink size={18} className="link-arrow" />
-          </a>
-          <a 
-            href="https://www.upwork.com/freelancers/~015f09e4ce1f66527f?p=1804023285153173504" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="connect-link upwork"
-          >
-            <div className="link-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06 1.492 0 2.703 1.212 2.703 2.703-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.546-1.405 0-2.543-1.14-2.545-2.546V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z"/>
-              </svg>
-            </div>
-            <div className="link-content">
-              <span className="link-label">Upwork</span>
-              <span className="link-meta">View Profile</span>
-            </div>
-            <ExternalLink size={18} className="link-arrow" />
-          </a>
-          <a 
-            href="https://designndev.com/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="connect-link website"
-          >
-            <div className="link-icon">
-              <Globe size={24} />
-            </div>
-            <div className="link-content">
-              <span className="link-label">Our Website</span>
-              <span className="link-meta">designndev.com</span>
-            </div>
-            <ExternalLink size={18} className="link-arrow" />
-          </a>
         </div>
       </div>
 
@@ -222,6 +239,99 @@ export default function HelpPanel() {
         .help-offer strong {
           color: #78350f;
         }
+        .help-request-section {
+          margin-top: 1rem;
+          background: white;
+          border: 2px solid #e2e8f0;
+          border-radius: 1.25rem;
+          padding: 1.5rem 2rem;
+        }
+        .request-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin: 0 0 0.5rem 0;
+        }
+        .request-desc {
+          color: #64748b;
+          font-size: 0.95rem;
+          margin: 0 0 1.25rem 0;
+          line-height: 1.5;
+        }
+        .help-request-form {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .help-request-textarea {
+          width: 100%;
+          min-height: 120px;
+          padding: 1rem 1.25rem;
+          border: 2px solid #cbd5e1;
+          border-radius: 0.75rem;
+          font-size: 1rem;
+          font-family: inherit;
+          resize: vertical;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .help-request-textarea:focus {
+          outline: none;
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .help-request-textarea:disabled {
+          background: #f8fafc;
+          cursor: not-allowed;
+        }
+        .help-request-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .help-request-count {
+          font-size: 0.85rem;
+          color: #64748b;
+        }
+        .help-request-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          color: white;
+          border: none;
+          border-radius: 0.75rem;
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .help-request-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+        }
+        .help-request-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        .help-request-status {
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          font-size: 0.95rem;
+          font-weight: 500;
+        }
+        .help-request-status.success {
+          background: #d1fae5;
+          color: #065f46;
+          border: 1px solid #6ee7b7;
+        }
+        .help-request-status.error {
+          background: #fee2e2;
+          color: #991b1b;
+          border: 1px solid #fca5a5;
+        }
         .help-services {
           margin-top: 1rem;
         }
@@ -273,76 +383,6 @@ export default function HelpPanel() {
           line-height: 1.6;
           margin: 0;
         }
-        .help-connect {
-          margin-top: 1rem;
-        }
-        .connect-title {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin-bottom: 1.5rem;
-        }
-        .connect-links {
-          display: grid;
-          gap: 1rem;
-        }
-        .connect-link {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.25rem 1.5rem;
-          border-radius: 1rem;
-          text-decoration: none;
-          transition: all 0.3s ease;
-          border: 2px solid;
-        }
-        .connect-link.fiverr {
-          background: linear-gradient(135deg, #1dbf73, #19a463);
-          border-color: #1dbf73;
-          color: white;
-        }
-        .connect-link.upwork {
-          background: linear-gradient(135deg, #14a800, #0d7a00);
-          border-color: #14a800;
-          color: white;
-        }
-        .connect-link.website {
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
-          border-color: #2563eb;
-          color: white;
-        }
-        .connect-link:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        }
-        .link-icon {
-          width: 3rem;
-          height: 3rem;
-          border-radius: 0.75rem;
-          background: rgba(255, 255, 255, 0.2);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-        .link-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-        .link-label {
-          font-size: 1.1rem;
-          font-weight: 600;
-        }
-        .link-meta {
-          font-size: 0.85rem;
-          opacity: 0.9;
-        }
-        .link-arrow {
-          opacity: 0.8;
-          flex-shrink: 0;
-        }
         @media (max-width: 768px) {
           .help-header h2 {
             font-size: 1.75rem;
@@ -354,6 +394,17 @@ export default function HelpPanel() {
           .help-intro-icon {
             width: 3.5rem;
             height: 3.5rem;
+          }
+          .help-request-section {
+            padding: 1.25rem 1.5rem;
+          }
+          .help-request-footer {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .help-request-btn {
+            width: 100%;
+            justify-content: center;
           }
           .services-grid {
             grid-template-columns: 1fr;

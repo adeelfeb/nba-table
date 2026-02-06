@@ -15,6 +15,7 @@ import SupportPanel from '../components/dashboard/SupportPanel';
 import ResourcesPanel from '../components/dashboard/ResourcesPanel';
 import HelpPanel from '../components/dashboard/HelpPanel';
 import PrivacyPanel from '../components/dashboard/PrivacyPanel';
+import RequestsPanel from '../components/dashboard/RequestsPanel';
 import { getUserFromRequest } from '../lib/auth';
 
 function serializeUser(user) {
@@ -58,6 +59,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'credit-requests', label: 'Credit Requests' },
+    { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -71,6 +73,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'credit-requests', label: 'Credit Requests' },
+    { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -81,6 +84,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
+    { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -91,6 +95,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
+    { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -101,6 +106,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'blogs', label: 'Blogs' },
     { key: 'portfolios', label: 'Portfolios' },
     { key: 'valentine-urls', label: 'Valentine Links' },
+    { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
     { key: 'help', label: 'Help' },
@@ -167,6 +173,11 @@ const SECTION_DESCRIPTORS = {
     subtitle: 'Professional development services and support.',
     hideHeader: true,
     body: () => <HelpPanel />,
+  },
+  requests: {
+    subtitle: 'View all help requests and contact form submissions.',
+    hideHeader: true,
+    body: () => <RequestsPanel />,
   },
   privacy: {
     subtitle: 'Privacy and confidentiality commitment.',
