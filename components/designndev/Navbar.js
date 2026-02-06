@@ -90,7 +90,7 @@ export default function Navbar() {
   const navItems = [
     { href: '/', label: 'Home' },
     { href: '/services', label: 'Services' },
-    { href: '/new-year-resolution', label: 'New Year Resolution', isSpecial: true },
+    { href: '/valentine', label: 'Valentine', isValentine: true },
     { href: '/blogs', label: 'Blog' },
     { href: '/portfolio', label: 'Portfolio' },
     { href: '/contact', label: 'Contact' },
@@ -133,15 +133,15 @@ export default function Navbar() {
                     href={item.href}
                     className={`px-3 py-2 text-sm font-medium transition-all duration-200 relative no-underline ${
                       isActive(item.href)
-                        ? 'text-blue-600 font-semibold'
-                        : item.isSpecial 
-                          ? 'text-purple-600 font-semibold hover:text-blue-600 bg-purple-50 rounded-lg hover:bg-purple-100'
+                        ? 'text-rose-600 font-semibold'
+                        : item.isValentine 
+                          ? 'text-rose-600 font-semibold hover:text-rose-700 bg-rose-50 rounded-lg hover:bg-rose-100 border border-rose-100'
                           : 'text-gray-700 hover:text-blue-600'
                     }`}
                   >
                     <span className="relative z-10">{item.label}</span>
                     {isActive(item.href) && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                      <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${item.isValentine ? 'bg-rose-500' : 'bg-blue-600'}`}></span>
                     )}
                   </Link>
                 ))}
@@ -157,15 +157,15 @@ export default function Navbar() {
                     href={item.href}
                     className={`px-2 py-2 text-xs font-medium transition-all duration-200 relative no-underline ${
                       isActive(item.href)
-                        ? 'text-blue-600 font-semibold'
-                        : item.isSpecial 
-                          ? 'text-purple-600 font-semibold hover:text-blue-600 bg-purple-50 rounded-lg hover:bg-purple-100'
+                        ? 'text-rose-600 font-semibold'
+                        : item.isValentine 
+                          ? 'text-rose-600 font-semibold hover:text-rose-700 bg-rose-50 rounded-lg hover:bg-rose-100'
                           : 'text-gray-700 hover:text-blue-600'
                     }`}
                   >
                     <span className="relative z-10">{item.label}</span>
                     {isActive(item.href) && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></span>
+                      <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${item.isValentine ? 'bg-rose-500' : 'bg-blue-600'}`}></span>
                     )}
                   </Link>
                 ))}
@@ -247,9 +247,9 @@ export default function Navbar() {
                     href={item.href}
                     className={`block px-3 py-2 text-base font-medium transition-all duration-200 rounded-lg no-underline ${
                       isActive(item.href)
-                        ? 'text-blue-600 font-semibold bg-blue-50'
-                        : item.isSpecial 
-                          ? 'text-purple-600 font-semibold bg-purple-50 hover:bg-purple-100'
+                        ? 'text-rose-600 font-semibold bg-rose-50'
+                        : item.isValentine 
+                          ? 'text-rose-600 font-semibold bg-rose-50 hover:bg-rose-100'
                           : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
                     }`}
                     onClick={() => setIsMenuOpen(false)}

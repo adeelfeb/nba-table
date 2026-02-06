@@ -10,7 +10,7 @@ export default function PrivacyPanel() {
         </div>
         <h2>Privacy & Confidentiality Commitment</h2>
         <p className="privacy-intro">
-          This platform is an <strong>open-source project</strong> designed to help you maintain your New Year resolutions and write blogs for free.
+          This platform is an <strong>open-source project</strong> designed to help you maintain your New Year resolutions, create Valentine links for your loved ones, and write blogs for free.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export default function PrivacyPanel() {
                 <Heart size={24} />
               </div>
               <h4>Free to Use</h4>
-              <p>Manage your resolutions and write blogs completely free</p>
+              <p>Manage your resolutions, create Valentine links, and write blogs completely free</p>
             </div>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function PrivacyPanel() {
             <div className="guarantee-text">
               <h3>Enjoy Complete Peace of Mind</h3>
               <p>
-                Enjoy managing your resolutions and todos with complete peace of mind. Your privacy is our top priority, and we're committed to keeping your data safe and secure.
+                Enjoy managing your resolutions, Valentine links, and blogs with complete peace of mind. Your privacy is our top priority, and we're committed to keeping your data safe and secure.
               </p>
             </div>
           </div>

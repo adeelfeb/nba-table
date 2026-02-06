@@ -59,23 +59,33 @@ export default function Footer() {
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
                 <li>
-                  <a href="#home" className="hover:text-white transition-colors cursor-pointer">
+                  <a href="/" className="hover:text-white transition-colors cursor-pointer">
                     Home
                   </a>
                 </li>
                 <li>
-                  <a href="#services" className="hover:text-white transition-colors cursor-pointer">
+                  <a href="/#services" className="hover:text-white transition-colors cursor-pointer">
                     Services
                   </a>
                 </li>
                 <li>
-                  <a href="#tech-stack" className="hover:text-white transition-colors cursor-pointer">
+                  <a href="/#tech-stack" className="hover:text-white transition-colors cursor-pointer">
                     Tech Stack
                   </a>
                 </li>
                 <li>
-                  <a href="#process" className="hover:text-white transition-colors cursor-pointer">
-                    Process
+                  <a href="/valentine" className="hover:text-white transition-colors cursor-pointer">
+                    Valentine
+                  </a>
+                </li>
+                <li>
+                  <a href="/new-year-resolution" className="hover:text-white transition-colors cursor-pointer">
+                    New Year Resolution
+                  </a>
+                </li>
+                <li>
+                  <a href="/privacy-policy" className="hover:text-white transition-colors cursor-pointer">
+                    Privacy Policy
                   </a>
                 </li>
               </ul>
