@@ -4,6 +4,29 @@ import { motion } from 'framer-motion'
 import { Heart, Link2, Mail, Palette, ArrowRight, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 
+// Floating heart for background decoration
+function FloatingHeart({ delay = 0, size = 24, x = '0%', y = '0%' }) {
+  return (
+    <motion.div
+      className="absolute text-rose-300/40 pointer-events-none"
+      style={{ left: x, top: y, width: size, height: size }}
+      initial={{ opacity: 0, y: 0 }}
+      animate={{
+        opacity: [0.2, 0.5, 0.2],
+        y: [0, -12, 0],
+      }}
+      transition={{
+        duration: 4,
+        delay,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }}
+    >
+      <Heart className="w-full h-full fill-current" />
+    </motion.div>
+  )
+}
+
 export default function Valentine() {
   const features = [
     {
@@ -57,56 +80,125 @@ export default function Valentine() {
 
   return (
     <div className="bg-white overflow-hidden">
-      {/* Hero */}
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-rose-100 blur-3xl opacity-50" />
-          <div className="absolute top-20 -left-20 w-72 h-72 rounded-full bg-pink-100 blur-3xl opacity-50" />
+      {/* Hero with animated background */}
+      <section className="relative pt-20 sm:pt-24 lg:pt-28 pb-16 sm:pb-20 lg:pb-28 min-h-0 flex items-center">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 overflow-hidden valentine-hero-bg" aria-hidden>
+          <div className="absolute inset-0 valentine-gradient-shift" />
+          <div className="absolute -top-40 -right-40 w-72 sm:w-96 h-72 sm:h-96 rounded-full bg-rose-200/60 blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+          <div className="absolute top-1/3 -left-20 w-56 sm:w-72 h-56 sm:h-72 rounded-full bg-pink-200/50 blur-3xl animate-pulse" style={{ animationDuration: '5s', animationDelay: '0.5s' }} />
+          <div className="absolute bottom-20 right-1/4 w-48 h-48 rounded-full bg-rose-100/50 blur-2xl animate-pulse" style={{ animationDuration: '3.5s', animationDelay: '1s' }} />
+          <FloatingHeart delay={0} size={20} x="10%" y="15%" />
+          <FloatingHeart delay={1.2} size={16} x="85%" y="20%" />
+          <FloatingHeart delay={0.6} size={14} x="75%" y="70%" />
+          <FloatingHeart delay={2} size={18} x="15%" y="65%" />
+          <FloatingHeart delay={1.5} size={12} x="50%" y="85%" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full py-6">
           <div className="text-center max-w-3xl mx-auto">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: {},
+                visible: {
+                  transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+                },
+              }}
+              className="relative"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-50 border border-rose-100 text-rose-700 mb-8">
-                <Heart className="w-4 h-4 fill-rose-500" />
-                <span className="text-sm font-semibold uppercase tracking-wide">Valentine’s Day</span>
-              </div>
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 12, scale: 0.98 },
+                  visible: { opacity: 1, y: 0, scale: 1 },
+                }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/80 sm:bg-rose-50 border border-rose-100 text-rose-700 mb-6 sm:mb-8 shadow-sm"
+              >
+                <Heart className="w-4 h-4 fill-rose-500 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-semibold uppercase tracking-wide">Valentine’s Day</span>
+              </motion.div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 mb-8">
+              <motion.h1
+                variants={{
+                  hidden: { opacity: 0, y: 16 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-gray-900 mb-6 sm:mb-8 leading-tight px-1"
+              >
                 A personal link for{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-pink-500">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-pink-500 to-rose-500 bg-[length:200%_auto] animate-gradient-x">
                   someone you love
                 </span>
-              </h1>
+              </motion.h1>
 
-              <p className="text-xl text-gray-600 mb-10 leading-relaxed">
+              <motion.p
+                variants={{
+                  hidden: { opacity: 0, y: 12 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="text-base sm:text-lg md:text-xl text-gray-600 mb-8 sm:mb-10 leading-relaxed max-w-2xl mx-auto px-1"
+              >
                 Create a beautiful, one-of-a-kind page with your message—ask them to be your Valentine,
                 share a love letter, or tell them how much they mean to you. One link, one moment, all yours.
-              </p>
+              </motion.p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 12 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center items-center"
+              >
                 <Link
                   href="/login?redirect=/dashboard#valentine-urls"
-                  className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-all duration-200 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full hover:shadow-lg hover:shadow-rose-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 no-underline"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold text-white transition-all duration-200 bg-gradient-to-r from-rose-500 to-pink-500 rounded-full hover:shadow-lg hover:shadow-rose-200 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 no-underline"
                 >
                   Create my Valentine link
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 flex-shrink-0" />
                 </Link>
                 <a
                   href="#how-it-works"
-                  className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-gray-700 transition-all duration-200 bg-white border border-gray-200 rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 no-underline"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base font-semibold text-gray-700 transition-all duration-200 bg-white/90 border border-gray-200 rounded-full hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 no-underline shadow-sm"
                 >
                   How it works
                 </a>
-              </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
       </section>
+
+      <style jsx>{`
+        .valentine-hero-bg {
+          background: linear-gradient(135deg, #fff5f5 0%, #ffe4ec 25%, #fce7f3 50%, #fdf2f8 75%, #fff5f5 100%);
+          background-size: 400% 400%;
+          animation: valentineGradient 12s ease infinite;
+        }
+        @keyframes valentineGradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .valentine-gradient-shift {
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+          animation: valentineShine 8s ease-in-out infinite;
+        }
+        @keyframes valentineShine {
+          0%, 100% { opacity: 0; transform: translateX(-100%); }
+          50% { opacity: 1; transform: translateX(100%); }
+        }
+        @keyframes gradient-x {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-gradient-x {
+          animation: gradient-x 6s ease infinite;
+        }
+      `}</style>
 
       {/* How it works */}
       <section id="how-it-works" className="py-20 bg-gray-50/80">

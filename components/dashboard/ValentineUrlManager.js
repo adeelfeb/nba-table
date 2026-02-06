@@ -1142,6 +1142,9 @@ export default function ValentineUrlManager() {
         .valentine-form-group textarea,
         .valentine-form-group select {
           width: 100%;
+          min-width: 0;
+          max-width: 100%;
+          box-sizing: border-box;
           padding: 0.65rem 0.85rem;
           border: 1px solid #cbd5e1;
           border-radius: 0.6rem;
@@ -1817,6 +1820,26 @@ export default function ValentineUrlManager() {
         }
 
         @media (max-width: 640px) {
+          .valentine-form-card {
+            padding: 1.25rem 1rem;
+            min-width: 0;
+          }
+          .valentine-form-group input,
+          .valentine-form-group textarea,
+          .valentine-form-group select {
+            padding: 0.75rem 0.85rem;
+            font-size: 16px;
+          }
+          .valentine-credit-request-form input,
+          .valentine-credit-request-form textarea {
+            padding: 0.75rem 0.85rem;
+            font-size: 16px;
+            min-width: 0;
+            box-sizing: border-box;
+          }
+          .valentine-email-options {
+            padding: 1rem;
+          }
           .valentine-form-row {
             grid-template-columns: 1fr;
           }
@@ -1849,6 +1872,16 @@ export default function ValentineUrlManager() {
           }
           .valentine-analytics-cell-source {
             max-width: 8rem;
+          }
+        }
+        @media (max-width: 380px) {
+          .valentine-form-card {
+            padding: 1rem 0.75rem;
+          }
+          .valentine-form-group input,
+          .valentine-form-group textarea,
+          .valentine-form-group select {
+            padding: 0.65rem 0.75rem;
           }
         }
       `}</style>

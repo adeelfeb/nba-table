@@ -93,7 +93,6 @@ export default function Navbar() {
     { href: '/valentine', label: 'Valentine', isValentine: true },
     { href: '/blogs', label: 'Blog' },
     { href: '/portfolio', label: 'Portfolio' },
-    { href: '/contact', label: 'Contact' },
   ]
 
   return (
@@ -109,9 +108,9 @@ export default function Navbar() {
             ? 'bg-white/95 backdrop-blur-md shadow-lg'
             : 'bg-white/90 backdrop-blur-sm shadow-md'
         }`}>
-          <div className="flex justify-between items-center">
-            {/* Logo */}
-            <div className="flex-shrink-0">
+          <div className="flex items-center w-full">
+            {/* Logo - left */}
+            <div className="flex flex-1 justify-start min-w-0">
               <Link 
                 href="/" 
                 className="text-xl sm:text-2xl font-bold no-underline hover:scale-110 transition-transform duration-300 inline-block"
@@ -124,9 +123,9 @@ export default function Navbar() {
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
-            <div className="hidden lg:block">
-              <div className="ml-10 flex items-baseline space-x-8">
+            {/* Desktop Navigation - centered */}
+            <div className="hidden lg:flex flex-1 justify-center">
+              <div className="flex items-baseline space-x-8">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
@@ -148,9 +147,9 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Tablet Navigation - Compact version */}
-            <div className="hidden md:block lg:hidden">
-              <div className="ml-6 flex items-baseline space-x-4">
+            {/* Tablet Navigation - centered */}
+            <div className="hidden md:flex lg:hidden flex-1 justify-center">
+              <div className="flex items-baseline space-x-4">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
@@ -172,28 +171,26 @@ export default function Navbar() {
               </div>
             </div>
 
+            {/* CTA Button + Mobile menu - right */}
+            <div className="flex flex-1 justify-end items-center gap-2">
             {/* CTA Button - Desktop */}
             <div className="hidden lg:block">
-              <a
-                href="https://www.fiverr.com/s/EgQz3ey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200"
+              <Link
+                href="/contact"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 no-underline"
               >
-                Get Quote
-              </a>
+                Contact
+              </Link>
             </div>
 
             {/* CTA Button - Tablet */}
             <div className="hidden md:block lg:hidden">
-              <a
-                href="https://www.fiverr.com/s/EgQz3ey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 text-xs font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              <Link
+                href="/contact"
+                className="px-4 py-2 text-xs font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 no-underline"
               >
-                Get Quote
-              </a>
+                Contact
+              </Link>
             </div>
 
             {/* Mobile menu button */}
@@ -227,6 +224,7 @@ export default function Navbar() {
                 </svg>
               </button>
             </div>
+            </div>
           </div>
         </div>
 
@@ -257,15 +255,13 @@ export default function Navbar() {
                     {item.label}
                   </Link>
                 ))}
-                <a
-                  href="https://www.fiverr.com/s/EgQz3ey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full text-center mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-200"
+                <Link
+                  href="/contact"
+                  className="block w-full text-center mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-200 no-underline"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Get Quote
-                </a>
+                  Contact
+                </Link>
               </div>
             </motion.div>
           )}

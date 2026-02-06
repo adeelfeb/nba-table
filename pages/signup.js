@@ -353,6 +353,7 @@ export default function SignupPage() {
         .auth-card {
           width: 100%;
           max-width: 440px;
+          min-width: 0;
           padding: 2.6rem 2.6rem 2.25rem;
           border-radius: 1.6rem;
           background: rgba(255, 255, 255, 0.95);
@@ -394,10 +395,13 @@ export default function SignupPage() {
         .form {
           display: grid;
           gap: 1.35rem;
+          width: 100%;
+          min-width: 0;
         }
         .field {
           display: grid;
           gap: 0.6rem;
+          min-width: 0;
         }
         .field span {
           font-weight: 600;
@@ -405,6 +409,10 @@ export default function SignupPage() {
           font-size: 0.94rem;
         }
         input {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+          box-sizing: border-box;
           padding: 0.95rem 1rem;
           border-radius: 0.95rem;
           border: 1px solid rgba(13, 48, 89, 0.14);
@@ -514,11 +522,12 @@ export default function SignupPage() {
         }
         @media (max-width: 480px) {
           .auth-shell {
-            padding: 5rem 1rem 2.5rem;
+            padding: 5rem 0.75rem 2.5rem;
           }
           .auth-card {
-            padding: 1.85rem 1.5rem 1.75rem;
+            padding: 1.85rem 1.25rem 1.75rem;
             gap: 1.5rem;
+            margin: 0 0.25rem;
           }
           .card-header h1 {
             font-size: 1.6rem;
@@ -527,12 +536,25 @@ export default function SignupPage() {
             gap: 1.15rem;
           }
           input {
-            padding: 0.85rem 0.95rem;
-            font-size: 0.95rem;
+            padding: 0.85rem 0.75rem 0.85rem 0.95rem;
+            font-size: 16px;
           }
           button {
             padding: 0.95rem 1.2rem;
             font-size: 0.95rem;
+            width: 100%;
+          }
+        }
+        @media (max-width: 380px) {
+          .auth-shell {
+            padding: 5rem 0.5rem 2rem;
+          }
+          .auth-card {
+            padding: 1.5rem 1rem;
+          }
+          input {
+            padding: 0.75rem 0.65rem 0.75rem 0.85rem;
+            font-size: 16px;
           }
         }
         @media (prefers-reduced-motion: reduce) {

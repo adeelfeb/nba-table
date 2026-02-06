@@ -462,6 +462,7 @@ export default function LoginPage() {
         .auth-card {
           width: 100%;
           max-width: 420px;
+          min-width: 0;
           padding: 2.5rem 2.5rem 2rem;
           border-radius: 1.5rem;
           background: rgba(255, 255, 255, 0.92);
@@ -520,10 +521,13 @@ export default function LoginPage() {
         .form {
           display: grid;
           gap: 1.25rem;
+          width: 100%;
+          min-width: 0;
         }
         .field {
           display: grid;
           gap: 0.55rem;
+          min-width: 0;
         }
         .field span {
           font-weight: 600;
@@ -531,6 +535,10 @@ export default function LoginPage() {
           font-size: 0.94rem;
         }
         input {
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
+          box-sizing: border-box;
           padding: 0.9rem 1rem;
           border-radius: 0.9rem;
           border: 1px solid rgba(15, 35, 95, 0.12);
@@ -636,11 +644,12 @@ export default function LoginPage() {
         }
         @media (max-width: 480px) {
           .auth-shell {
-            padding: 5rem 1rem 2.5rem;
+            padding: 5rem 0.75rem 2.5rem;
           }
           .auth-card {
-            padding: 1.75rem 1.5rem;
+            padding: 1.75rem 1.25rem 1.5rem;
             gap: 1.5rem;
+            margin: 0 0.25rem;
           }
           .card-header h1 {
             font-size: 1.6rem;
@@ -649,12 +658,25 @@ export default function LoginPage() {
             gap: 1.1rem;
           }
           input {
-            padding: 0.85rem 0.95rem;
-            font-size: 0.95rem;
+            padding: 0.85rem 0.75rem 0.85rem 0.95rem;
+            font-size: 16px;
           }
           button {
             padding: 0.9rem 1.15rem;
             font-size: 0.95rem;
+            width: 100%;
+          }
+        }
+        @media (max-width: 380px) {
+          .auth-shell {
+            padding: 5rem 0.5rem 2rem;
+          }
+          .auth-card {
+            padding: 1.5rem 1rem;
+          }
+          input {
+            padding: 0.75rem 0.65rem 0.75rem 0.85rem;
+            font-size: 16px;
           }
         }
         @media (prefers-reduced-motion: reduce) {
