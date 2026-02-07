@@ -66,6 +66,14 @@ const ValentineUrlSchema = new mongoose.Schema(
       default: 'Open',
       trim: true,
       maxlength: 50,
+      required: false,
+    },
+    buttonTextNo: {
+      type: String,
+      default: 'Maybe later',
+      trim: true,
+      maxlength: 50,
+      required: false,
     },
     theme: {
       type: String,
@@ -81,6 +89,20 @@ const ValentineUrlSchema = new mongoose.Schema(
       type: [String],
       enum: ['flowers', 'teddy', 'chocolate', 'hearts'],
       default: [],
+    },
+    replyPromptLabel: {
+      type: String,
+      default: 'Write a message to the sender',
+      trim: true,
+      maxlength: 120,
+      required: false,
+    },
+    replyMaxLength: {
+      type: Number,
+      default: 500,
+      min: 100,
+      max: 2000,
+      required: false,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

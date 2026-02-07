@@ -141,6 +141,9 @@ export default function ValentineUrlManager({ user }) {
     welcomeText: "You've got something special",
     mainMessage: '',
     buttonText: 'Open',
+    buttonTextNo: 'Maybe later',
+    replyPromptLabel: 'Write a message to the sender',
+    replyMaxLength: 500,
     theme: 'classic',
     themeColor: 'rose',
     decorations: [],
@@ -209,13 +212,19 @@ export default function ValentineUrlManager({ user }) {
     try {
       const url = editingId ? `/api/valentine/${editingId.id}` : '/api/valentine';
       const method = editingId ? 'PUT' : 'POST';
+      const payload = {
+        ...formData,
+        buttonTextNo: formData.buttonTextNo ?? 'Maybe later',
+        replyPromptLabel: formData.replyPromptLabel ?? 'Write a message to the sender',
+        replyMaxLength: typeof formData.replyMaxLength === 'number' && formData.replyMaxLength >= 100 ? Math.min(2000, formData.replyMaxLength) : 500,
+      };
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
@@ -310,6 +319,9 @@ export default function ValentineUrlManager({ user }) {
       welcomeText: "You've got something special",
       mainMessage: '',
       buttonText: 'Open',
+      buttonTextNo: 'Maybe later',
+      replyPromptLabel: 'Write a message to the sender',
+      replyMaxLength: 500,
       theme: 'classic',
       themeColor: 'rose',
       decorations: [],
@@ -328,6 +340,9 @@ export default function ValentineUrlManager({ user }) {
       welcomeText: item.welcomeText || "You've got something special",
       mainMessage: item.mainMessage || '',
       buttonText: item.buttonText || 'Open',
+      buttonTextNo: item.buttonTextNo ?? 'Maybe later',
+      replyPromptLabel: item.replyPromptLabel ?? 'Write a message to the sender',
+      replyMaxLength: typeof item.replyMaxLength === 'number' ? item.replyMaxLength : 500,
       theme: item.theme || 'classic',
       themeColor: item.themeColor || 'rose',
       decorations: Array.isArray(item.decorations) ? item.decorations : [],
@@ -613,7 +628,7 @@ export default function ValentineUrlManager({ user }) {
               />
             </div>
             <div className="valentine-form-group">
-              <label>Button text</label>
+              <label>Button text (main button)</label>
               <input
                 type="text"
                 value={formData.buttonText}
@@ -621,6 +636,41 @@ export default function ValentineUrlManager({ user }) {
                 placeholder="Open"
                 maxLength={50}
               />
+            </div>
+            <div className="valentine-form-group">
+              <label>Second button text (disabled)</label>
+              <input
+                type="text"
+                value={formData.buttonTextNo}
+                onChange={(e) => setFormData({ ...formData, buttonTextNo: e.target.value })}
+                placeholder="Maybe later"
+                maxLength={50}
+              />
+              <span className="valentine-hint">Shown as a disabled button on the page. Fun &quot;no&quot; option.</span>
+            </div>
+            <div className="valentine-form-group">
+              <label htmlFor="valentine-reply-prompt">Reply box label (after they click the main button)</label>
+              <input
+                id="valentine-reply-prompt"
+                type="text"
+                value={formData.replyPromptLabel}
+                onChange={(e) => setFormData({ ...formData, replyPromptLabel: e.target.value })}
+                placeholder="Write a message to the sender"
+                maxLength={120}
+              />
+              <span className="valentine-hint">Label for the input where the recipient can send you a reply (max 5 replies per visit).</span>
+            </div>
+            <div className="valentine-form-group">
+              <label htmlFor="valentine-reply-max">Max reply length (characters)</label>
+              <input
+                id="valentine-reply-max"
+                type="number"
+                min={100}
+                max={2000}
+                value={formData.replyMaxLength}
+                onChange={(e) => setFormData({ ...formData, replyMaxLength: Math.min(2000, Math.max(100, Number(e.target.value) || 500)) })}
+              />
+              <span className="valentine-hint">Between 100 and 2000 characters. Default 500.</span>
             </div>
             <div className="valentine-form-row">
               <div className="valentine-form-group">
@@ -804,6 +854,33 @@ export default function ValentineUrlManager({ user }) {
                           </tbody>
                         </table>
                       </div>
+                    </div>
+                  )}
+                  {analyticsData.replies && (
+                    <div className="valentine-analytics-section valentine-analytics-replies-section">
+                      <h4>
+                        Replies from recipients
+                        <span className="valentine-analytics-count">
+                          {analyticsData.replies.length > 0
+                            ? ` (${analyticsData.replies.length} message${analyticsData.replies.length === 1 ? '' : 's'}, latest first)`
+                            : ''}
+                        </span>
+                      </h4>
+                      {analyticsData.replies.length > 0 ? (
+                        <ul className="valentine-analytics-replies-list">
+                          {analyticsData.replies.map((r) => (
+                            <li key={r.id} className="valentine-analytics-reply-item">
+                              <p className="valentine-analytics-reply-message">{r.message}</p>
+                              <span className="valentine-analytics-reply-meta">
+                                {new Date(r.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                                {r.sessionId ? ` · ${r.sessionId}` : ''}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="valentine-analytics-empty">No replies yet. Recipients can send you a message after clicking the main button (up to 5 per visit).</p>
+                      )}
                     </div>
                   )}
                   <div className="valentine-analytics-section valentine-analytics-all-visits-section">
@@ -1632,6 +1709,34 @@ export default function ValentineUrlManager({ user }) {
           font-weight: 700;
           color: #1e0a12;
           letter-spacing: -0.01em;
+        }
+        .valentine-analytics-replies-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          border: 1px solid rgba(225, 29, 72, 0.15);
+          border-radius: 0.75rem;
+          overflow: hidden;
+        }
+        .valentine-analytics-reply-item {
+          padding: 0.85rem 1rem;
+          border-bottom: 1px solid rgba(225, 29, 72, 0.08);
+          background: #fff;
+        }
+        .valentine-analytics-reply-item:last-child {
+          border-bottom: none;
+        }
+        .valentine-analytics-reply-message {
+          margin: 0 0 0.35rem 0;
+          font-size: 0.95rem;
+          line-height: 1.5;
+          color: #334155;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+        .valentine-analytics-reply-meta {
+          font-size: 0.8rem;
+          color: #64748b;
         }
         .valentine-analytics-count {
           font-weight: 500;

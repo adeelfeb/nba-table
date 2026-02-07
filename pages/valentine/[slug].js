@@ -104,6 +104,24 @@ function HeartsSmallSvg({ size = 32, color = 'currentColor', className = '' }) {
   );
 }
 
+/** Cute sparkle star for background */
+function SparkleSvg({ size = 16, color = 'currentColor', className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} className={className} aria-hidden>
+      <path d="M12 2l1.5 4.5L18 8l-3.5 2.5L16 15l-4-2.5L8 15l1.5-4.5L6 8l4.5-1.5L12 2z" fillOpacity="0.4" />
+    </svg>
+  );
+}
+
+/** Tiny heart for ambient background float */
+function TinyHeartSvg({ size = 12, color = 'currentColor', className = '' }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} fillOpacity="0.35" className={className} aria-hidden>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
+
 const DECORATION_KEYS = ['flowers', 'teddy', 'chocolate', 'hearts'];
 const DECORATION_COMPONENTS = [
   { key: 'flowers', Svg: FlowerSvg },
@@ -218,6 +236,10 @@ export default function ValentinePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revealed, setRevealed] = useState(false);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [replySending, setReplySending] = useState(false);
+  const [repliesLeft, setRepliesLeft] = useState(5);
+  const [replySuccess, setReplySuccess] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -287,6 +309,47 @@ export default function ValentinePage() {
     };
   }, [slug, page]);
 
+  useEffect(() => {
+    if (!revealed || !slug || !page) return;
+    const sessionId = getOrCreateSessionId();
+    let cancelled = false;
+    fetch(`/api/valentine/reply?slug=${encodeURIComponent(slug)}&sessionId=${encodeURIComponent(sessionId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data.success && data.data) {
+          setRepliesLeft(data.data.repliesLeft ?? 5);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [revealed, slug, page]);
+
+  async function sendReply(e) {
+    e.preventDefault();
+    const msg = replyMessage.trim();
+    if (!msg || replySending || repliesLeft < 1) return;
+    const sessionId = getOrCreateSessionId();
+    setReplySending(true);
+    setReplySuccess(false);
+    try {
+      const res = await fetch('/api/valentine/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, sessionId, message: msg.slice(0, page.replyMaxLength || 500) }),
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setReplyMessage('');
+        setRepliesLeft(data.data.repliesLeft ?? 0);
+        setReplySuccess(true);
+        setTimeout(() => setReplySuccess(false), 3000);
+      }
+    } finally {
+      setReplySending(false);
+    }
+  }
+
   const decorations = useMemo(() => {
     const raw = page?.decorations;
     if (Array.isArray(raw) && raw.length > 0) {
@@ -320,21 +383,49 @@ export default function ValentinePage() {
     }));
   }, []);
 
+  const ambientBg = useMemo(() => {
+    const hearts = Array.from({ length: 24 }, (_, i) => ({
+      id: `h-${i}`,
+      left: `${(i * 13 + 2) % 98}%`,
+      top: `${(i * 17 + 5) % 95}%`,
+      size: 8 + (i % 4) * 2,
+      delay: (i * 0.25) % 4,
+      duration: 3 + (i % 3) * 0.8,
+    }));
+    const sparkles = Array.from({ length: 12 }, (_, i) => ({
+      id: `s-${i}`,
+      left: `${(i * 19 + 7) % 94}%`,
+      top: `${(i * 23 + 3) % 92}%`,
+      size: 10 + (i % 3) * 4,
+      delay: (i * 0.4) % 3,
+      duration: 2.5 + (i % 2) * 0.5,
+    }));
+    return { hearts, sparkles };
+  }, []);
+
   if (loading) {
     return (
       <>
         <Head><title>Loading... | Valentine</title></Head>
         <div className="valentine-page valentine-loading-state">
+          <div className="valentine-bg-orb valentine-bg-orb-1" aria-hidden />
+          <div className="valentine-bg-orb valentine-bg-orb-2" aria-hidden />
+          <div className="valentine-bg-orb valentine-bg-orb-3" aria-hidden />
           <div className="valentine-loading-icon">
             <HeartSvg size={56} color="#be123c" />
           </div>
           <p>Loading...</p>
         </div>
         <style jsx>{`
-          .valentine-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
-          .valentine-loading-state { background: #fef2f2; color: #64748b; }
-          .valentine-loading-icon { animation: v-load-pulse 1.2s ease-in-out infinite; }
+          .valentine-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; position: relative; overflow: hidden; }
+          .valentine-loading-state { background: linear-gradient(135deg, #fef2f2 0%, #fce7f3 50%, #fdf2f8 100%); color: #64748b; }
+          .valentine-bg-orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.35; pointer-events: none; animation: v-orb-float 8s ease-in-out infinite; }
+          .valentine-bg-orb-1 { width: 280px; height: 280px; background: rgba(225, 29, 72, 0.2); top: -80px; left: -60px; animation-delay: 0s; }
+          .valentine-bg-orb-2 { width: 220px; height: 220px; background: rgba(253, 164, 175, 0.35); bottom: -40px; right: -40px; animation-delay: -3s; }
+          .valentine-bg-orb-3 { width: 180px; height: 180px; background: rgba(251, 207, 232, 0.3); top: 40%; right: 10%; animation-delay: -5s; }
+          @keyframes v-orb-float { 0%, 100% { transform: scale(1) translate(0, 0); } 50% { transform: scale(1.08) translate(8px, -10px); } }
           @keyframes v-load-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.85; } }
+          .valentine-loading-icon { animation: v-load-pulse 1.2s ease-in-out infinite; position: relative; z-index: 1; }
         `}</style>
       </>
     );
@@ -345,6 +436,9 @@ export default function ValentinePage() {
       <>
         <Head><title>Invalid Link | Valentine</title></Head>
         <div className="valentine-page valentine-error-state">
+          <div className="valentine-bg-orb valentine-bg-orb-1" aria-hidden />
+          <div className="valentine-bg-orb valentine-bg-orb-2" aria-hidden />
+          <div className="valentine-bg-orb valentine-bg-orb-3" aria-hidden />
           <div className="valentine-error-icon">
             <HeartSvg size={64} color="#991b1b" />
           </div>
@@ -352,11 +446,16 @@ export default function ValentinePage() {
           <p>{error}</p>
         </div>
         <style jsx>{`
-          .valentine-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; }
-          .valentine-error-state { background: #fef2f2; color: #991b1b; }
-          .valentine-error-icon { opacity: 0.8; margin-bottom: 1rem; }
-          .valentine-error-state h1 { font-size: 1.5rem; margin: 0 0 0.5rem 0; }
-          .valentine-error-state p { margin: 0; color: #64748b; }
+          .valentine-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; position: relative; overflow: hidden; }
+          .valentine-error-state { background: linear-gradient(135deg, #fef2f2 0%, #fce7f3 40%, #fdf2f8 100%); color: #991b1b; }
+          .valentine-bg-orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: 0.35; pointer-events: none; animation: v-orb-float 8s ease-in-out infinite; }
+          .valentine-bg-orb-1 { width: 280px; height: 280px; background: rgba(225, 29, 72, 0.2); top: -80px; left: -60px; animation-delay: 0s; }
+          .valentine-bg-orb-2 { width: 220px; height: 220px; background: rgba(253, 164, 175, 0.35); bottom: -40px; right: -40px; animation-delay: -3s; }
+          .valentine-bg-orb-3 { width: 180px; height: 180px; background: rgba(251, 207, 232, 0.3); top: 40%; right: 10%; animation-delay: -5s; }
+          @keyframes v-orb-float { 0%, 100% { transform: scale(1) translate(0, 0); } 50% { transform: scale(1.08) translate(8px, -10px); } }
+          .valentine-error-icon { opacity: 0.8; margin-bottom: 1rem; position: relative; z-index: 1; }
+          .valentine-error-state h1 { font-size: 1.5rem; margin: 0 0 0.5rem 0; position: relative; z-index: 1; }
+          .valentine-error-state p { margin: 0; color: #64748b; position: relative; z-index: 1; }
         `}</style>
       </>
     );
@@ -373,6 +472,43 @@ export default function ValentinePage() {
         <meta name="robots" content="noindex,nofollow" />
       </Head>
       <div className="valentine-page" style={{ background: vars.bg }}>
+        <div className="valentine-bg-orb valentine-bg-orb-1" aria-hidden />
+        <div className="valentine-bg-orb valentine-bg-orb-2" aria-hidden />
+        <div className="valentine-bg-orb valentine-bg-orb-3" aria-hidden />
+        <div className="valentine-ambient-layer" aria-hidden>
+          {ambientBg.hearts.map(({ id, left, top, size, delay, duration }) => (
+            <div
+              key={id}
+              className="valentine-ambient-heart"
+              style={{
+                left,
+                top,
+                width: size,
+                height: size,
+                animationDelay: `${delay}s`,
+                animationDuration: `${duration}s`,
+              }}
+            >
+              <TinyHeartSvg size={size} color={accentColor} />
+            </div>
+          ))}
+          {ambientBg.sparkles.map(({ id, left, top, size, delay, duration }) => (
+            <div
+              key={id}
+              className="valentine-ambient-sparkle"
+              style={{
+                left,
+                top,
+                width: size,
+                height: size,
+                animationDelay: `${delay}s`,
+                animationDuration: `${duration}s`,
+              }}
+            >
+              <SparkleSvg size={size} color={accentColor} />
+            </div>
+          ))}
+        </div>
         <div className="valentine-decorations-layer" aria-hidden>
           {positionsToShow.map(({ key, Svg, delay, duration, ...pos }) => (
             <div
@@ -414,33 +550,80 @@ export default function ValentinePage() {
           <h1 className="valentine-welcome">{page.welcomeText}</h1>
           <p className="valentine-recipient">For {page.recipientName}</p>
           {!revealed ? (
-            <button
-              type="button"
-              className="valentine-cta"
-              style={{ background: accentColor, color: isLightButton ? '#1f2937' : '#fff' }}
-              onClick={() => {
-                const sid = getOrCreateSessionId();
-                const buttonClickEvent = {
-                  type: 'button_click',
-                  slug,
-                  sessionId: sid,
-                  timestamp: new Date().toISOString(),
-                };
-                pushTrackEvent(buttonClickEvent);
-                sendTrackEventsNow([buttonClickEvent]);
-                setRevealed(true);
-              }}
-            >
-              {page.buttonText}
-            </button>
-          ) : (
-            <div className="valentine-message" style={{ borderColor: vars.secondary, color: vars.primary }}>
-              {page.mainMessage ? (
-                <p className="valentine-message-text">{page.mainMessage}</p>
-              ) : (
-                <p className="valentine-message-text">You are loved.</p>
-              )}
+            <div className="valentine-buttons-row">
+              <button
+                type="button"
+                className="valentine-cta"
+                style={{ background: accentColor, color: isLightButton ? '#1f2937' : '#fff' }}
+                onClick={() => {
+                  const sid = getOrCreateSessionId();
+                  const buttonClickEvent = {
+                    type: 'button_click',
+                    slug,
+                    sessionId: sid,
+                    timestamp: new Date().toISOString(),
+                  };
+                  pushTrackEvent(buttonClickEvent);
+                  sendTrackEventsNow([buttonClickEvent]);
+                  setRevealed(true);
+                }}
+              >
+                {page.buttonText}
+              </button>
+              <button
+                type="button"
+                className="valentine-cta valentine-cta-no"
+                style={{ borderColor: vars.secondary, color: vars.primary }}
+                disabled
+                aria-disabled="true"
+                title="This button is just for fun — always disabled"
+              >
+                {page.buttonTextNo}
+              </button>
             </div>
+          ) : (
+            <>
+              <div className="valentine-message" style={{ borderColor: vars.secondary, color: vars.primary }}>
+                {page.mainMessage ? (
+                  <p className="valentine-message-text">{page.mainMessage}</p>
+                ) : (
+                  <p className="valentine-message-text">You are loved.</p>
+                )}
+              </div>
+              {repliesLeft > 0 && (
+                <form className="valentine-reply-form" onSubmit={sendReply}>
+                  <label htmlFor="valentine-reply-input" className="valentine-reply-label">
+                    {page.replyPromptLabel || 'Write a message to the sender'}
+                  </label>
+                  <textarea
+                    id="valentine-reply-input"
+                    className="valentine-reply-input"
+                    value={replyMessage}
+                    onChange={(e) => setReplyMessage(e.target.value)}
+                    placeholder="Type your message..."
+                    maxLength={page.replyMaxLength || 500}
+                    rows={3}
+                    disabled={replySending}
+                    style={{ borderColor: vars.secondary }}
+                  />
+                  <p className="valentine-reply-hint">
+                    {replyMessage.length}/{page.replyMaxLength || 500} characters · {repliesLeft} of 5 replies left
+                  </p>
+                  {replySuccess && <p className="valentine-reply-success" role="status">Message sent!</p>}
+                  <button
+                    type="submit"
+                    className="valentine-cta valentine-reply-submit"
+                    style={{ background: accentColor, color: isLightButton ? '#1f2937' : '#fff' }}
+                    disabled={replySending || !replyMessage.trim()}
+                  >
+                    {replySending ? 'Sending…' : 'Send'}
+                  </button>
+                </form>
+              )}
+              {repliesLeft === 0 && (
+                <p className="valentine-reply-limit">You&apos;ve used all 5 replies for this visit. Thanks for your messages!</p>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -456,6 +639,81 @@ export default function ValentinePage() {
           position: relative;
           overflow-x: hidden;
           overflow-y: auto;
+        }
+        .valentine-bg-orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(72px);
+          opacity: 0.4;
+          pointer-events: none;
+          animation: v-orb-float 10s ease-in-out infinite;
+          will-change: transform;
+        }
+        .valentine-bg-orb-1 {
+          width: min(320px, 70vw);
+          height: min(320px, 70vw);
+          background: rgba(253, 164, 175, 0.45);
+          top: -100px;
+          left: -80px;
+          animation-delay: 0s;
+        }
+        .valentine-bg-orb-2 {
+          width: min(260px, 55vw);
+          height: min(260px, 55vw);
+          background: rgba(251, 207, 232, 0.4);
+          bottom: -60px;
+          right: -60px;
+          animation-delay: -4s;
+        }
+        .valentine-bg-orb-3 {
+          width: min(200px, 45vw);
+          height: min(200px, 45vw);
+          background: rgba(253, 242, 248, 0.5);
+          top: 35%;
+          right: 5%;
+          animation-delay: -6s;
+        }
+        @keyframes v-orb-float {
+          0%, 100% { transform: scale(1) translate(0, 0); }
+          33% { transform: scale(1.06) translate(12px, -8px); }
+          66% { transform: scale(1.03) translate(-6px, 10px); }
+        }
+        .valentine-ambient-layer {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          overflow: hidden;
+          z-index: 0;
+        }
+        .valentine-ambient-heart {
+          position: absolute;
+          opacity: 0.5;
+          animation: v-ambient-float 5s ease-in-out infinite;
+          will-change: transform;
+        }
+        .valentine-ambient-heart svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+        .valentine-ambient-sparkle {
+          position: absolute;
+          opacity: 0.45;
+          animation: v-sparkle 3s ease-in-out infinite;
+          will-change: transform, opacity;
+        }
+        .valentine-ambient-sparkle svg {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+        @keyframes v-ambient-float {
+          0%, 100% { transform: translateY(0) rotate(0deg) scale(1); opacity: 0.5; }
+          50% { transform: translateY(-12px) rotate(8deg) scale(1.1); opacity: 0.7; }
+        }
+        @keyframes v-sparkle {
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50% { transform: scale(1.2); opacity: 0.7; }
         }
         .valentine-decorations-layer {
           position: absolute;
@@ -583,6 +841,24 @@ export default function ValentinePage() {
         .valentine-cta:active {
           transform: translateY(0);
         }
+        .valentine-buttons-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+        }
+        .valentine-cta-no {
+          background: transparent !important;
+          border: 2px solid;
+          cursor: not-allowed;
+          opacity: 0.75;
+        }
+        .valentine-cta-no:hover {
+          transform: none;
+          box-shadow: none;
+        }
         .valentine-message {
           margin-top: 0.5rem;
           padding: 1.5rem;
@@ -600,6 +876,53 @@ export default function ValentinePage() {
           font-size: clamp(1rem, 2.5vw, 1.1rem);
           line-height: 1.6;
           white-space: pre-wrap;
+        }
+        .valentine-reply-form {
+          margin-top: 1.5rem;
+          width: 100%;
+          text-align: left;
+        }
+        .valentine-reply-label {
+          display: block;
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #374151;
+          margin-bottom: 0.5rem;
+        }
+        .valentine-reply-input {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border-radius: 0.75rem;
+          font-size: 1rem;
+          line-height: 1.5;
+          resize: vertical;
+          min-height: 4rem;
+          box-sizing: border-box;
+          border: 2px solid;
+        }
+        .valentine-reply-input:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+        }
+        .valentine-reply-hint {
+          margin: 0.35rem 0 0.75rem 0;
+          font-size: 0.8rem;
+          color: #6b7280;
+        }
+        .valentine-reply-success {
+          margin: 0 0 0.5rem 0;
+          font-size: 0.9rem;
+          color: #059669;
+          font-weight: 500;
+        }
+        .valentine-reply-submit {
+          margin-top: 0.25rem;
+        }
+        .valentine-reply-limit {
+          margin: 1.25rem 0 0 0;
+          font-size: 0.9rem;
+          color: #6b7280;
+          font-style: italic;
         }
         @media (max-width: 480px) {
           .valentine-decoration-item { opacity: 0.5; width: clamp(24px, 8vw, 36px); height: clamp(24px, 8vw, 36px); }

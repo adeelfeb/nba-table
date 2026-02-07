@@ -3,7 +3,9 @@ import connectDB from '../lib/db';
 import User from '../models/User';
 import ValentineUrl from '../models/ValentineUrl';
 import ValentineVisit from '../models/ValentineVisit';
+import ValentineReply from '../models/ValentineReply';
 import ValentineCreditRequest from '../models/ValentineCreditRequest';
+import { MAX_REPLIES_PER_SESSION, DEFAULT_MESSAGE_MAX_LENGTH } from '../models/ValentineReply';
 import { jsonError, jsonSuccess } from '../lib/response';
 import { sendValentineLinkEmail } from '../utils/email';
 
@@ -33,6 +35,8 @@ function generateSecretToken() {
 function sanitizeForOwner(valentine) {
   if (!valentine) return null;
   const id = valentine._id?.toString?.() || valentine._id;
+  const buttonTextNoRaw = valentine.buttonTextNo;
+  const buttonTextNo = (typeof buttonTextNoRaw === 'string' && buttonTextNoRaw.trim()) ? buttonTextNoRaw.trim() : 'Maybe later';
   return {
     id,
     slug: valentine.slug,
@@ -44,9 +48,12 @@ function sanitizeForOwner(valentine) {
     welcomeText: valentine.welcomeText,
     mainMessage: valentine.mainMessage,
     buttonText: valentine.buttonText,
+    buttonTextNo,
     theme: valentine.theme,
     themeColor: valentine.themeColor,
     decorations: Array.isArray(valentine.decorations) ? valentine.decorations : [],
+    replyPromptLabel: (valentine.replyPromptLabel && String(valentine.replyPromptLabel).trim()) ? valentine.replyPromptLabel.trim() : 'Write a message to the sender',
+    replyMaxLength: typeof valentine.replyMaxLength === 'number' && valentine.replyMaxLength >= 100 ? Math.min(2000, valentine.replyMaxLength) : 500,
     createdBy: valentine.createdBy?._id || valentine.createdBy,
     createdByName: valentine.createdByName,
     createdAt: valentine.createdAt,
@@ -56,15 +63,20 @@ function sanitizeForOwner(valentine) {
 
 function sanitizeForPublic(valentine) {
   if (!valentine) return null;
+  const buttonTextNoRaw = valentine.buttonTextNo;
+  const buttonTextNo = (typeof buttonTextNoRaw === 'string' && buttonTextNoRaw.trim()) ? buttonTextNoRaw.trim() : 'Maybe later';
   return {
     slug: valentine.slug,
     recipientName: valentine.recipientName,
     welcomeText: valentine.welcomeText,
     mainMessage: valentine.mainMessage,
     buttonText: valentine.buttonText,
+    buttonTextNo,
     theme: valentine.theme,
     themeColor: valentine.themeColor,
     decorations: Array.isArray(valentine.decorations) ? valentine.decorations : [],
+    replyPromptLabel: (valentine.replyPromptLabel && String(valentine.replyPromptLabel).trim()) ? valentine.replyPromptLabel.trim() : 'Write a message to the sender',
+    replyMaxLength: typeof valentine.replyMaxLength === 'number' && valentine.replyMaxLength >= 100 ? Math.min(2000, valentine.replyMaxLength) : 500,
   };
 }
 
@@ -116,6 +128,7 @@ export async function createValentineUrl(req, res) {
     if (credits < 1) {
       return jsonError(res, 403, 'No credits left. Request more credits to create additional Valentine links.', 'INSUFFICIENT_CREDITS');
     }
+    const body = req.body || {};
     const {
       recipientName,
       recipientEmail,
@@ -128,7 +141,10 @@ export async function createValentineUrl(req, res) {
       theme,
       themeColor,
       decorations,
-    } = req.body;
+    } = body;
+    const buttonTextNo = body.buttonTextNo;
+    const replyPromptLabel = body.replyPromptLabel;
+    const replyMaxLength = body.replyMaxLength;
 
     if (!recipientName || !recipientName.trim()) {
       return jsonError(res, 400, 'Recipient name is required');
@@ -160,9 +176,12 @@ export async function createValentineUrl(req, res) {
       welcomeText: (welcomeText || '').trim() || "You've got something special",
       mainMessage: (mainMessage || '').trim(),
       buttonText: (buttonText || '').trim() || 'Open',
+      buttonTextNo: (typeof buttonTextNo === 'string' ? buttonTextNo.trim() : '') || 'Maybe later',
       theme: theme || 'classic',
       themeColor: themeColor || 'rose',
       decorations: Array.isArray(decorations) ? decorations.filter((d) => ['flowers', 'teddy', 'chocolate', 'hearts'].includes(d)) : [],
+      replyPromptLabel: (typeof replyPromptLabel === 'string' && replyPromptLabel.trim()) ? replyPromptLabel.trim().slice(0, 120) : 'Write a message to the sender',
+      replyMaxLength: typeof replyMaxLength === 'number' && replyMaxLength >= 100 ? Math.min(2000, replyMaxLength) : 500,
       createdBy: req.user._id,
       createdByName: req.user.name || '',
     });
@@ -351,10 +370,11 @@ export async function updateValentineUrl(req, res) {
     if (!id) {
       return jsonError(res, 400, 'ID is required');
     }
-    const doc = await ValentineUrl.findOne({ _id: id, createdBy: req.user._id });
-    if (!doc) {
+    const existing = await ValentineUrl.findOne({ _id: id, createdBy: req.user._id }).lean();
+    if (!existing) {
       return jsonError(res, 404, 'Valentine URL not found');
     }
+    const body = req.body || {};
     const {
       recipientName,
       recipientEmail,
@@ -367,22 +387,35 @@ export async function updateValentineUrl(req, res) {
       theme,
       themeColor,
       decorations,
-    } = req.body;
-    if (recipientName !== undefined) doc.recipientName = recipientName.trim();
+    } = body;
+    const buttonTextNoRaw = body.buttonTextNo;
+    const replyPromptLabel = body.replyPromptLabel;
+    const replyMaxLength = body.replyMaxLength;
     const emailTrimmed = recipientEmail !== undefined && recipientEmail && typeof recipientEmail === 'string'
       ? recipientEmail.trim().toLowerCase()
-      : (doc.recipientEmail || null);
-    if (recipientEmail !== undefined) doc.recipientEmail = emailTrimmed || null;
-    if (emailSubject !== undefined) doc.emailSubject = emailSubject && typeof emailSubject === 'string' ? emailSubject.trim() : null;
-    if (emailBody !== undefined) doc.emailBody = emailBody && typeof emailBody === 'string' ? emailBody.trim() : null;
-    if (emailTheme !== undefined) doc.emailTheme = emailTheme && typeof emailTheme === 'string' ? emailTheme.trim() : null;
-    if (welcomeText !== undefined) doc.welcomeText = welcomeText.trim();
-    if (mainMessage !== undefined) doc.mainMessage = mainMessage.trim();
-    if (buttonText !== undefined) doc.buttonText = buttonText.trim();
-    if (theme !== undefined) doc.theme = theme;
-    if (themeColor !== undefined) doc.themeColor = themeColor;
-    if (decorations !== undefined) doc.decorations = Array.isArray(decorations) ? decorations.filter((d) => ['flowers', 'teddy', 'chocolate', 'hearts'].includes(d)) : [];
-    await doc.save();
+      : (existing.recipientEmail || null);
+
+    const $set = {};
+    if (recipientName !== undefined) $set.recipientName = recipientName.trim();
+    if (recipientEmail !== undefined) $set.recipientEmail = emailTrimmed || null;
+    if (emailSubject !== undefined) $set.emailSubject = emailSubject && typeof emailSubject === 'string' ? emailSubject.trim() : null;
+    if (emailBody !== undefined) $set.emailBody = emailBody && typeof emailBody === 'string' ? emailBody.trim() : null;
+    if (emailTheme !== undefined) $set.emailTheme = emailTheme && typeof emailTheme === 'string' ? emailTheme.trim() : null;
+    if (welcomeText !== undefined) $set.welcomeText = welcomeText.trim();
+    if (mainMessage !== undefined) $set.mainMessage = mainMessage.trim();
+    if (buttonText !== undefined) $set.buttonText = (typeof buttonText === 'string' ? buttonText.trim() : '') || 'Open';
+    if (buttonTextNoRaw !== undefined) $set.buttonTextNo = (typeof buttonTextNoRaw === 'string' ? buttonTextNoRaw.trim() : '') || 'Maybe later';
+    if (theme !== undefined) $set.theme = theme;
+    if (themeColor !== undefined) $set.themeColor = themeColor;
+    if (decorations !== undefined) $set.decorations = Array.isArray(decorations) ? decorations.filter((d) => ['flowers', 'teddy', 'chocolate', 'hearts'].includes(d)) : [];
+    if (replyPromptLabel !== undefined) $set.replyPromptLabel = (typeof replyPromptLabel === 'string' && replyPromptLabel.trim()) ? replyPromptLabel.trim().slice(0, 120) : 'Write a message to the sender';
+    if (replyMaxLength !== undefined) $set.replyMaxLength = typeof replyMaxLength === 'number' && replyMaxLength >= 100 ? Math.min(2000, replyMaxLength) : 500;
+
+    const doc = await ValentineUrl.findOneAndUpdate(
+      { _id: id, createdBy: req.user._id },
+      { $set },
+      { new: true, runValidators: true }
+    );
 
     let emailSent = false;
     const emailProvidedThisRequest = recipientEmail !== undefined && typeof recipientEmail === 'string' && recipientEmail.trim().length > 0;
@@ -454,6 +487,116 @@ export async function getValentineBySlug(req, res) {
   } catch (error) {
     console.error('Error fetching Valentine by slug:', error);
     return jsonError(res, 500, 'Failed to load page', error.message);
+  }
+}
+
+export async function submitValentineReply(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    return jsonError(res, 405, 'Method not allowed');
+  }
+  try {
+    await connectDB();
+    const body = req.body || {};
+    const slug = (body.slug || '').toString().trim().toLowerCase();
+    const sessionId = (body.sessionId || '').toString().trim().slice(0, 128);
+    let message = typeof body.message === 'string' ? body.message.trim() : '';
+    if (!slug) {
+      return jsonError(res, 400, 'Slug is required');
+    }
+    if (!sessionId) {
+      return jsonError(res, 400, 'Session is required');
+    }
+    const valentine = await ValentineUrl.findOne({ slug }).lean();
+    if (!valentine) {
+      return jsonError(res, 404, 'Invalid link');
+    }
+    const maxLength = typeof valentine.replyMaxLength === 'number' && valentine.replyMaxLength >= 100
+      ? Math.min(2000, valentine.replyMaxLength)
+      : DEFAULT_MESSAGE_MAX_LENGTH;
+    if (message.length > maxLength) {
+      message = message.slice(0, maxLength);
+    }
+    if (!message) {
+      return jsonError(res, 400, 'Message cannot be empty');
+    }
+    const valentineId = valentine._id;
+    const count = await ValentineReply.countDocuments({ valentineId, sessionId });
+    if (count >= MAX_REPLIES_PER_SESSION) {
+      return jsonError(res, 429, `You can send at most ${MAX_REPLIES_PER_SESSION} messages. Limit reached.`);
+    }
+    await ValentineReply.create({
+      valentineId,
+      sessionId,
+      message,
+    });
+    const newCount = count + 1;
+    return jsonSuccess(res, 201, 'Reply sent', {
+      repliesLeft: Math.max(0, MAX_REPLIES_PER_SESSION - newCount),
+      replyCount: newCount,
+    });
+  } catch (error) {
+    console.error('Error submitting Valentine reply:', error);
+    return jsonError(res, 500, 'Failed to send reply', error.message);
+  }
+}
+
+export async function getValentineReplyCount(req, res) {
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return jsonError(res, 405, 'Method not allowed');
+  }
+  try {
+    await connectDB();
+    const slug = (req.query.slug || '').toString().trim().toLowerCase();
+    const sessionId = (req.query.sessionId || '').toString().trim().slice(0, 128);
+    if (!slug || !sessionId) {
+      return jsonSuccess(res, 200, 'OK', { replyCount: 0, repliesLeft: MAX_REPLIES_PER_SESSION });
+    }
+    const valentine = await ValentineUrl.findOne({ slug }).select('_id').lean();
+    if (!valentine) {
+      return jsonSuccess(res, 200, 'OK', { replyCount: 0, repliesLeft: MAX_REPLIES_PER_SESSION });
+    }
+    const replyCount = await ValentineReply.countDocuments({ valentineId: valentine._id, sessionId });
+    const repliesLeft = Math.max(0, MAX_REPLIES_PER_SESSION - replyCount);
+    return jsonSuccess(res, 200, 'OK', { replyCount, repliesLeft });
+  } catch (error) {
+    console.error('Error fetching reply count:', error);
+    return jsonError(res, 500, 'Failed to fetch count', error.message);
+  }
+}
+
+export async function getValentineReplies(req, res) {
+  try {
+    await connectDB();
+    if (!req.user) {
+      return jsonError(res, 401, 'Authentication required');
+    }
+    const id = (req.query.id || '').toString().trim();
+    if (!id) {
+      return jsonError(res, 400, 'ID is required');
+    }
+    const isSlug = id.includes('-') && !/^[a-f0-9]{24}$/i.test(id);
+    const valentine = await ValentineUrl.findOne(
+      isSlug ? { slug: id.toLowerCase(), createdBy: req.user._id } : { _id: id, createdBy: req.user._id }
+    ).lean();
+    if (!valentine) {
+      return jsonError(res, 404, 'Valentine URL not found');
+    }
+    const replies = await ValentineReply.find({ valentineId: valentine._id })
+      .sort({ createdAt: -1 })
+      .select('message createdAt sessionId')
+      .lean();
+    const list = replies.map((r) => ({
+      id: r._id.toString(),
+      message: r.message,
+      createdAt: r.createdAt,
+      sessionId: r.sessionId ? r.sessionId.slice(0, 12) + '…' : '',
+    }));
+    return jsonSuccess(res, 200, 'Replies retrieved', { replies: list });
+  } catch (error) {
+    console.error('Error fetching Valentine replies:', error);
+    return jsonError(res, 500, 'Failed to fetch replies', error.message);
   }
 }
 
@@ -605,7 +748,7 @@ export async function getValentineAnalytics(req, res) {
       return jsonError(res, 404, 'Valentine URL not found');
     }
     const valentineId = doc._id;
-    const [totalStats, byReferrer, recentVisits] = await Promise.all([
+    const [totalStats, byReferrer, recentVisits, repliesList] = await Promise.all([
       ValentineVisit.aggregate([
         { $match: { valentineId } },
         {
@@ -640,7 +783,14 @@ export async function getValentineAnalytics(req, res) {
         .sort({ visitedAt: -1 })
         .select('visitedAt referrer buttonClicks userAgent deviceType browser accessPayload')
         .lean(),
+      ValentineReply.find({ valentineId }).sort({ createdAt: -1 }).select('message createdAt sessionId').lean(),
     ]);
+    const replies = (repliesList || []).map((r) => ({
+      id: r._id.toString(),
+      message: r.message,
+      createdAt: r.createdAt,
+      sessionId: r.sessionId ? r.sessionId.slice(0, 12) + '…' : '',
+    }));
     const allVisits = recentVisits.map((v) => ({
       visitedAt: v.visitedAt,
       referrer: v.referrer || '(direct)',
@@ -657,6 +807,7 @@ export async function getValentineAnalytics(req, res) {
         buttonText: doc.buttonText || 'Open',
         byReferrer,
         allVisits,
+        replies,
       },
     });
   } catch (error) {
