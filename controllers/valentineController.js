@@ -10,9 +10,16 @@ import { jsonError, jsonSuccess } from '../lib/response';
 import { sendValentineLinkEmail } from '../utils/email';
 
 const DEFAULT_CREDITS = 1;
-const CREDITS_PER_PACK = 5;
-const PRICE_USD = 2;
-const PRICE_PKR = 500; // Pakistani Rupees
+const LINK_CREDITS_PER_PACK = 10;
+const EMAIL_CREDITS_PER_PACK = 10;
+const PRICE_LINK_USD_PER_10 = 0.3;
+const PRICE_LINK_PKR_PER_10 = 30;
+const PRICE_EMAIL_USD_PER_10 = 0.2;
+const PRICE_EMAIL_PKR_PER_10 = 20;
+// Legacy / fallback
+const CREDITS_PER_PACK = LINK_CREDITS_PER_PACK;
+const PRICE_USD = PRICE_LINK_USD_PER_10;
+const PRICE_PKR = PRICE_LINK_PKR_PER_10;
 
 function toSlug(str) {
   if (!str || typeof str !== 'string') return '';
@@ -58,6 +65,7 @@ function sanitizeForOwner(valentine) {
     createdByName: valentine.createdByName,
     createdAt: valentine.createdAt,
     updatedAt: valentine.updatedAt,
+    emailResendCount: typeof valentine.emailResendCount === 'number' ? valentine.emailResendCount : 0,
   };
 }
 
@@ -104,9 +112,10 @@ export async function getValentineCredits(req, res) {
     if (!req.user) {
       return jsonError(res, 401, 'Authentication required');
     }
-    const user = await User.findById(req.user._id).select('valentineCredits').lean();
+    const user = await User.findById(req.user._id).select('valentineCredits valentineEmailCredits').lean();
     const credits = user?.valentineCredits != null ? Math.max(0, Number(user.valentineCredits)) : DEFAULT_CREDITS;
-    return jsonSuccess(res, 200, 'Credits retrieved', { credits });
+    const emailCredits = user?.valentineEmailCredits != null ? Math.max(0, Number(user.valentineEmailCredits)) : 0;
+    return jsonSuccess(res, 200, 'Credits retrieved', { credits, emailCredits });
   } catch (error) {
     console.error('Error fetching Valentine credits:', error);
     return jsonError(res, 500, 'Failed to fetch credits', error.message);
@@ -187,21 +196,29 @@ export async function createValentineUrl(req, res) {
     });
 
     let emailSent = false;
+    let emailError = null;
     if (emailTrimmed) {
-      try {
-        const fullUrl = `${getBaseUrl(req)}/valentine/${doc.slug}`;
-        await sendValentineLinkEmail(emailTrimmed, {
-          recipientName: doc.recipientName,
-          linkUrl: fullUrl,
-          theme: doc.theme,
-          themeColor: doc.themeColor,
-          emailTheme: doc.emailTheme || undefined,
-          subject: doc.emailSubject || undefined,
-          body: doc.emailBody || undefined,
-        });
-        emailSent = true;
-      } catch (err) {
-        console.error('Valentine link email failed:', err.message);
+      const baseUrl = getBaseUrl(req);
+      const fullUrl = baseUrl ? `${baseUrl}/valentine/${doc.slug}` : `${req.headers?.origin || ''}/valentine/${doc.slug}`;
+      if (!fullUrl || fullUrl === '/valentine/' + doc.slug) {
+        emailError = 'Base URL not configured. Set NEXT_PUBLIC_APP_URL or VERCEL_URL in production.';
+        console.warn('Valentine create: no base URL for email link');
+      } else {
+        try {
+          await sendValentineLinkEmail(emailTrimmed, {
+            recipientName: doc.recipientName,
+            linkUrl: fullUrl,
+            theme: doc.theme,
+            themeColor: doc.themeColor,
+            emailTheme: doc.emailTheme || undefined,
+            subject: doc.emailSubject || undefined,
+            body: doc.emailBody || undefined,
+          });
+          emailSent = true;
+        } catch (err) {
+          emailError = err.message || 'Email send failed';
+          console.error('Valentine link email failed:', err.message);
+        }
       }
     }
 
@@ -209,10 +226,12 @@ export async function createValentineUrl(req, res) {
       $inc: { valentineCredits: -1 },
     });
 
+    const baseUrl = getBaseUrl(req) || req.headers?.origin || '';
     return jsonSuccess(res, 201, 'Valentine URL created', {
       valentineUrl: sanitizeForOwner(doc),
-      fullUrl: `${getBaseUrl(req)}/valentine/${doc.slug}`,
+      fullUrl: baseUrl ? `${baseUrl}/valentine/${doc.slug}` : '',
       emailSent,
+      ...(emailError && { emailError }),
     });
   } catch (error) {
     console.error('Error creating Valentine URL:', error);
@@ -229,15 +248,24 @@ export async function createCreditRequest(req, res) {
     if (!req.user) {
       return jsonError(res, 401, 'Authentication required');
     }
-    const requestedCredits = Math.max(1, Math.min(100, Number(req.body.requestedCredits) || CREDITS_PER_PACK));
+    const requestedCredits = Math.max(0, Math.min(1000, Math.floor(Number(req.body.requestedCredits) || 0)));
+    const requestedEmailCredits = Math.max(0, Math.min(1000, Math.floor(Number(req.body.requestedEmailCredits) || 0)));
+    if (requestedCredits < 1 && requestedEmailCredits < 1) {
+      return jsonError(res, 400, 'Request at least 1 link credit or 1 email credit.');
+    }
     const message = (req.body.message && String(req.body.message).trim().slice(0, 500)) || '';
+    const linkPacks = Math.ceil(Math.max(0, requestedCredits) / LINK_CREDITS_PER_PACK) || 0;
+    const emailPacks = Math.ceil(Math.max(0, requestedEmailCredits) / EMAIL_CREDITS_PER_PACK) || 0;
+    const amountUsd = (linkPacks * PRICE_LINK_USD_PER_10) + (emailPacks * PRICE_EMAIL_USD_PER_10);
+    const amountPkr = (linkPacks * PRICE_LINK_PKR_PER_10) + (emailPacks * PRICE_EMAIL_PKR_PER_10);
     const doc = await ValentineCreditRequest.create({
       user: req.user._id,
       userEmail: req.user.email || '',
       userName: req.user.name || '',
-      requestedCredits,
-      amountUsd: PRICE_USD * Math.ceil(requestedCredits / CREDITS_PER_PACK),
-      amountPkr: PRICE_PKR * Math.ceil(requestedCredits / CREDITS_PER_PACK),
+      requestedCredits: requestedCredits || 0,
+      requestedEmailCredits: requestedEmailCredits || 0,
+      amountUsd,
+      amountPkr,
       message,
       status: 'pending',
     });
@@ -245,6 +273,7 @@ export async function createCreditRequest(req, res) {
       request: {
         id: doc._id.toString(),
         requestedCredits: doc.requestedCredits,
+        requestedEmailCredits: doc.requestedEmailCredits ?? 0,
         amountUsd: doc.amountUsd,
         amountPkr: doc.amountPkr,
         status: doc.status,
@@ -271,7 +300,8 @@ export async function getCreditRequests(req, res) {
       userId: r.user?._id?.toString() || r.user?.toString(),
       userName: r.userName || r.user?.name,
       userEmail: r.userEmail || r.user?.email,
-      requestedCredits: r.requestedCredits,
+      requestedCredits: r.requestedCredits ?? 0,
+      requestedEmailCredits: r.requestedEmailCredits ?? 0,
       amountUsd: r.amountUsd,
       amountPkr: r.amountPkr ?? r.amountInr,
       message: r.message,
@@ -305,21 +335,32 @@ export async function fulfillCreditRequest(req, res) {
       return jsonError(res, 400, 'Request already processed');
     }
     const raw = req.body.creditsToAdd != null ? Number(req.body.creditsToAdd) : null;
-    const creditsToAdd = (raw != null && !Number.isNaN(raw) && raw >= 1 && raw <= 1000)
+    const creditsToAdd = (raw != null && !Number.isNaN(raw) && raw >= 0 && raw <= 1000)
       ? Math.floor(raw)
-      : request.requestedCredits;
+      : (request.requestedCredits ?? 0);
+    const emailRaw = req.body.emailCreditsToAdd != null ? Number(req.body.emailCreditsToAdd) : null;
+    const emailCreditsToAdd = (emailRaw != null && !Number.isNaN(emailRaw) && emailRaw >= 0 && emailRaw <= 1000)
+      ? Math.floor(emailRaw)
+      : (request.requestedEmailCredits ?? 0);
+    if (creditsToAdd === 0 && emailCreditsToAdd === 0) {
+      return jsonError(res, 400, 'Add at least 1 link or email credit.');
+    }
     await ValentineCreditRequest.findByIdAndUpdate(id, {
       status: 'paid',
       processedAt: new Date(),
       processedBy: req.user._id,
       notes: (request.notes || '') + (req.body.notes ? `\n${String(req.body.notes).trim().slice(0, 500)}` : ''),
     });
-    await User.findByIdAndUpdate(request.user, {
-      $inc: { valentineCredits: creditsToAdd },
-    });
+    const update = {};
+    if (creditsToAdd > 0) update.$inc = { ...(update.$inc || {}), valentineCredits: creditsToAdd };
+    if (emailCreditsToAdd > 0) update.$inc = { ...(update.$inc || {}), valentineEmailCredits: emailCreditsToAdd };
+    if (Object.keys(update).length) {
+      await User.findByIdAndUpdate(request.user, update);
+    }
     return jsonSuccess(res, 200, 'Credits added to user', {
       requestId: id,
       creditsAdded: creditsToAdd,
+      emailCreditsAdded: emailCreditsToAdd,
     });
   } catch (error) {
     console.error('Error fulfilling credit request:', error);
@@ -330,7 +371,13 @@ export async function fulfillCreditRequest(req, res) {
 function getBaseUrl(req) {
   const host = req.headers?.['x-forwarded-host'] || req.headers?.host || '';
   const proto = req.headers?.['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-  return host ? `${proto}://${host}` : '';
+  if (host) return `${proto}://${host}`;
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || process.env.SITE_URL;
+  if (envUrl) {
+    const base = envUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return envUrl.startsWith('http') ? envUrl.replace(/\/$/, '') : `https://${base}`;
+  }
+  return '';
 }
 
 export async function getValentineUrlById(req, res) {
@@ -418,33 +465,102 @@ export async function updateValentineUrl(req, res) {
     );
 
     let emailSent = false;
-    const emailProvidedThisRequest = recipientEmail !== undefined && typeof recipientEmail === 'string' && recipientEmail.trim().length > 0;
-    if (emailProvidedThisRequest && emailTrimmed) {
-      try {
-        const fullUrl = `${getBaseUrl(req)}/valentine/${doc.slug}`;
-        await sendValentineLinkEmail(emailTrimmed, {
-          recipientName: doc.recipientName,
-          linkUrl: fullUrl,
-          theme: doc.theme,
-          themeColor: doc.themeColor,
-          emailTheme: doc.emailTheme || undefined,
-          subject: doc.emailSubject || undefined,
-          body: doc.emailBody || undefined,
-        });
-        emailSent = true;
-      } catch (err) {
-        console.error('Valentine link email failed:', err.message);
+    let emailError = null;
+    const finalRecipientEmail = (doc.recipientEmail && typeof doc.recipientEmail === 'string' && doc.recipientEmail.trim()) ? doc.recipientEmail.trim().toLowerCase() : null;
+    if (finalRecipientEmail) {
+      const baseUrl = getBaseUrl(req) || req.headers?.origin || '';
+      const fullUrl = baseUrl ? `${baseUrl}/valentine/${doc.slug}` : '';
+      if (!fullUrl) {
+        emailError = 'Base URL not configured. Set NEXT_PUBLIC_APP_URL or VERCEL_URL in production.';
+        console.warn('Valentine update: no base URL for email link');
+      } else {
+        try {
+          await sendValentineLinkEmail(finalRecipientEmail, {
+            recipientName: doc.recipientName,
+            linkUrl: fullUrl,
+            theme: doc.theme,
+            themeColor: doc.themeColor,
+            emailTheme: doc.emailTheme || undefined,
+            subject: doc.emailSubject || undefined,
+            body: doc.emailBody || undefined,
+          });
+          emailSent = true;
+        } catch (err) {
+          emailError = err.message || 'Email send failed';
+          console.error('Valentine link email failed:', err.message);
+        }
       }
     }
 
+    const baseUrl = getBaseUrl(req) || req.headers?.origin || '';
     return jsonSuccess(res, 200, 'Valentine URL updated', {
       valentineUrl: sanitizeForOwner(doc),
-      fullUrl: `${getBaseUrl(req)}/valentine/${doc.slug}`,
+      fullUrl: baseUrl ? `${baseUrl}/valentine/${doc.slug}` : '',
       emailSent,
+      ...(emailError && { emailError }),
     });
   } catch (error) {
     console.error('Error updating Valentine URL:', error);
     return jsonError(res, 500, 'Failed to update Valentine URL', error.message);
+  }
+}
+
+export async function resendValentineEmail(req, res) {
+  try {
+    await connectDB();
+    if (!req.user) {
+      return jsonError(res, 401, 'Authentication required');
+    }
+    const { id } = req.query;
+    if (!id) {
+      return jsonError(res, 400, 'ID is required');
+    }
+    const doc = await ValentineUrl.findOne({ _id: id, createdBy: req.user._id }).lean();
+    if (!doc) {
+      return jsonError(res, 404, 'Valentine URL not found');
+    }
+    const recipientEmail = (doc.recipientEmail && typeof doc.recipientEmail === 'string' && doc.recipientEmail.trim())
+      ? doc.recipientEmail.trim().toLowerCase()
+      : null;
+    if (!recipientEmail) {
+      return jsonError(res, 400, 'This link has no recipient email. Add one in Edit to resend.');
+    }
+    const role = (req.user.role || 'base_user').toLowerCase();
+    const isBaseUser = role === 'base_user';
+    if (isBaseUser) {
+      const resendCount = typeof doc.emailResendCount === 'number' ? doc.emailResendCount : 0;
+      const hasFreeResend = resendCount < 1;
+      if (!hasFreeResend) {
+        const user = await User.findById(req.user._id).select('valentineEmailCredits').lean();
+        const emailCredits = user?.valentineEmailCredits != null ? Math.max(0, Number(user.valentineEmailCredits)) : 0;
+        if (emailCredits < 1) {
+          return jsonError(res, 403, 'No email credits left. Add email credits to resend (10 for Rs 20 / $0.20).', 'INSUFFICIENT_EMAIL_CREDITS');
+        }
+        await User.findByIdAndUpdate(req.user._id, { $inc: { valentineEmailCredits: -1 } });
+      }
+    }
+    const baseUrl = getBaseUrl(req) || req.headers?.origin || '';
+    const fullUrl = baseUrl ? `${baseUrl}/valentine/${doc.slug}` : '';
+    if (!fullUrl) {
+      return jsonError(res, 500, 'Server URL not configured. Set NEXT_PUBLIC_APP_URL or VERCEL_URL.', 'BASE_URL_MISSING');
+    }
+    await sendValentineLinkEmail(recipientEmail, {
+      recipientName: doc.recipientName,
+      linkUrl: fullUrl,
+      theme: doc.theme,
+      themeColor: doc.themeColor,
+      emailTheme: doc.emailTheme || undefined,
+      subject: doc.emailSubject || undefined,
+      body: doc.emailBody || undefined,
+    });
+    await ValentineUrl.findByIdAndUpdate(id, { $inc: { emailResendCount: 1 } });
+    return jsonSuccess(res, 200, 'Email resent to recipient', {
+      emailSent: true,
+      emailResendCount: (typeof doc.emailResendCount === 'number' ? doc.emailResendCount : 0) + 1,
+    });
+  } catch (error) {
+    console.error('Error resending Valentine email:', error);
+    return jsonError(res, 500, 'Failed to resend email', error.message);
   }
 }
 

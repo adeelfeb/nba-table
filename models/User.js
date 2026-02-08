@@ -35,6 +35,8 @@ const UserSchema = new mongoose.Schema(
     isPaused: { type: Boolean, default: false, index: true },
     // Valentine links: how many links the user can still create (base users start with 1)
     valentineCredits: { type: Number, default: 1, min: 0 },
+    // Valentine email resends: base users get 1 free resend per link, then use these credits
+    valentineEmailCredits: { type: Number, default: 0, min: 0 },
   },
   {
     timestamps: true,

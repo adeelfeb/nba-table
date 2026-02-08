@@ -12,12 +12,18 @@ const ValentineCreditRequestSchema = new mongoose.Schema(
     userName: { type: String, trim: true },
     requestedCredits: {
       type: Number,
-      required: true,
-      min: 1,
-      default: 5,
+      required: false,
+      min: 0,
+      default: 0,
     },
-    amountUsd: { type: Number, default: 2 },
-    amountPkr: { type: Number, default: 500 },
+    requestedEmailCredits: {
+      type: Number,
+      required: false,
+      min: 0,
+      default: 0,
+    },
+    amountUsd: { type: Number, default: 0 },
+    amountPkr: { type: Number, default: 0 },
     message: { type: String, trim: true, maxlength: 500, default: '' },
     status: {
       type: String,

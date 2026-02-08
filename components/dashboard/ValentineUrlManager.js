@@ -114,6 +114,15 @@ function ChartIcon({ size = 18 }) {
   );
 }
 
+function MailIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+      <polyline points="22,6 12,13 2,6" />
+    </svg>
+  );
+}
+
 export default function ValentineUrlManager({ user }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -127,11 +136,15 @@ export default function ValentineUrlManager({ user }) {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [credits, setCredits] = useState(null);
+  const [emailCredits, setEmailCredits] = useState(0);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
+  const [showEmailCreditsModal, setShowEmailCreditsModal] = useState(false);
   const [creditRequestCredits, setCreditRequestCredits] = useState(5);
+  const [creditRequestEmailCredits, setCreditRequestEmailCredits] = useState(0);
   const [creditRequestMessage, setCreditRequestMessage] = useState('');
   const [requestSubmitting, setRequestSubmitting] = useState(false);
   const [creditRequestSuccessMessage, setCreditRequestSuccessMessage] = useState('');
+  const [resendingId, setResendingId] = useState(null);
   const [formData, setFormData] = useState({
     recipientName: '',
     recipientEmail: '',
@@ -162,9 +175,11 @@ export default function ValentineUrlManager({ user }) {
       const data = await res.json();
       if (data.success && data.data != null) {
         setCredits(data.data.credits ?? 0);
+        setEmailCredits(data.data.emailCredits ?? 0);
       }
     } catch {
       setCredits(0);
+      setEmailCredits(0);
     }
   }
 
@@ -231,7 +246,16 @@ export default function ValentineUrlManager({ user }) {
         await fetchList();
         await fetchCredits();
         const emailSent = data.data?.emailSent;
-        setSuccessMessage(emailSent ? 'Link saved. Email sent to the recipient.' : 'Link saved.');
+        const emailError = data.data?.emailError;
+        if (emailSent) {
+          setSuccessMessage('Link saved. Email sent to the recipient.');
+        } else if (emailError) {
+          setSuccessMessage('Link saved. Email could not be sent—use "Resend email" on the link after saving.');
+          setError(emailError);
+          setTimeout(() => setError(''), 8000);
+        } else {
+          setSuccessMessage('Link saved.');
+        }
         setTimeout(() => setSuccessMessage(''), 5000);
         resetForm();
       } else {
@@ -412,6 +436,88 @@ export default function ValentineUrlManager({ user }) {
 
   const showEmailOptions = formData.recipientEmail && formData.recipientEmail.trim().length > 0;
 
+  const isBaseUser = (user?.role || 'base_user').toLowerCase() === 'base_user';
+  function canResend(item) {
+    if (!item.recipientEmail || !item.recipientEmail.trim()) return false;
+    if (!isBaseUser) return true;
+    const used = typeof item.emailResendCount === 'number' ? item.emailResendCount : 0;
+    return used < 1 || (emailCredits != null && emailCredits >= 1);
+  }
+
+  async function handleResendEmail(item) {
+    if (!item.recipientEmail || !item.recipientEmail.trim()) {
+      setError('This link has no recipient email. Add one in Edit first.');
+      return;
+    }
+    if (isBaseUser) {
+      const used = typeof item.emailResendCount === 'number' ? item.emailResendCount : 0;
+      if (used >= 1 && (emailCredits == null || emailCredits < 1)) {
+        setShowEmailCreditsModal(true);
+        return;
+      }
+    }
+    setResendingId(item.id);
+    setError('');
+    try {
+      const res = await fetch(`/api/valentine/${item.id}/resend-email`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuccessMessage('Email resent to recipient.');
+        setTimeout(() => setSuccessMessage(''), 4000);
+        await fetchList();
+        await fetchCredits();
+      } else {
+        if (data.error === 'INSUFFICIENT_EMAIL_CREDITS') {
+          setShowEmailCreditsModal(true);
+        } else {
+          setError(data.message || 'Failed to resend email');
+        }
+      }
+    } catch (err) {
+      setError('Failed to resend email. Please try again.');
+    } finally {
+      setResendingId(null);
+    }
+  }
+
+  async function submitEmailCreditRequest(e) {
+    e.preventDefault();
+    const num = Math.max(1, Math.min(100, Number(creditRequestEmailCredits) || 10));
+    setRequestSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/valentine/credit-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          requestedCredits: 0,
+          requestedEmailCredits: num,
+          message: (creditRequestMessage || '').trim().slice(0, 500),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowEmailCreditsModal(false);
+        setCreditRequestMessage('');
+        setCreditRequestEmailCredits(10);
+        setCreditRequestSuccessMessage('Email credit request submitted. After payment, email credits will be added to your account.');
+        setTimeout(() => setCreditRequestSuccessMessage(''), 8000);
+      } else {
+        setError(data.message || 'Failed to submit request');
+      }
+    } catch (err) {
+      setError('Failed to submit request. Please try again.');
+    } finally {
+      setRequestSubmitting(false);
+    }
+  }
+
   return (
     <div className="valentine-manager">
       <header className="valentine-hero">
@@ -429,7 +535,10 @@ export default function ValentineUrlManager({ user }) {
           </p>
           {credits != null && (
             <p className="valentine-hero-credits" aria-live="polite">
-              Credits left: <strong>{credits}</strong> {credits === 1 ? 'link' : 'links'}
+              Link credits: <strong>{credits}</strong> {credits === 1 ? 'link' : 'links'}
+              {isBaseUser && emailCredits != null && (
+                <> · Email resend credits: <strong>{emailCredits}</strong></>
+              )}
             </p>
           )}
           {(user?.role === 'developer' || user?.role === 'superadmin') && (
@@ -478,11 +587,11 @@ export default function ValentineUrlManager({ user }) {
               You need more credits to create additional Valentine links. Request more credits and pay the invoice; after payment the developer will add credits to your account.
             </p>
             <p className="valentine-modal-p valentine-modal-pricing">
-              <strong>5 credits</strong> for <strong>$2 USD</strong> / <strong>Rs 500 PKR</strong> (Pakistani Rupees). You can request any number of credits; the developer will send you an invoice. After paying, your credits will be added.
+              <strong>10 link credits</strong> for <strong>$0.30 USD</strong> / <strong>Rs 30 PKR</strong>. You can request any number; the developer will send you an invoice. After paying, your credits will be added.
             </p>
             <form onSubmit={submitCreditRequest} className="valentine-credit-request-form">
               <div className="valentine-form-group">
-                <label htmlFor="valentine-request-credits">Number of credits to request</label>
+                <label htmlFor="valentine-request-credits">Number of link credits to request</label>
                 <input
                   id="valentine-request-credits"
                   type="number"
@@ -520,6 +629,63 @@ export default function ValentineUrlManager({ user }) {
                   disabled={requestSubmitting}
                 >
                   {requestSubmitting ? 'Submitting…' : 'Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEmailCreditsModal && (
+        <div className="valentine-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="valentine-email-credits-title">
+          <div className="valentine-modal">
+            <h3 id="valentine-email-credits-title" className="valentine-modal-title">Add email resend credits</h3>
+            <p className="valentine-modal-p">
+              Base users get one free resend per link. After that, each resend uses 1 email credit. Add email credits to resend more.
+            </p>
+            <p className="valentine-modal-p valentine-modal-pricing">
+              <strong>10 email credits</strong> for <strong>$0.20 USD</strong> / <strong>Rs 20 PKR</strong>. Request credits; after payment the developer will add them to your account.
+            </p>
+            <form onSubmit={submitEmailCreditRequest} className="valentine-credit-request-form">
+              <div className="valentine-form-group">
+                <label htmlFor="valentine-request-email-credits">Number of email credits to request</label>
+                <input
+                  id="valentine-request-email-credits"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={creditRequestEmailCredits}
+                  onChange={(e) => setCreditRequestEmailCredits(Number(e.target.value) || 10)}
+                  disabled={requestSubmitting}
+                />
+              </div>
+              <div className="valentine-form-group">
+                <label htmlFor="valentine-request-message-email">Message (optional)</label>
+                <textarea
+                  id="valentine-request-message-email"
+                  value={creditRequestMessage}
+                  onChange={(e) => setCreditRequestMessage(e.target.value)}
+                  placeholder="e.g. I need 20 email credits"
+                  rows={2}
+                  maxLength={500}
+                  disabled={requestSubmitting}
+                />
+              </div>
+              <div className="valentine-modal-actions">
+                <button
+                  type="button"
+                  className="valentine-btn-secondary"
+                  onClick={() => { setShowEmailCreditsModal(false); setCreditRequestMessage(''); setCreditRequestEmailCredits(10); }}
+                  disabled={requestSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="valentine-btn-primary"
+                  disabled={requestSubmitting}
+                >
+                  {requestSubmitting ? 'Submitting…' : 'Request email credits'}
                 </button>
               </div>
             </form>
@@ -771,6 +937,16 @@ export default function ValentineUrlManager({ user }) {
                           <LinkIcon size={18} />
                           Open
                         </a>
+                        <button
+                          type="button"
+                          className={`valentine-icon-btn ${!item.recipientEmail ? 'valentine-resend-disabled' : !canResend(item) ? 'valentine-resend-limited' : ''}`}
+                          onClick={() => item.recipientEmail && handleResendEmail(item)}
+                          title={!item.recipientEmail ? 'Add recipient email in Edit to resend' : canResend(item) ? 'Resend email to recipient' : 'Add email credits to resend'}
+                          disabled={!item.recipientEmail || resendingId === item.id}
+                        >
+                          <MailIcon size={18} />
+                          {resendingId === item.id ? 'Sending…' : 'Resend email'}
+                        </button>
                         <button type="button" className="valentine-icon-btn" onClick={() => openAnalytics(item)} title="Analytics">
                           <ChartIcon size={18} />
                           Analytics
@@ -1478,6 +1654,16 @@ export default function ValentineUrlManager({ user }) {
           color: #b91c1c;
           border-color: #fecaca;
           box-shadow: 0 2px 8px rgba(185, 28, 28, 0.1);
+        }
+        .valentine-icon-btn.valentine-resend-limited {
+          opacity: 0.85;
+        }
+        .valentine-icon-btn.valentine-resend-limited:hover {
+          opacity: 1;
+        }
+        .valentine-icon-btn.valentine-resend-disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
         .valentine-card-url {
           display: block;

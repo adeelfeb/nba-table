@@ -7,6 +7,7 @@ export default function CreditRequestsPanel({ user }) {
   const [fulfillingId, setFulfillingId] = useState(null);
   const [fulfillModal, setFulfillModal] = useState(null);
   const [creditsToAssign, setCreditsToAssign] = useState(5);
+  const [emailCreditsToAssign, setEmailCreditsToAssign] = useState(0);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -34,19 +35,31 @@ export default function CreditRequestsPanel({ user }) {
   }
 
   function openFulfillModal(request) {
-    setFulfillModal({ id: request.id, userName: request.userName, userEmail: request.userEmail, requestedCredits: request.requestedCredits });
+    setFulfillModal({
+      id: request.id,
+      userName: request.userName,
+      userEmail: request.userEmail,
+      requestedCredits: request.requestedCredits ?? 0,
+      requestedEmailCredits: request.requestedEmailCredits ?? 0,
+    });
     setCreditsToAssign(request.requestedCredits ?? 5);
+    setEmailCreditsToAssign(request.requestedEmailCredits ?? 0);
     setError('');
   }
 
   function closeFulfillModal() {
     setFulfillModal(null);
     setCreditsToAssign(5);
+    setEmailCreditsToAssign(0);
   }
 
   async function handleFulfillSubmit(e) {
     e.preventDefault();
     if (!fulfillModal) return;
+    if (Number(creditsToAssign) === 0 && Number(emailCreditsToAssign) === 0) {
+      setError('Assign at least 1 link or email credit.');
+      return;
+    }
     const id = fulfillModal.id;
     setFulfillingId(id);
     setError('');
@@ -57,13 +70,21 @@ export default function CreditRequestsPanel({ user }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ creditsToAdd: Math.max(1, Math.min(1000, Number(creditsToAssign) || 5)) }),
+        body: JSON.stringify({
+          creditsToAdd: Math.max(0, Math.min(1000, Number(creditsToAssign) || 0)),
+          emailCreditsToAdd: Math.max(0, Math.min(1000, Number(emailCreditsToAssign) || 0)),
+        }),
       });
       const data = await res.json();
       if (data.success) {
         closeFulfillModal();
         setList((prev) => prev.filter((r) => r.id !== id));
-        setSuccessMessage(`Credits added: ${data.data?.creditsAdded ?? creditsToAssign} credits assigned to user.`);
+        const linkAdded = data.data?.creditsAdded ?? creditsToAssign;
+        const emailAdded = data.data?.emailCreditsAdded ?? emailCreditsToAssign;
+        const parts = [];
+        if (linkAdded > 0) parts.push(`${linkAdded} link credits`);
+        if (emailAdded > 0) parts.push(`${emailAdded} email credits`);
+        setSuccessMessage(`Credits added: ${parts.join(', ')} assigned to user.`);
         setTimeout(() => setSuccessMessage(''), 6000);
       } else {
         setError(data.message || 'Failed to fulfill request');
@@ -86,7 +107,7 @@ export default function CreditRequestsPanel({ user }) {
       <header className="credit-requests-header">
         <h2 className="credit-requests-title">Valentine credit requests</h2>
         <p className="credit-requests-desc">
-          Users request more credits here. Pricing: 5 credits for $2 USD / Rs 500 PKR (Pakistani Rupees). Mark as paid and add credits after receiving payment.
+          Users request link and email credits here. Pricing: 10 link credits for $0.30 USD / Rs 30 PKR; 10 email credits for $0.20 USD / Rs 20 PKR. Mark as paid and add credits after receiving payment.
         </p>
         {isDeveloper && (
           <p className="credit-requests-dev-options">
@@ -114,18 +135,30 @@ export default function CreditRequestsPanel({ user }) {
           <div className="credit-requests-modal">
             <h3 id="credit-requests-fulfill-title" className="credit-requests-modal-title">Assign credits</h3>
             <p className="credit-requests-modal-p">
-              {fulfillModal.userName || '—'} ({fulfillModal.userEmail || '—'}) — requested {fulfillModal.requestedCredits} credits. Choose how many credits to add to their account.
+              {fulfillModal.userName || '—'} ({fulfillModal.userEmail || '—'}) — requested {fulfillModal.requestedCredits} link credits, {fulfillModal.requestedEmailCredits} email credits. Assign credits to add to their account.
             </p>
             <form onSubmit={handleFulfillSubmit} className="credit-requests-fulfill-form">
               <div className="credit-requests-form-group">
-                <label htmlFor="credit-requests-credits-input">Credits to assign</label>
+                <label htmlFor="credit-requests-credits-input">Link credits to assign</label>
                 <input
                   id="credit-requests-credits-input"
                   type="number"
-                  min={1}
+                  min={0}
                   max={1000}
                   value={creditsToAssign}
-                  onChange={(e) => setCreditsToAssign(Number(e.target.value) || 5)}
+                  onChange={(e) => setCreditsToAssign(Number(e.target.value) || 0)}
+                  disabled={fulfillingId === fulfillModal.id}
+                />
+              </div>
+              <div className="credit-requests-form-group">
+                <label htmlFor="credit-requests-email-credits-input">Email credits to assign</label>
+                <input
+                  id="credit-requests-email-credits-input"
+                  type="number"
+                  min={0}
+                  max={1000}
+                  value={emailCreditsToAssign}
+                  onChange={(e) => setEmailCreditsToAssign(Number(e.target.value) || 0)}
                   disabled={fulfillingId === fulfillModal.id}
                 />
               </div>
@@ -141,7 +174,7 @@ export default function CreditRequestsPanel({ user }) {
                 <button
                   type="submit"
                   className="credit-requests-btn-fulfill"
-                  disabled={fulfillingId === fulfillModal.id}
+                  disabled={fulfillingId === fulfillModal.id || (Number(creditsToAssign) === 0 && Number(emailCreditsToAssign) === 0)}
                 >
                   {fulfillingId === fulfillModal.id ? 'Adding…' : 'Mark paid & add credits'}
                 </button>
@@ -166,7 +199,7 @@ export default function CreditRequestsPanel({ user }) {
                     <div className="credit-requests-card-main">
                       <span className="credit-requests-user">{r.userName || '—'} ({r.userEmail || '—'})</span>
                       <span className="credit-requests-meta">
-                        {r.requestedCredits} credits · ${r.amountUsd} USD / Rs {r.amountPkr} PKR
+                        {[r.requestedCredits > 0 && `${r.requestedCredits} link`, r.requestedEmailCredits > 0 && `${r.requestedEmailCredits} email`].filter(Boolean).join(', ') || '0'} credits · ${r.amountUsd} USD / Rs {r.amountPkr} PKR
                       </span>
                       {r.message && <p className="credit-requests-msg">{r.message}</p>}
                       <span className="credit-requests-date">
@@ -197,7 +230,7 @@ export default function CreditRequestsPanel({ user }) {
                     <div className="credit-requests-card-main">
                       <span className="credit-requests-user">{r.userName || '—'} ({r.userEmail || '—'})</span>
                       <span className="credit-requests-meta">
-                        {r.requestedCredits} credits · {r.status}
+                        {[r.requestedCredits > 0 && `${r.requestedCredits} link`, r.requestedEmailCredits > 0 && `${r.requestedEmailCredits} email`].filter(Boolean).join(', ') || '0'} credits · {r.status}
                       </span>
                       <span className="credit-requests-date">
                         {r.processedAt ? new Date(r.processedAt).toLocaleString() : ''}

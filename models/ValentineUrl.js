@@ -114,6 +114,12 @@ const ValentineUrlSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    /** Number of times the link email was resent (for base user limit: 1 free resend) */
+    emailResendCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
   },
   {
     timestamps: true,
