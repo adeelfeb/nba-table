@@ -514,10 +514,16 @@ export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme
   const isDark = t === 'vintage' && c === 'crimson';
   const textColor = isDark ? '#fef2f2' : '#1f2937';
   const mutedColor = isDark ? '#d6d3d1' : '#6b7280';
-  const subject = customSubject && customSubject.trim() ? customSubject.trim() : `You've got something special, ${recipientName || 'there'}`;
-  const defaultIntro = 'Click the link below to open your message. This link is just for you.';
+  // Neutral subject line to improve deliverability (avoid spam triggers)
+  const defaultSubject = recipientName && recipientName.trim()
+    ? `Private message for ${recipientName.trim()}`
+    : 'You have a private message';
+  const subject = customSubject && customSubject.trim() ? customSubject.trim() : defaultSubject;
+  const defaultIntro = 'Use the link below to open your message. This link is only for you.';
   const introParagraph = customBody && customBody.trim() ? customBody.trim() : defaultIntro;
   const introEscaped = introParagraph.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\n/g, '<br />');
+  // Use a neutral accent (blue) for the decorative dot to reduce spam scoring; theme colors still apply to CTA button
+  const accentColor = '#4f46e5';
 
   const htmlBody = `
     <!DOCTYPE html>
@@ -534,12 +540,12 @@ export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme
             <table role="presentation" style="max-width: 480px; width:100%; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); border: 1px solid ${themeStyles.border};">
               <tr>
                 <td style="padding: 40px 32px; text-align: center;">
-                  <p style="font-size: 32px; margin: 0 0 16px 0; line-height: 1;"><span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, #be123c, #e11d48); border-radius: 50%; transform: rotate(-45deg); box-shadow: 0 2px 8px rgba(190,18,60,0.4);"></span></p>
-                  <h1 style="color: ${textColor}; font-size: 22px; font-weight: 700; margin: 0 0 8px 0;">You've got something special</h1>
+                  <p style="font-size: 32px; margin: 0 0 16px 0; line-height: 1;"><span style="display: inline-block; width: 28px; height: 28px; background-color: ${accentColor}; border-radius: 50%;"></span></p>
+                  <h1 style="color: ${textColor}; font-size: 22px; font-weight: 700; margin: 0 0 8px 0;">You have a private message</h1>
                   ${recipientName ? `<p style="color: ${mutedColor}; font-size: 16px; margin: 0 0 24px 0;">For ${recipientName}</p>` : ''}
                   <p style="color: ${mutedColor}; font-size: 15px; margin: 0 0 24px 0; line-height: 1.5;">${introEscaped}</p>
                   <a href="${linkUrl.replace(/&/g, '&amp;')}" style="display: inline-block; background-color: ${themeStyles.primary}; color: ${themeStyles.primary === '#fecaca' || themeStyles.primary === '#fca5a5' ? '#1f2937' : '#ffffff'}; text-decoration: none; font-weight: 600; font-size: 16px; padding: 14px 28px; border-radius: 9999px; margin: 8px 0;">Open your message</a>
-                  <p style="color: ${mutedColor}; font-size: 13px; margin: 24px 0 0 0;">If the button doesn't work, copy and paste this link into your browser:</p>
+                  <p style="color: ${mutedColor}; font-size: 13px; margin: 24px 0 0 0;">If the button does not work, copy and paste this link into your browser:</p>
                   <p style="color: ${mutedColor}; font-size: 12px; margin: 8px 0 0 0; word-break: break-all;">${linkUrl.replace(/&/g, '&amp;')}</p>
                 </td>
               </tr>
@@ -558,8 +564,8 @@ export async function sendValentineLinkEmail(to, { recipientName, linkUrl, theme
 
   const textBody = (customBody && customBody.trim()
     ? customBody.trim() + '\n\n'
-    : `You've got something special${recipientName ? `, ${recipientName}` : ''}\n\n`) +
-    'Open your message by visiting this link (it\'s just for you):\n\n' +
+    : 'You have a private message' + (recipientName ? ` for ${recipientName}` : '') + '.\n\n') +
+    'Use the link below to open your message (this link is only for you):\n\n' +
     linkUrl + '\n\n' +
     'This link is private. Do not share it with others.';
 

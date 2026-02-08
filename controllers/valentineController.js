@@ -556,8 +556,8 @@ export async function resendValentineEmail(req, res) {
       return jsonError(res, 400, 'This link has no recipient email. Add one in Edit to resend.');
     }
     const role = (req.user.role || 'base_user').toLowerCase();
-    const isBaseUser = role === 'base_user';
-    if (isBaseUser) {
+    const hasUnlimitedResend = role === 'developer' || role === 'superadmin';
+    if (!hasUnlimitedResend) {
       const resendCount = typeof doc.emailResendCount === 'number' ? doc.emailResendCount : 0;
       const hasFreeResend = resendCount < 1;
       if (!hasFreeResend) {

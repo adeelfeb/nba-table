@@ -462,10 +462,12 @@ export default function ValentineUrlManager({ user }) {
 
   const showEmailOptions = formData.recipientEmail && formData.recipientEmail.trim().length > 0;
 
-  const isBaseUser = (user?.role || 'base_user').toLowerCase() === 'base_user';
+  const role = (user?.role || 'base_user').toLowerCase();
+  const hasUnlimitedResend = role === 'developer' || role === 'superadmin';
+  const isBaseUser = role === 'base_user';
   function canResend(item) {
     if (!item.recipientEmail || !item.recipientEmail.trim()) return false;
-    if (!isBaseUser) return true;
+    if (hasUnlimitedResend) return true;
     const used = typeof item.emailResendCount === 'number' ? item.emailResendCount : 0;
     return used < 1 || (emailCredits != null && emailCredits >= 1);
   }
@@ -475,7 +477,8 @@ export default function ValentineUrlManager({ user }) {
       setError('This link has no recipient email. Add one in Edit first.');
       return;
     }
-    if (isBaseUser) {
+    if (resendingId === item.id) return;
+    if (!hasUnlimitedResend) {
       const used = typeof item.emailResendCount === 'number' ? item.emailResendCount : 0;
       if (used >= 1 && (emailCredits == null || emailCredits < 1)) {
         setShowEmailCreditsModal(true);
@@ -665,12 +668,12 @@ export default function ValentineUrlManager({ user }) {
       {showEmailCreditsModal && (
         <div className="valentine-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="valentine-email-credits-title">
           <div className="valentine-modal">
-            <h3 id="valentine-email-credits-title" className="valentine-modal-title">Add email resend credits</h3>
+            <h3 id="valentine-email-credits-title" className="valentine-modal-title">Request email resend credits</h3>
             <p className="valentine-modal-p">
-              Base users get one free resend per link. After that, each resend uses 1 email credit. Add email credits to resend more.
+              You’ve used your free resend for this link (or you’re out of email credits). To resend again, request more email credits below. Base users get one free resend per link; after that, each resend uses 1 email credit.
             </p>
             <p className="valentine-modal-p valentine-modal-pricing">
-              <strong>10 email credits</strong> for <strong>$0.20 USD</strong> / <strong>Rs 20 PKR</strong>. Request credits; after payment the developer will add them to your account.
+              <strong>10 email credits</strong> for <strong>$0.20 USD</strong> / <strong>Rs 20 PKR</strong>. Submit the request; after payment the developer will add credits to your account.
             </p>
             <form onSubmit={submitEmailCreditRequest} className="valentine-credit-request-form">
               <div className="valentine-form-group">
@@ -965,10 +968,10 @@ export default function ValentineUrlManager({ user }) {
                         </a>
                         <button
                           type="button"
-                          className={`valentine-icon-btn ${!item.recipientEmail ? 'valentine-resend-disabled' : !canResend(item) ? 'valentine-resend-limited' : ''}`}
-                          onClick={() => item.recipientEmail && handleResendEmail(item)}
-                          title={!item.recipientEmail ? 'Add recipient email in Edit to resend' : canResend(item) ? 'Resend email to recipient' : 'Add email credits to resend'}
-                          disabled={!item.recipientEmail || resendingId === item.id}
+                          className="valentine-icon-btn"
+                          onClick={() => handleResendEmail(item)}
+                          title={!item.recipientEmail ? 'Add recipient email in Edit to resend' : 'Resend email to recipient (or request email credits if you’re out)'}
+                          disabled={resendingId === item.id}
                         >
                           <MailIcon size={18} />
                           {resendingId === item.id ? 'Sending…' : 'Resend email'}
@@ -1680,12 +1683,6 @@ export default function ValentineUrlManager({ user }) {
           color: #b91c1c;
           border-color: #fecaca;
           box-shadow: 0 2px 8px rgba(185, 28, 28, 0.1);
-        }
-        .valentine-icon-btn.valentine-resend-limited {
-          opacity: 0.85;
-        }
-        .valentine-icon-btn.valentine-resend-limited:hover {
-          opacity: 1;
         }
         .valentine-icon-btn.valentine-resend-disabled {
           opacity: 0.6;
