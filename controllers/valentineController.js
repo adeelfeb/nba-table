@@ -1176,6 +1176,7 @@ export async function updateContestEntry(req, res) {
     if (!id) return jsonError(res, 400, 'Entry ID is required');
     const body = req.body || {};
     const setFeatured = body.featured === true;
+    const unfeature = body.featured === false;
     let rank = undefined;
     if (body.rank === null) rank = null;
     else if (typeof body.rank === 'number' && !Number.isNaN(body.rank)) rank = Math.max(1, Math.floor(body.rank));
@@ -1190,6 +1191,8 @@ export async function updateContestEntry(req, res) {
     if (setFeatured) {
       await ValentineContestEntry.updateMany({ _id: { $ne: id } }, { $set: { featured: false } });
       entry.featured = true;
+    } else if (unfeature) {
+      entry.featured = false;
     }
     if (rank !== undefined) entry.rank = rank;
     await entry.save();

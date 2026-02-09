@@ -6,18 +6,20 @@ const API_ENTRY_ID = (id) => `/api/valentine/contest-entries/${id}`;
 export default function ContestResultsPanel({ user }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reloading, setReloading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [updatingId, setUpdatingId] = useState(null);
   const [rankInputs, setRankInputs] = useState({});
 
   useEffect(() => {
-    fetchEntries();
+    fetchEntries(false);
   }, []);
 
-  async function fetchEntries() {
+  async function fetchEntries(isReload = false) {
     try {
-      setLoading(true);
+      if (!isReload) setLoading(true);
+      else setReloading(true);
       setError('');
       const res = await fetch(API_ENTRIES, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -37,6 +39,7 @@ export default function ContestResultsPanel({ user }) {
       setError('Unable to connect. Please try again.');
     } finally {
       setLoading(false);
+      setReloading(false);
     }
   }
 
@@ -70,6 +73,38 @@ export default function ContestResultsPanel({ user }) {
         showSuccess('Featured message updated. It will appear on the Valentine page.');
       } else {
         setError(data.message || 'Failed to set featured');
+      }
+    } catch {
+      setError('Failed to update. Please try again.');
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function handleUnfeature(entry) {
+    if (!entry.featured) return;
+    setUpdatingId(entry.id);
+    setError('');
+    try {
+      const res = await fetch(API_ENTRY_ID(entry.id), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ featured: false }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEntries((prev) =>
+          prev.map((e) => ({
+            ...e,
+            featured: e.id === entry.id ? false : e.featured,
+          }))
+        );
+        showSuccess('Message removed from featured. It will no longer appear on the Valentine page.');
+      } else {
+        setError(data.message || 'Failed to remove featured');
       }
     } catch {
       setError('Failed to update. Please try again.');
@@ -141,7 +176,28 @@ export default function ContestResultsPanel({ user }) {
   return (
     <div className="flex flex-col gap-5">
       <header className="mb-1">
-        <h2 className="text-xl font-bold text-slate-900 m-0 mb-1">Contest Results</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h2 className="text-xl font-bold text-slate-900 m-0">Contest Results</h2>
+          <button
+            type="button"
+            onClick={() => fetchEntries(true)}
+            disabled={loading || reloading}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 disabled:opacity-70 disabled:cursor-not-allowed"
+            aria-label="Reload contest entries"
+          >
+            {reloading ? (
+              <>
+                <span className="inline-block w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" aria-hidden />
+                Reloading…
+              </>
+            ) : (
+              <>
+                <span aria-hidden>↻</span>
+                Reload
+              </>
+            )}
+          </button>
+        </div>
         <p className="text-sm text-slate-600 m-0 leading-relaxed">
           Messages submitted from the Valentine page contest. Set a <strong>rank</strong> (1, 2, 3…) to order them, and mark one as <strong>featured</strong> so it appears on the Valentine page. When Valentine&apos;s Day arrives (or countdown ends), the featured message is shown; if none is set, a default message is shown.
         </p>
@@ -205,7 +261,16 @@ export default function ContestResultsPanel({ user }) {
                     placeholder="—"
                   />
                 </div>
-                {!entry.featured && (
+                {entry.featured ? (
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-sm font-semibold text-slate-700 bg-slate-100 border border-slate-300 rounded-lg hover:bg-slate-200 disabled:opacity-70 disabled:cursor-not-allowed"
+                    onClick={() => handleUnfeature(entry)}
+                    disabled={updatingId === entry.id}
+                  >
+                    {updatingId === entry.id ? 'Updating…' : 'Remove featured'}
+                  </button>
+                ) : (
                   <button
                     type="button"
                     className="px-3 py-1.5 text-sm font-semibold text-white bg-pink-500 rounded-lg hover:bg-pink-600 disabled:opacity-70 disabled:cursor-not-allowed"
