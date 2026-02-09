@@ -244,6 +244,7 @@ export default function ValentinePage() {
   const runawayBtnRef = useRef(null);
   const runawayWrapRef = useRef(null);
   const runawayPositionRef = useRef(null);
+  const runawayReturnTimerRef = useRef(null);
 
   useEffect(() => {
     runawayPositionRef.current = runawayPosition;
@@ -251,7 +252,32 @@ export default function ValentinePage() {
 
   const getRandomNumber = useCallback((num) => Math.floor(Math.random() * (num + 1)), []);
 
-  // Runaway button: same logic as reference — random position on mouseover/click, smooth easeOutCirc, full viewport
+  // Viewport inset (px) — button must stay inside this margin to avoid scrollbars
+  const VIEWPORT_INSET = 2;
+
+  const clampRunawayPosition = useCallback((left, top, w, h) => {
+    if (typeof window === 'undefined') return { left: 0, top: 0 };
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const maxLeft = Math.max(VIEWPORT_INSET, vw - w - VIEWPORT_INSET);
+    const maxTop = Math.max(VIEWPORT_INSET, vh - h - VIEWPORT_INSET);
+    return {
+      left: Math.max(VIEWPORT_INSET, Math.min(maxLeft, left)),
+      top: Math.max(VIEWPORT_INSET, Math.min(maxTop, top)),
+    };
+  }, []);
+
+  const RUNAWAY_RETURN_MS = 3000;
+
+  const scheduleRunawayReturn = useCallback(() => {
+    if (runawayReturnTimerRef.current) clearTimeout(runawayReturnTimerRef.current);
+    runawayReturnTimerRef.current = setTimeout(() => {
+      runawayReturnTimerRef.current = null;
+      setRunawayPosition(null);
+    }, RUNAWAY_RETURN_MS);
+  }, []);
+
+  // Runaway button: random position on mouseover/click, clamped to viewport; returns to original place after 3s
   const handleRunawayMove = useCallback(() => {
     if (revealed || typeof window === 'undefined') return;
     const btn = runawayBtnRef.current;
@@ -259,23 +285,75 @@ export default function ValentinePage() {
     const rect = btn.getBoundingClientRect();
     const w = rect.width;
     const h = rect.height;
-    const randomLeft = getRandomNumber(Math.max(0, window.innerWidth - w));
-    const randomTop = getRandomNumber(Math.max(0, window.innerHeight - h));
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const maxLeft = Math.max(VIEWPORT_INSET, vw - w - VIEWPORT_INSET);
+    const maxTop = Math.max(VIEWPORT_INSET, vh - h - VIEWPORT_INSET);
+    const randomLeft = VIEWPORT_INSET + getRandomNumber(Math.max(0, Math.floor(maxLeft - VIEWPORT_INSET)));
+    const randomTop = VIEWPORT_INSET + getRandomNumber(Math.max(0, Math.floor(maxTop - VIEWPORT_INSET)));
 
     if (runawayPositionRef.current) {
       setRunawayPosition((prev) => (prev ? { ...prev, left: randomLeft, top: randomTop } : null));
+      scheduleRunawayReturn();
     } else {
+      const clamped = clampRunawayPosition(rect.left, rect.top, w, h);
       setRunawayPosition({
-        left: rect.left,
-        top: rect.top,
+        left: clamped.left,
+        top: clamped.top,
         width: w,
         height: h,
       });
       setTimeout(() => {
         setRunawayPosition({ left: randomLeft, top: randomTop, width: w, height: h });
+        scheduleRunawayReturn();
       }, 50);
     }
-  }, [revealed, getRandomNumber]);
+  }, [revealed, getRandomNumber, clampRunawayPosition, scheduleRunawayReturn]);
+
+  // Prevent horizontal scrollbar when runaway button is active (fixed position can trigger overflow on some browsers)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const body = document.body;
+    const prevOverflowX = body.style.overflowX;
+    if (runawayPosition) {
+      body.style.overflowX = 'hidden';
+    } else {
+      body.style.overflowX = prevOverflowX || '';
+    }
+    return () => {
+      body.style.overflowX = prevOverflowX || '';
+    };
+  }, [runawayPosition]);
+
+  // On viewport resize, re-clamp runaway button so it stays within VIEWPORT_INSET (responsive)
+  useEffect(() => {
+    if (!runawayPosition || typeof window === 'undefined') return;
+    const onResize = () => {
+      setRunawayPosition((prev) => {
+        if (!prev) return null;
+        const c = clampRunawayPosition(prev.left, prev.top, prev.width, prev.height);
+        return { ...prev, left: c.left, top: c.top };
+      });
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [runawayPosition, clampRunawayPosition]);
+
+  // Clear return timer on unmount or when card is revealed
+  useEffect(() => {
+    return () => {
+      if (runawayReturnTimerRef.current) {
+        clearTimeout(runawayReturnTimerRef.current);
+        runawayReturnTimerRef.current = null;
+      }
+    };
+  }, []);
+  useEffect(() => {
+    if (revealed && runawayReturnTimerRef.current) {
+      clearTimeout(runawayReturnTimerRef.current);
+      runawayReturnTimerRef.current = null;
+    }
+  }, [revealed]);
 
   useEffect(() => {
     if (!slug) return;
