@@ -113,30 +113,20 @@ export default function Hero() {
               transition={{ duration: 0.7, delay: 0.1 }}
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 sm:mb-6 leading-tight drop-shadow-lg"
             >
-              Turn Your Vision Into a{' '}
+              Your Vision.{' '}
               <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-                Powerful Digital Reality
+                Built & Deployed.
               </span>
             </motion.h1>
 
-            {/* Subheadline */}
+            {/* Subheadline — precise: web, software, deployments, hosting */}
             <motion.p
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.3 }}
-              className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-4 sm:mb-5 leading-relaxed drop-shadow-md"
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-200 mb-6 sm:mb-8 leading-relaxed drop-shadow-md"
             >
-              We provide expert <strong className="text-white">Full-Stack Website Development Services</strong> for ambitious startups and growing businesses. From lightning-fast <strong className="text-blue-400">Next.js</strong> applications to robust <strong className="text-purple-400">MERN Stack</strong> platforms, we build the technology your business needs to scale.
-            </motion.p>
-
-            {/* Deployment Services */}
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.4 }}
-              className="text-sm sm:text-base md:text-lg text-gray-300 mb-6 sm:mb-8 leading-relaxed drop-shadow-md"
-            >
-              Plus <strong className="text-white">Docker deployment</strong>, setup configuration, bug fixes, and hosting on <strong className="text-blue-400">GoDaddy</strong>, <strong className="text-blue-400">Hostinger</strong>, <strong className="text-blue-400">DigitalOcean</strong>, and <strong className="text-blue-400">AWS</strong>.
+              <strong className="text-white">Website development</strong> and <strong className="text-white">software engineering</strong>. <strong className="text-blue-400">Docker</strong> and cloud deployments—hosting on GoDaddy, Hostinger, DigitalOcean, AWS. Setup, configuration, bug fixes. Our team delivers it.
             </motion.p>
 
             {/* CTA Buttons */}
