@@ -1,8 +1,13 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Heart, Link2, Mail, Palette, ArrowRight, Sparkles } from 'lucide-react'
+import { Heart, Link2, Mail, Palette, ArrowRight, Sparkles, Gift } from 'lucide-react'
 import Link from 'next/link'
+
+const VALENTINES_DAY = new Date(2026, 1, 14) // Feb 14, 2026
+const CONTEST_MAX_LENGTH = 500
+const CONTEST_MIN_LENGTH = 20
 
 // Floating heart for background decoration
 function FloatingHeart({ delay = 0, size = 24, x = '0%', y = '0%' }) {
@@ -27,7 +32,67 @@ function FloatingHeart({ delay = 0, size = 24, x = '0%', y = '0%' }) {
   )
 }
 
+function getCountdown(target) {
+  const now = new Date()
+  const diff = Math.max(0, target.getTime() - now.getTime())
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+  return { days, hours, minutes, seconds }
+}
+
+const INITIAL_COUNTDOWN = { days: 0, hours: 0, minutes: 0, seconds: 0 }
+
 export default function Valentine() {
+  const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN)
+  const [contestMessage, setContestMessage] = useState('')
+  const [contestSubmitting, setContestSubmitting] = useState(false)
+  const [contestSuccess, setContestSuccess] = useState(false)
+  const [contestError, setContestError] = useState('')
+
+  useEffect(() => {
+    setCountdown(getCountdown(VALENTINES_DAY))
+    const t = setInterval(() => setCountdown(getCountdown(VALENTINES_DAY)), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    if (!contestError) return
+    const id = setTimeout(() => setContestError(''), 8000)
+    return () => clearTimeout(id)
+  }, [contestError])
+
+  async function handleContestSubmit(e) {
+    e.preventDefault()
+    const msg = contestMessage.trim()
+    if (msg.length < CONTEST_MIN_LENGTH) {
+      setContestError(`Please write at least ${CONTEST_MIN_LENGTH} characters.`)
+      return
+    }
+    setContestSubmitting(true)
+    setContestError('')
+    setContestSuccess(false)
+    try {
+      const res = await fetch('/api/valentine/contest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg.slice(0, CONTEST_MAX_LENGTH) }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setContestSuccess(true)
+        setContestMessage('')
+      } else {
+        setContestError(data.message || 'Something went wrong. Please try again.')
+      }
+    } catch {
+      setContestError('Something went wrong. Please try again.')
+    } finally {
+      setContestSubmitting(false)
+    }
+  }
+
   const features = [
     {
       icon: Link2,
@@ -199,6 +264,97 @@ export default function Valentine() {
           animation: gradient-x 6s ease infinite;
         }
       `}</style>
+
+      {/* Contest banner: countdown + featured message contest */}
+      <section id="contest" className="relative py-16 sm:py-20 overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(160deg, #fef2f2 0%, #fce7f3 40%, #fdf2f8 100%)' }}
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(251, 207, 232, 0.4), transparent)' }}
+          aria-hidden
+        />
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 border border-rose-200 text-rose-700 mb-6 shadow-sm">
+              <Gift className="w-4 h-4" />
+              <span className="text-xs font-semibold uppercase tracking-wide">Valentine&apos;s Day — February 14, 2026</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+              Countdown to Valentine&apos;s Day
+            </h2>
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-6 mb-8">
+              <div className="flex flex-col items-center min-w-[4rem] py-3 px-4 bg-white/90 border border-pink-200/60 rounded-xl shadow-sm">
+                <span className="text-2xl font-bold text-rose-700 leading-tight">{String(countdown.days).padStart(2, '0')}</span>
+                <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-rose-800 mt-1">Days</span>
+              </div>
+              <div className="flex flex-col items-center min-w-[4rem] py-3 px-4 bg-white/90 border border-pink-200/60 rounded-xl shadow-sm">
+                <span className="text-2xl font-bold text-rose-700 leading-tight">{String(countdown.hours).padStart(2, '0')}</span>
+                <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-rose-800 mt-1">Hours</span>
+              </div>
+              <div className="flex flex-col items-center min-w-[4rem] py-3 px-4 bg-white/90 border border-pink-200/60 rounded-xl shadow-sm">
+                <span className="text-2xl font-bold text-rose-700 leading-tight">{String(countdown.minutes).padStart(2, '0')}</span>
+                <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-rose-800 mt-1">Min</span>
+              </div>
+              <div className="flex flex-col items-center min-w-[4rem] py-3 px-4 bg-white/90 border border-pink-200/60 rounded-xl shadow-sm">
+                <span className="text-2xl font-bold text-rose-700 leading-tight">{String(countdown.seconds).padStart(2, '0')}</span>
+                <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-rose-800 mt-1">Sec</span>
+              </div>
+            </div>
+            <p className="text-base sm:text-lg text-gray-700 mb-2 max-w-2xl mx-auto leading-relaxed">
+              The most romantic message will be featured on this page.
+            </p>
+            <p className="text-sm sm:text-base text-gray-600 mb-8 max-w-2xl mx-auto">
+              It will be chosen from all entries. Write a short message to your loved one below to enter the contest.
+            </p>
+            <form onSubmit={handleContestSubmit} className="text-left max-w-[32rem] mx-auto">
+              <label htmlFor="contest-message" className="block text-sm font-medium text-gray-700 mb-2">
+                Your message to your loved one
+              </label>
+              <textarea
+                id="contest-message"
+                className="w-full py-3 px-4 border border-pink-200 rounded-xl text-base leading-relaxed text-gray-700 bg-white resize-y min-h-[100px] placeholder:text-gray-400 focus:outline-none focus:border-pink-400 focus:ring-3 focus:ring-pink-200/50 transition-all"
+                value={contestMessage}
+                onChange={(e) => setContestMessage(e.target.value)}
+                placeholder="Write something sweet and romantic..."
+                maxLength={CONTEST_MAX_LENGTH}
+                rows={4}
+                disabled={contestSubmitting}
+                required
+              />
+              <p className="text-xs text-gray-500 mb-3">
+                {contestMessage.length}/{CONTEST_MAX_LENGTH} characters (min {CONTEST_MIN_LENGTH}). Messages are checked for appropriateness.
+              </p>
+              {contestError && (
+                <p className="text-sm text-rose-600 mb-3" role="alert">
+                  {contestError}
+                </p>
+              )}
+              {contestSuccess && (
+                <p className="text-sm text-teal-600 font-medium mb-3" role="status">
+                  Thank you! Your message has been submitted.
+                </p>
+              )}
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center py-3 px-6 text-base font-semibold text-white bg-gradient-to-r from-rose-600 to-pink-500 rounded-full transition-all hover:opacity-95 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+                disabled={contestSubmitting || contestMessage.trim().length < CONTEST_MIN_LENGTH}
+              >
+                {contestSubmitting ? 'Submitting…' : 'Enter the contest'}
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      </section>
 
       {/* How it works */}
       <section id="how-it-works" className="py-20 bg-gray-50/80">
