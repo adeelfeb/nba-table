@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import Navbar from '../components/designndev/Navbar';
 import Footer from '../components/designndev/Footer';
 import { AuthCardSkeleton } from '../components/Skeleton';
+import { useRecaptcha } from '../utils/useRecaptcha';
 
 function formatErrorMessage(payload, fallback) {
   if (!payload) return fallback;
@@ -59,6 +60,7 @@ function incrementRedirectCount() {
 
 export default function SignupPage() {
   const router = useRouter();
+  const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -163,12 +165,21 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
+    const recaptchaToken = recaptchaAvailable ? await executeRecaptcha() : null;
+    if (recaptchaAvailable && !recaptchaToken) {
+      setError('Security verification failed. Please refresh and try again.');
+      setLoading(false);
+      return;
+    }
+
     try {
+      const payload = { name: name.trim(), email: email.trim(), password };
+      if (recaptchaToken) payload.recaptchaToken = recaptchaToken;
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Include cookies for session management
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
+        body: JSON.stringify(payload),
       });
       
       const text = await res.text();

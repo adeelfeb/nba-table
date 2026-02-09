@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Heart, Link2, Mail, Palette, ArrowRight, Sparkles, Gift } from 'lucide-react'
 import Link from 'next/link'
+import { useRecaptcha } from '../../utils/useRecaptcha'
 
 const VALENTINES_DAY = new Date(2026, 1, 14) // Feb 14, 2026
 const CONTEST_MAX_LENGTH = 500
@@ -46,6 +47,7 @@ function getCountdown(target) {
 const INITIAL_COUNTDOWN = { days: 0, hours: 0, minutes: 0, seconds: 0 }
 
 export default function Valentine() {
+  const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha()
   const [countdown, setCountdown] = useState(INITIAL_COUNTDOWN)
   const [featuredMessage, setFeaturedMessage] = useState(null)
   const [contestMessage, setContestMessage] = useState('')
@@ -126,14 +128,21 @@ export default function Valentine() {
       setContestError('Messages cannot contain links or URLs. Please write a short romantic message only.')
       return
     }
+    const recaptchaToken = recaptchaAvailable ? await executeRecaptcha() : null
+    if (recaptchaAvailable && !recaptchaToken) {
+      setContestError('Security verification failed. Please refresh and try again.')
+      return
+    }
     setContestSubmitting(true)
     setContestError('')
     setContestSuccess(false)
     try {
+      const payload = { message: msg.slice(0, CONTEST_MAX_LENGTH) }
+      if (recaptchaToken) payload.recaptchaToken = recaptchaToken
       const res = await fetch('/api/valentine/contest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: msg.slice(0, CONTEST_MAX_LENGTH) }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (data.success) {

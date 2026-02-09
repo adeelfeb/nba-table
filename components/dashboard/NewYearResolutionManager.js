@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Edit, X, Check, Plus, Bell, BellOff } from 'lucide-react';
+import { useRecaptcha } from '../../utils/useRecaptcha';
 import {
   initializeNotificationSystem,
   requestPermissionWithMessage,
@@ -10,6 +11,7 @@ import {
 } from '../../utils/notificationService';
 
 export default function NewYearResolutionManager() {
+  const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha();
   const [resolutions, setResolutions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -134,7 +136,13 @@ export default function NewYearResolutionManager() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    
+
+    const recaptchaToken = recaptchaAvailable ? await executeRecaptcha() : null;
+    if (recaptchaAvailable && !recaptchaToken) {
+      setError('Security verification failed. Please refresh and try again.');
+      return;
+    }
+
     try {
       const textsToCheck = [formData.title, formData.description].filter(Boolean);
       const checkRes = await fetch('/api/moderation/check', {
@@ -157,13 +165,15 @@ export default function NewYearResolutionManager() {
       
       const method = editingId ? 'PUT' : 'POST';
       
+      const payload = { ...formData };
+      if (recaptchaToken) payload.recaptchaToken = recaptchaToken;
       const res = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       
       const data = await res.json();

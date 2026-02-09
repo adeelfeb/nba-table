@@ -2,6 +2,7 @@ import { getResolutions, createResolution } from '../../../controllers/resolutio
 import authMiddleware from '../../../middlewares/authMiddleware';
 import { applyCors } from '../../../utils';
 import { jsonError } from '../../../lib/response';
+import { requireRecaptcha } from '../../../lib/recaptcha';
 
 export default async function handler(req, res) {
   if (await applyCors(req, res)) return;
@@ -14,8 +15,11 @@ export default async function handler(req, res) {
   switch (method) {
     case 'GET':
       return getResolutions(req, res);
-    case 'POST':
+    case 'POST': {
+      const ok = await requireRecaptcha(req, res, jsonError);
+      if (!ok) return;
       return createResolution(req, res);
+    }
     default:
       res.setHeader('Allow', ['GET', 'POST']);
       return jsonError(res, 405, `Method ${method} not allowed`);

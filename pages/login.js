@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import Navbar from '../components/designndev/Navbar';
 import Footer from '../components/designndev/Footer';
 import { AuthCardSkeleton } from '../components/Skeleton';
+import { useRecaptcha } from '../utils/useRecaptcha';
 
 function formatErrorMessage(payload, fallback) {
   if (!payload) return fallback;
@@ -61,6 +62,7 @@ function incrementRedirectCount() {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha();
   const [identifier, setIdentifier] = useState(''); // Can be email or username
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -243,7 +245,14 @@ export default function LoginPage() {
     if (isDisabled) return;
     setLoading(true);
     setError('');
-    
+
+    const recaptchaToken = recaptchaAvailable ? await executeRecaptcha() : null;
+    if (recaptchaAvailable && !recaptchaToken) {
+      setError('Security verification failed. Please refresh and try again.');
+      setLoading(false);
+      return;
+    }
+
     try {
       const trimmedIdentifier = identifier.trim();
       const isEmail = trimmedIdentifier.includes('@');
@@ -255,6 +264,7 @@ export default function LoginPage() {
       } else {
         loginPayload.username = trimmedIdentifier;
       }
+      if (recaptchaToken) loginPayload.recaptchaToken = recaptchaToken;
       
       const res = await fetch('/api/auth/login', {
         method: 'POST',

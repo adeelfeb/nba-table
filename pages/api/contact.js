@@ -4,11 +4,12 @@ import { applyCors } from '../../utils';
 import { logger } from '../../utils/logger';
 import connectDB from '../../lib/db';
 import ContactSubmission from '../../models/ContactSubmission';
+import { requireRecaptcha } from '../../lib/recaptcha';
 
 /**
  * Contact form endpoint
  * POST /api/contact
- * Body: { "name": "John Doe", "email": "john@example.com" }
+ * Body: { "name": "John Doe", "email": "john@example.com", "recaptchaToken"?: "..." }
  */
 export default async function handler(req, res) {
   if (await applyCors(req, res)) return;
@@ -17,6 +18,9 @@ export default async function handler(req, res) {
     res.setHeader('Allow', ['POST']);
     return jsonError(res, 405, `Method ${req.method} not allowed`);
   }
+
+  const ok = await requireRecaptcha(req, res, jsonError);
+  if (!ok) return;
 
   const { name, email } = req.body || {};
 

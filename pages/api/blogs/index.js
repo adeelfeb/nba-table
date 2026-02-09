@@ -2,6 +2,8 @@ import { requireDB } from '../../../lib/dbHelper';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import { getAllBlogs, createBlog } from '../../../controllers/blogController';
 import { applyCors } from '../../../utils';
+import { jsonError } from '../../../lib/response';
+import { requireRecaptcha } from '../../../lib/recaptcha';
 
 export default async function handler(req, res) {
   const { method } = req;
@@ -13,10 +15,13 @@ export default async function handler(req, res) {
     case 'GET':
       return getAllBlogs(req, res);
     
-    case 'POST':
+    case 'POST': {
       const user = await authMiddleware(req, res);
       if (!user) return;
+      const ok = await requireRecaptcha(req, res, jsonError);
+      if (!ok) return;
       return createBlog(req, res);
+    }
     
     default:
       res.setHeader('Allow', ['GET', 'POST']);

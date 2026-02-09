@@ -3,8 +3,10 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Send, Loader2 } from 'lucide-react'
+import { useRecaptcha } from '../../utils/useRecaptcha'
 
 export default function ContactForm({ showHeading = true }) {
+  const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -24,16 +26,23 @@ export default function ContactForm({ showHeading = true }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    const recaptchaToken = recaptchaAvailable ? await executeRecaptcha() : null
+    if (recaptchaAvailable && !recaptchaToken) {
+      setSubmitStatus({ type: 'error', message: 'Security verification failed. Please refresh and try again.' })
+      return
+    }
     setIsSubmitting(true)
     setSubmitStatus(null)
 
     try {
+      const payload = { ...formData }
+      if (recaptchaToken) payload.recaptchaToken = recaptchaToken
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()

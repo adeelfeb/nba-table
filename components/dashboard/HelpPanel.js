@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Code, Globe, Smartphone, Rocket, Search, Mail, Send } from 'lucide-react';
+import { useRecaptcha } from '../../utils/useRecaptcha';
 
 export default function HelpPanel() {
+  const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha();
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState(null); // { type: 'success' | 'error', text: string }
@@ -13,10 +15,17 @@ export default function HelpPanel() {
       setStatus({ type: 'error', text: 'Please enter your request.' });
       return;
     }
+    const recaptchaToken = recaptchaAvailable ? await executeRecaptcha() : null;
+    if (recaptchaAvailable && !recaptchaToken) {
+      setStatus({ type: 'error', text: 'Security verification failed. Please refresh and try again.' });
+      return;
+    }
     setSubmitting(true);
     setStatus(null);
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const payload = { message: trimmed };
+      if (recaptchaToken) payload.recaptchaToken = recaptchaToken;
       const res = await fetch('/api/help-requests', {
         method: 'POST',
         headers: {
@@ -24,7 +33,7 @@ export default function HelpPanel() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify({ message: trimmed }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.success) {

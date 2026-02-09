@@ -1,6 +1,7 @@
 import { applyCors } from '../../../utils';
 import { jsonError, jsonSuccess } from '../../../lib/response';
 import { requireDB } from '../../../lib/dbHelper';
+import { requireRecaptcha } from '../../../lib/recaptcha';
 import ValentineContestEntry from '../../../models/ValentineContestEntry';
 import { checkText, getBlockedMessage } from '../../../lib/contentModeration';
 
@@ -36,6 +37,9 @@ export default async function handler(req, res) {
 
   const db = await requireDB(res);
   if (!db) return;
+
+  const ok = await requireRecaptcha(req, res, jsonError);
+  if (!ok) return;
 
   try {
     const body = req.body || {};
