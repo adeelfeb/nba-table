@@ -363,6 +363,7 @@ export default function Valentine() {
                   <div className="max-w-2xl mx-auto mb-6 p-4 rounded-xl bg-white/90 border border-pink-200 text-left">
                     <p className="text-xs font-semibold text-rose-600 uppercase tracking-wide mb-1">Current featured message</p>
                     <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3">{featuredMessage}</p>
+                    <p className="text-sm text-rose-600 mt-3 font-medium">Write a better one? Add your message below—it could be featured until Feb 14.</p>
                   </div>
                 )}
                 <p className="text-base sm:text-lg text-gray-700 mb-2 max-w-2xl mx-auto leading-relaxed">
