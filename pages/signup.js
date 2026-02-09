@@ -330,17 +330,20 @@ export default function SignupPage() {
                   required
                   minLength={5}
                   disabled={loading}
+                  className="password-input"
                 />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword((p) => !p)}
-                  tabIndex={-1}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  disabled={loading}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                <span className="password-toggle-wrap">
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword((p) => !p)}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    disabled={loading}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </span>
               </div>
               {passwordHint && <small className="helper">{passwordHint}</small>}
             </label>
@@ -453,19 +456,52 @@ export default function SignupPage() {
         input:disabled {
           background: #f5f7fb;
         }
+        .password-wrap .password-input:disabled {
+          background: transparent;
+        }
+        .password-wrap:has(.password-input:disabled) {
+          background: #f5f7fb;
+        }
         .password-wrap {
-          position: relative;
           display: flex;
           align-items: stretch;
+          width: 100%;
+          min-width: 0;
+          border-radius: 0.95rem;
+          border: 1px solid rgba(13, 48, 89, 0.14);
+          background: #fff;
+          overflow: hidden;
         }
-        .password-wrap input {
-          padding-right: 2.75rem;
+        .password-wrap:focus-within {
+          border-color: rgba(0, 176, 117, 0.55);
+          box-shadow: 0 0 0 4px rgba(0, 176, 117, 0.15);
+        }
+        .password-wrap .password-input {
+          flex: 1;
+          min-width: 0;
+          width: 0;
+          padding: 0.95rem 0 0.95rem 1rem;
+          border: none;
+          border-radius: 0.95rem 0 0 0.95rem;
+          background: transparent;
+          font-size: 1rem;
+          transition: none;
+        }
+        .password-wrap .password-input:focus {
+          outline: none;
+          box-shadow: none;
+        }
+        .password-wrap .password-input::placeholder {
+          color: #9ca3af;
+        }
+        .password-toggle-wrap {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 0.5rem;
         }
         .password-toggle {
-          position: absolute;
-          right: 0.5rem;
-          top: 50%;
-          transform: translateY(-50%);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -480,7 +516,6 @@ export default function SignupPage() {
         .password-toggle:hover:not(:disabled) {
           color: #374151;
           background: rgba(13, 48, 89, 0.06);
-          transform: translateY(-50%);
         }
         .password-toggle:disabled {
           cursor: not-allowed;
@@ -577,6 +612,12 @@ export default function SignupPage() {
           .card-header p {
             font-size: 0.9rem;
           }
+          .password-wrap .password-input {
+            padding: 0.85rem 0 0.85rem 1rem;
+          }
+          .password-toggle-wrap {
+            padding: 0 0.5rem;
+          }
         }
         @media (max-width: 480px) {
           .auth-shell {
@@ -597,6 +638,13 @@ export default function SignupPage() {
             padding: 0.85rem 0.75rem 0.85rem 0.95rem;
             font-size: 16px;
           }
+          .password-wrap .password-input {
+            padding: 0.85rem 0 0.85rem 0.95rem;
+            font-size: 16px;
+          }
+          .password-toggle-wrap {
+            padding: 0 0.4rem;
+          }
           button {
             padding: 0.95rem 1.2rem;
             font-size: 0.95rem;
@@ -613,6 +661,13 @@ export default function SignupPage() {
           input {
             padding: 0.75rem 0.65rem 0.75rem 0.85rem;
             font-size: 16px;
+          }
+          .password-wrap .password-input {
+            padding: 0.75rem 0 0.75rem 0.85rem;
+            font-size: 16px;
+          }
+          .password-toggle-wrap {
+            padding: 0 0.35rem;
           }
         }
         @media (prefers-reduced-motion: reduce) {
