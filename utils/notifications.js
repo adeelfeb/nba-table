@@ -41,15 +41,15 @@ export const requestNotificationPermission = async () => {
   return permission;
 };
 
-// Show a notification immediately
+// Show a notification immediately (browser Notification API)
 export const showNotification = (title, options = {}) => {
-  if (!isNotificationSupported()) {
+  if (typeof window === 'undefined') return null;
+  if (!('Notification' in window)) {
     console.warn('Notifications are not supported in this browser');
     return null;
   }
-
   if (Notification.permission !== 'granted') {
-    console.warn('Notification permission not granted');
+    console.warn('Notification permission not granted. Current:', Notification.permission);
     return null;
   }
 
@@ -57,7 +57,7 @@ export const showNotification = (title, options = {}) => {
     body: '',
     icon: '/favicon.svg',
     badge: '/favicon.svg',
-    tag: 'resolution-reminder',
+    tag: options.tag || 'app-notification',
     requireInteraction: false,
     silent: false,
     ...options,
@@ -65,17 +65,13 @@ export const showNotification = (title, options = {}) => {
 
   try {
     const notification = new Notification(title, defaultOptions);
-    
-    // Auto-close after 5 seconds
-    setTimeout(() => {
-      notification.close();
-    }, 5000);
 
-    // Handle click
-    notification.onclick = (event) => {
-      event.preventDefault();
+    setTimeout(() => {
+      try { notification.close(); } catch (_) {}
+    }, 6000);
+    notification.onclick = () => {
       window.focus();
-      notification.close();
+      try { notification.close(); } catch (_) {}
     };
 
     return notification;

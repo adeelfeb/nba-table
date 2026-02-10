@@ -479,9 +479,13 @@ export default function Dashboard({ user }) {
   useEffect(() => {
     if (!canAccessChat) return;
     refetchChatUnread();
-    const interval = setInterval(refetchChatUnread, 30000);
+    const interval = setInterval(refetchChatUnread, 6000);
     return () => clearInterval(interval);
   }, [canAccessChat, refetchChatUnread]);
+
+  useEffect(() => {
+    if (canAccessChat && activeSection === 'messages') refetchChatUnread();
+  }, [canAccessChat, activeSection, refetchChatUnread]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

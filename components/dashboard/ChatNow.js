@@ -8,7 +8,9 @@ import {
 import styles from '../../styles/ChatNow.module.css';
 
 const CHAT_NOTIFICATIONS_KEY = 'chatNotificationsEnabled';
-const POLL_INTERVAL_MS = 12000;
+const POLL_INTERVAL_VISIBLE_MS = 4000;
+const POLL_INTERVAL_HIDDEN_MS = 12000;
+const CONVERSATIONS_POLL_MS = 3000;
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
@@ -43,9 +45,13 @@ export default function ChatNow({ user, onUnreadChange }) {
   const [input, setInput] = useState('');
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifPermission, setNotifPermission] = useState('unsupported');
+  const notifEnabledRef = useRef(false);
   const messagesEndRef = useRef(null);
   const pollRef = useRef(null);
+  const convPollRef = useRef(null);
   const lastMessageIdsRef = useRef(new Set());
+  const lastConvMessageAtRef = useRef({});
+  const [refreshing, setRefreshing] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,7 +69,11 @@ export default function ChatNow({ user, onUnreadChange }) {
       }
       const data = await res.json();
       if (data.success && data.data) {
-        setConversations(data.data.conversations || []);
+        const list = data.data.conversations || [];
+        setConversations(list);
+        list.forEach((c) => {
+          if (c.lastMessageAt) lastConvMessageAtRef.current[c.id] = c.lastMessageAt;
+        });
         return data.data.totalUnread ?? 0;
       }
       return 0;
@@ -119,9 +129,16 @@ export default function ChatNow({ user, onUnreadChange }) {
   // Sync notification preference and permission from localStorage/browser after mount (client-only)
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    setNotifEnabled(getNotificationsEnabled());
+    const saved = getNotificationsEnabled();
+    setNotifEnabled(saved);
+    notifEnabledRef.current = saved;
     setNotifPermission(isNotificationSupported() ? getNotificationPermission() : 'unsupported');
   }, []);
+
+  // Keep ref in sync so polling always sees current preference
+  useEffect(() => {
+    notifEnabledRef.current = notifEnabled;
+  }, [notifEnabled]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -133,7 +150,7 @@ export default function ChatNow({ user, onUnreadChange }) {
     scrollToBottom();
   }, [messages]);
 
-  // Poll for new messages in selected conversation; show push if new from partner
+  // Poll for new messages in selected conversation; show push if new from partner (use ref for preference)
   useEffect(() => {
     if (!selectedId || !partner) return;
 
@@ -152,17 +169,20 @@ export default function ChatNow({ user, onUnreadChange }) {
         (m) => !m.sentByMe && !prevIds.has(m.id)
       );
 
+      lastMessageIdsRef.current = new Set(list.map((m) => m.id));
+      setMessages(list);
+      onUnreadChange?.();
+
       if (newFromPartner.length > 0) {
-        lastMessageIdsRef.current = new Set(list.map((m) => m.id));
-        setMessages(list);
-
+        const enabled = notifEnabledRef.current;
+        const perm = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : '';
         const canNotify =
-          notifEnabled &&
-          notifPermission === 'granted' &&
+          enabled &&
+          typeof window !== 'undefined' &&
           isNotificationSupported() &&
-          document.visibilityState !== 'visible';
+          perm === 'granted';
 
-        if (canNotify && newFromPartner.length > 0) {
+        if (canNotify) {
           const last = newFromPartner[newFromPartner.length - 1];
           const body =
             last.content.length > 80 ? last.content.slice(0, 77) + '...' : last.content;
@@ -174,11 +194,77 @@ export default function ChatNow({ user, onUnreadChange }) {
       }
     };
 
-    pollRef.current = setInterval(poll, POLL_INTERVAL_MS);
+    const isVisible = typeof document !== 'undefined' && !document.hidden;
+    const intervalMs = isVisible ? POLL_INTERVAL_VISIBLE_MS : POLL_INTERVAL_HIDDEN_MS;
+    pollRef.current = setInterval(poll, intervalMs);
+
+    const onVisibility = () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      const visible = !document.hidden;
+      pollRef.current = setInterval(poll, visible ? POLL_INTERVAL_VISIBLE_MS : POLL_INTERVAL_HIDDEN_MS);
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [selectedId, partner, notifEnabled, notifPermission]);
+  }, [selectedId, partner, onUnreadChange]);
+
+  // Poll conversations list so we detect new messages even when no thread selected; show browser notification and refresh sidebar count
+  useEffect(() => {
+    const pollConvs = async () => {
+      try {
+        const res = await fetch('/api/chat/conversations', {
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !data.data?.conversations) return;
+
+        const list = data.data.conversations;
+        const prev = lastConvMessageAtRef.current;
+
+        for (const c of list) {
+          if (!c.lastMessageAt) continue;
+          const prevAt = prev[c.id] ? new Date(prev[c.id]).getTime() : 0;
+          const currAt = new Date(c.lastMessageAt).getTime();
+          const isNewFromThem = !c.lastSentByMe && currAt > prevAt;
+          if (prevAt > 0 && isNewFromThem) {
+            const enabled = notifEnabledRef.current;
+            const perm = typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : '';
+            const canNotify =
+              enabled &&
+              typeof window !== 'undefined' &&
+              'Notification' in window &&
+              perm === 'granted';
+
+            if (canNotify) {
+              try {
+                const body = c.lastMessage && c.lastMessage.length > 60 ? c.lastMessage.slice(0, 57) + '...' : (c.lastMessage || 'New message');
+                showNotification(`Message from ${c.name}`, { body, tag: `chat-conv-${c.id}-${currAt}` });
+              } catch (err) {
+                console.warn('Chat notification failed:', err);
+              }
+            }
+          }
+          prev[c.id] = c.lastMessageAt;
+        }
+        lastConvMessageAtRef.current = { ...prev };
+        setConversations(list);
+        onUnreadChange?.();
+      } catch {
+        // ignore
+      }
+    };
+
+    pollConvs();
+    convPollRef.current = setInterval(pollConvs, CONVERSATIONS_POLL_MS);
+    return () => {
+      if (convPollRef.current) clearInterval(convPollRef.current);
+    };
+  }, [onUnreadChange]);
 
   const handleSend = async (e) => {
     e?.preventDefault();
@@ -229,6 +315,7 @@ export default function ChatNow({ user, onUnreadChange }) {
 
     if (notifEnabled) {
       setNotifEnabled(false);
+      notifEnabledRef.current = false;
       setNotificationsEnabled(false);
       return;
     }
@@ -238,16 +325,37 @@ export default function ChatNow({ user, onUnreadChange }) {
       setNotifPermission(perm);
       if (perm === 'granted') {
         setNotifEnabled(true);
+        notifEnabledRef.current = true;
         setNotificationsEnabled(true);
+        showNotification('Chat notifications on', {
+          body: 'You’ll get a notification when you receive a new message (with this tab in the background).',
+          tag: 'chat-notif-test',
+        });
       } else {
+        setNotifEnabled(false);
+        notifEnabledRef.current = false;
         setNotificationsEnabled(false);
       }
     } catch {
       setNotifPermission(getNotificationPermission());
       setNotifEnabled(false);
+      notifEnabledRef.current = false;
       setNotificationsEnabled(false);
     }
   };
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchConversations();
+      if (selectedId) {
+        await fetchMessages(selectedId);
+      }
+      onUnreadChange?.();
+    } finally {
+      setTimeout(() => setRefreshing(false), 600);
+    }
+  }, [fetchConversations, fetchMessages, selectedId, onUnreadChange]);
 
 
   if (loading) {
@@ -267,17 +375,35 @@ export default function ChatNow({ user, onUnreadChange }) {
           </svg>
           Chat
         </h2>
-        <div className={styles.notifWrap}>
-          <span className={styles.notifLabel}>Push</span>
+        <div className={styles.headerActions}>
           <button
             type="button"
-            className={`${styles.toggle} ${notifEnabled ? styles.toggleOn : ''}`}
-            onClick={handleNotifToggle}
-            aria-label={notifEnabled ? 'Disable push notifications' : 'Enable push notifications'}
-            aria-pressed={notifEnabled}
+            className={styles.refreshBtn}
+            onClick={handleRefresh}
+            disabled={refreshing}
+            aria-label="Refresh chat"
+            title="Refresh conversations and messages"
           >
-            <span className={styles.thumb} />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={refreshing ? styles.refreshIconSpin : ''}>
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            <span className={styles.refreshLabel}>Refresh</span>
           </button>
+          <div className={styles.notifWrap}>
+            <span className={styles.notifLabel}>Push</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={notifEnabled}
+              className={`${styles.toggle} ${notifEnabled ? styles.toggleOn : ''}`}
+              onClick={handleNotifToggle}
+              aria-label={notifEnabled ? 'Disable push notifications' : 'Enable push notifications'}
+              data-pressed={notifEnabled ? 'true' : 'false'}
+            >
+              <span className={styles.thumb} aria-hidden />
+            </button>
+          </div>
         </div>
       </header>
 
