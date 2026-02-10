@@ -19,6 +19,7 @@ import ResourcesPanel from '../components/dashboard/ResourcesPanel';
 import HelpPanel from '../components/dashboard/HelpPanel';
 import PrivacyPanel from '../components/dashboard/PrivacyPanel';
 import RequestsPanel from '../components/dashboard/RequestsPanel';
+import ChatNow from '../components/dashboard/ChatNow';
 import { getUserFromRequest } from '../lib/auth';
 
 function serializeUser(user) {
@@ -57,6 +58,7 @@ export async function getServerSideProps(context) {
 const NAVIGATION_BY_ROLE = {
   superadmin: [
     { key: 'overview', label: 'Overview' },
+    { key: 'messages', label: 'Messages' },
     { key: 'user-management', label: 'User Management' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'valentine-urls', label: 'Valentine Links' },
@@ -72,6 +74,7 @@ const NAVIGATION_BY_ROLE = {
   ],
   developer: [
     { key: 'overview', label: 'Overview' },
+    { key: 'messages', label: 'Messages' },
     { key: 'user-management', label: 'User Management' },
     { key: 'resolutions', label: 'New Year Resolutions' },
     { key: 'blogs', label: 'Blogs' },
@@ -99,6 +102,7 @@ const NAVIGATION_BY_ROLE = {
   ],
   hr: [
     { key: 'overview', label: 'Overview' },
+    { key: 'messages', label: 'Messages' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
@@ -109,6 +113,7 @@ const NAVIGATION_BY_ROLE = {
   ],
   hr_admin: [
     { key: 'overview', label: 'Overview' },
+    { key: 'messages', label: 'Messages' },
     { key: 'blogs', label: 'Blogs' },
     { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
@@ -205,6 +210,11 @@ const SECTION_DESCRIPTORS = {
     subtitle: 'Professional development services and support.',
     hideHeader: true,
     body: () => <HelpPanel />,
+  },
+  messages: {
+    subtitle: 'Chat with developers or HR. Messages are stored securely and push notifications can be enabled.',
+    hideHeader: true,
+    body: (user) => <ChatNow user={user} />,
   },
   requests: {
     subtitle: 'View all help requests and contact form submissions.',
@@ -361,6 +371,26 @@ export default function Dashboard({ user }) {
     return navItems[0]?.key || FALLBACK_NAV[0].key;
   });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+
+  const refetchChatUnread = useCallback(async () => {
+    const role = (sessionUser?.role || '').toLowerCase();
+    if (!['developer', 'hr', 'hr_admin', 'superadmin'].includes(role)) return;
+    try {
+      const res = await fetch('/api/chat/unread-count', {
+        headers: typeof window !== 'undefined' && localStorage.getItem('token') ? { Authorization: `Bearer ${localStorage.getItem('token')}` } : {},
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && typeof data.data?.unreadCount === 'number') {
+          setChatUnreadCount(data.data.unreadCount);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [sessionUser?.role]);
 
   const updateUrlHash = useCallback((key) => {
     if (typeof window === 'undefined') return;
@@ -444,6 +474,14 @@ export default function Dashboard({ user }) {
       updateUrlHash(fallbackKey);
     }
   }, [primaryNav, activeSection, updateUrlHash]);
+
+  const canAccessChat = ['developer', 'hr', 'hr_admin', 'superadmin'].includes(normalizedRole);
+  useEffect(() => {
+    if (!canAccessChat) return;
+    refetchChatUnread();
+    const interval = setInterval(refetchChatUnread, 30000);
+    return () => clearInterval(interval);
+  }, [canAccessChat, refetchChatUnread]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -537,6 +575,7 @@ export default function Dashboard({ user }) {
         onOpenSettings={handleOpenSettings}
         onLogout={handleLogout}
         isLoggingOut={isLoggingOut}
+        chatUnreadCount={chatUnreadCount}
       >
         <section className={`section ${isOverviewSection ? 'section--compact' : ''}`}>
           {!isOverviewSection && !hideHeader && (
@@ -585,7 +624,14 @@ export default function Dashboard({ user }) {
                   </div>
                 )}
 
-                {hasCustomBody && <div className="section-custom">{sectionDescriptor.body(sessionUser)}</div>}
+                {hasCustomBody && activeSection === 'messages' && (
+                  <div className="section-custom">
+                    <ChatNow user={sessionUser} onUnreadChange={refetchChatUnread} />
+                  </div>
+                )}
+                {hasCustomBody && activeSection !== 'messages' && (
+                  <div className="section-custom">{sectionDescriptor.body(sessionUser)}</div>
+                )}
 
                 {panels.length === 0 && list.length === 0 && !hasCustomBody && (
                   <div className="empty-state">
