@@ -479,7 +479,7 @@ export default function Dashboard({ user }) {
   useEffect(() => {
     if (!canAccessChat) return;
     refetchChatUnread();
-    const interval = setInterval(refetchChatUnread, 6000);
+    const interval = setInterval(refetchChatUnread, 12000);
     return () => clearInterval(interval);
   }, [canAccessChat, refetchChatUnread]);
 
@@ -588,7 +588,7 @@ export default function Dashboard({ user }) {
               {sectionSubtitle && <p className="section-subtitle">{sectionSubtitle}</p>}
             </header>
           )}
-          <div className={`section-body ${isOverviewSection ? 'section-body--compact' : ''}`}>
+          <div className={`section-body ${isOverviewSection ? 'section-body--compact' : ''} ${activeSection === 'messages' ? 'section-body--chat' : ''}`}>
             {activeSection === 'settings' ? (
               <SettingsPanel
                 user={sessionUser}
@@ -629,7 +629,7 @@ export default function Dashboard({ user }) {
                 )}
 
                 {hasCustomBody && activeSection === 'messages' && (
-                  <div className="section-custom">
+                  <div className="section-custom section-custom--chat">
                     <ChatNow user={sessionUser} onUnreadChange={refetchChatUnread} />
                   </div>
                 )}
@@ -1122,6 +1122,26 @@ export default function Dashboard({ user }) {
               padding: 1.25rem;
             }
 
+            .section-body--chat {
+              max-height: calc(100vh - 6rem);
+              display: flex;
+              flex-direction: column;
+              min-height: 0;
+            }
+            .section-custom--chat {
+              padding: 0.5rem;
+              min-height: 0;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+            }
+            .section-custom--chat > * {
+              flex: 1;
+              min-height: 320px;
+              max-height: 100%;
+            }
+
             .empty-state {
               padding: 1.5rem;
             }
@@ -1150,10 +1170,20 @@ export default function Dashboard({ user }) {
               padding: 1rem;
               border-radius: 0.9rem;
             }
-            .section-custom {
-              padding: 1rem;
-              border-radius: 0.9rem;
-            }
+          .section-custom {
+            padding: 1rem;
+            border-radius: 0.9rem;
+          }
+
+          .section-body--chat {
+            max-height: calc(100vh - 5rem);
+          }
+          .section-custom--chat {
+            padding: 0.5rem;
+          }
+          .section-custom--chat > * {
+            min-height: 300px;
+          }
           }
         `}</style>
       </DashboardLayout>

@@ -8,9 +8,10 @@ import {
 import styles from '../../styles/ChatNow.module.css';
 
 const CHAT_NOTIFICATIONS_KEY = 'chatNotificationsEnabled';
-const POLL_INTERVAL_VISIBLE_MS = 4000;
-const POLL_INTERVAL_HIDDEN_MS = 12000;
-const CONVERSATIONS_POLL_MS = 3000;
+const POLL_INTERVAL_VISIBLE_MS = 5000;
+const POLL_INTERVAL_HIDDEN_MS = 15000;
+const CONVERSATIONS_POLL_VISIBLE_MS = 5000;
+const CONVERSATIONS_POLL_HIDDEN_MS = 20000;
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
@@ -211,7 +212,7 @@ export default function ChatNow({ user, onUnreadChange }) {
     };
   }, [selectedId, partner, onUnreadChange]);
 
-  // Poll conversations list so we detect new messages even when no thread selected; show browser notification and refresh sidebar count
+  // Poll conversations list (visibility-aware: slower when tab hidden to reduce server load)
   useEffect(() => {
     const pollConvs = async () => {
       try {
@@ -259,10 +260,17 @@ export default function ChatNow({ user, onUnreadChange }) {
       }
     };
 
+    const getConvInterval = () => (typeof document !== 'undefined' && !document.hidden ? CONVERSATIONS_POLL_VISIBLE_MS : CONVERSATIONS_POLL_HIDDEN_MS);
     pollConvs();
-    convPollRef.current = setInterval(pollConvs, CONVERSATIONS_POLL_MS);
+    convPollRef.current = setInterval(pollConvs, getConvInterval());
+    const onVisibility = () => {
+      if (convPollRef.current) clearInterval(convPollRef.current);
+      convPollRef.current = setInterval(pollConvs, getConvInterval());
+    };
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       if (convPollRef.current) clearInterval(convPollRef.current);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [onUnreadChange]);
 
@@ -367,13 +375,25 @@ export default function ChatNow({ user, onUnreadChange }) {
   }
 
   return (
-    <div className={styles.wrap}>
+    <div className={`${styles.wrap} ${selectedId ? styles.wrapMobileThread : ''}`}>
       <header className={styles.header}>
+        <button
+          type="button"
+          className={styles.backBtn}
+          onClick={() => setSelectedId(null)}
+          aria-label="Back to conversations"
+          title="Back to conversations"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+        </button>
         <h2 className={styles.headerTitle}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          Chat
+          {selectedId && partner ? partner.name : 'Chat'}
         </h2>
         <div className={styles.headerActions}>
           <button
