@@ -8,10 +8,13 @@ import {
 import styles from '../../styles/ChatNow.module.css';
 
 const CHAT_NOTIFICATIONS_KEY = 'chatNotificationsEnabled';
-const POLL_INTERVAL_VISIBLE_MS = 5000;
-const POLL_INTERVAL_HIDDEN_MS = 15000;
-const CONVERSATIONS_POLL_VISIBLE_MS = 5000;
-const CONVERSATIONS_POLL_HIDDEN_MS = 20000;
+/* Poll less often to reduce server load; visibility-aware (slower when tab hidden) */
+const POLL_INTERVAL_VISIBLE_MS = 10000;   /* thread: every 10s when tab visible */
+const POLL_INTERVAL_HIDDEN_MS = 25000;    /* thread: every 25s when tab hidden */
+const CONVERSATIONS_POLL_VISIBLE_MS = 12000;  /* list: every 12s when visible */
+const CONVERSATIONS_POLL_HIDDEN_MS = 30000;   /* list: every 30s when hidden */
+/* When a thread is open, conversations can be polled less often (thread poll updates open conv) */
+const CONVERSATIONS_POLL_WHEN_THREAD_OPEN_MS = 20000;  /* 20s when visible, same hidden */
 
 function getAuthHeaders() {
   if (typeof window === 'undefined') return {};
@@ -260,19 +263,26 @@ export default function ChatNow({ user, onUnreadChange }) {
       }
     };
 
-    const getConvInterval = () => (typeof document !== 'undefined' && !document.hidden ? CONVERSATIONS_POLL_VISIBLE_MS : CONVERSATIONS_POLL_HIDDEN_MS);
+    const visible = typeof document !== 'undefined' && !document.hidden;
+    const intervalMs = visible
+      ? (selectedId ? CONVERSATIONS_POLL_WHEN_THREAD_OPEN_MS : CONVERSATIONS_POLL_VISIBLE_MS)
+      : CONVERSATIONS_POLL_HIDDEN_MS;
     pollConvs();
-    convPollRef.current = setInterval(pollConvs, getConvInterval());
+    convPollRef.current = setInterval(pollConvs, intervalMs);
     const onVisibility = () => {
       if (convPollRef.current) clearInterval(convPollRef.current);
-      convPollRef.current = setInterval(pollConvs, getConvInterval());
+      const vis = !document.hidden;
+      const ms = vis
+        ? (selectedId ? CONVERSATIONS_POLL_WHEN_THREAD_OPEN_MS : CONVERSATIONS_POLL_VISIBLE_MS)
+        : CONVERSATIONS_POLL_HIDDEN_MS;
+      convPollRef.current = setInterval(pollConvs, ms);
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       if (convPollRef.current) clearInterval(convPollRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [onUnreadChange]);
+  }, [onUnreadChange, selectedId]);
 
   const handleSend = async (e) => {
     e?.preventDefault();

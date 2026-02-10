@@ -476,12 +476,14 @@ export default function Dashboard({ user }) {
   }, [primaryNav, activeSection, updateUrlHash]);
 
   const canAccessChat = ['developer', 'hr', 'hr_admin', 'superadmin'].includes(normalizedRole);
+  /* Unread count: only poll when NOT on Messages (ChatNow calls onUnreadChange when on Messages) */
   useEffect(() => {
     if (!canAccessChat) return;
+    if (activeSection === 'messages') return;
     refetchChatUnread();
-    const interval = setInterval(refetchChatUnread, 12000);
+    const interval = setInterval(refetchChatUnread, 15000);
     return () => clearInterval(interval);
-  }, [canAccessChat, refetchChatUnread]);
+  }, [canAccessChat, activeSection, refetchChatUnread]);
 
   useEffect(() => {
     if (canAccessChat && activeSection === 'messages') refetchChatUnread();
