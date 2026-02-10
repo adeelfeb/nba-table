@@ -8,6 +8,15 @@ import {
 import styles from '../../styles/ChatNow.module.css';
 
 const CHAT_NOTIFICATIONS_KEY = 'chatNotificationsEnabled';
+
+function getInitials(name) {
+  if (!name || typeof name !== 'string') return '';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 /* Poll less often to reduce server load; visibility-aware (slower when tab hidden) */
 const POLL_INTERVAL_VISIBLE_MS = 10000;   /* thread: every 10s when tab visible */
 const POLL_INTERVAL_HIDDEN_MS = 25000;    /* thread: every 25s when tab hidden */
@@ -399,11 +408,15 @@ export default function ChatNow({ user, onUnreadChange }) {
             <polyline points="12 19 5 12 12 5" />
           </svg>
         </button>
-        <h2 className={styles.headerTitle}>
+        <h2 className={styles.headerTitle} title={selectedId && partner ? partner.name : undefined}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          {selectedId && partner ? partner.name : 'Chat'}
+          {selectedId && partner ? (
+            <span className={styles.headerInitials} aria-hidden="true">{getInitials(partner.name)}</span>
+          ) : (
+            'Chat'
+          )}
         </h2>
         <div className={styles.headerActions}>
           <button
