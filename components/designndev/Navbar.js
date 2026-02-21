@@ -83,157 +83,116 @@ export default function Navbar() {
     <motion.nav
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: 'easeOut' }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className={`navbar rounded-2xl px-4 sm:px-6 py-3 sm:py-4 transition-all duration-300 ${
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5">
+        <div className={`flex items-center justify-between gap-4 rounded-xl px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 min-h-[48px] sm:min-h-[52px] transition-all duration-300 ${
           isScrolled
-            ? 'bg-slate-900/95 backdrop-blur-md shadow-lg'
-            : 'bg-slate-900/90 backdrop-blur-sm shadow-md'
+            ? 'bg-slate-900/95 backdrop-blur-md shadow-lg border border-slate-700/50'
+            : 'bg-slate-900/90 backdrop-blur-sm shadow-md border border-slate-800/50'
         }`}>
-          <div className="flex items-center w-full">
-            <div className="flex flex-1 justify-start min-w-0">
-              <Link 
-                href="/" 
-                className="text-xl sm:text-2xl font-bold no-underline hover:scale-110 transition-transform duration-300 inline-block"
+          {/* Logo */}
+          <div className="flex-shrink-0 min-w-0">
+            <Link
+              href="/"
+              className="text-lg sm:text-xl font-bold no-underline hover:opacity-90 active:opacity-80 transition-opacity inline-block tracking-tight"
+            >
+              <span className="text-orange-500">NBA</span>
+              <span className="text-slate-300"> Games</span>
+            </Link>
+          </div>
+
+          {/* Desktop nav links */}
+          <div className="hidden md:flex flex-1 justify-center min-w-0">
+            <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 no-underline relative ${
+                    isActive(item.href)
+                      ? 'text-orange-400 bg-orange-500/10'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: CTA buttons (desktop) + menu toggle (mobile) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <div className="hidden md:flex items-center gap-1.5 sm:gap-2">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-white bg-orange-600 hover:bg-orange-500 active:bg-orange-700 rounded-lg no-underline transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-slate-900"
               >
-                <span>
-                  <span className="text-orange-500">NBA</span>
-                  <span className="text-gray-300"> Games</span>
-                </span>
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className="inline-flex items-center justify-center h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm font-semibold text-slate-200 bg-slate-700/80 hover:bg-slate-600 active:bg-slate-600 border border-slate-600 hover:border-slate-500 rounded-lg no-underline transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+              >
+                Sign Up
               </Link>
             </div>
 
-            <div className="hidden lg:flex flex-1 justify-center">
-              <div className="flex flex-wrap items-baseline justify-center gap-4 lg:gap-8">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-3 py-2 text-sm font-medium transition-all duration-200 relative no-underline ${
-                      isActive(item.href)
-                        ? 'text-orange-400 font-semibold'
-                        : 'text-gray-300 hover:text-white'
-                    }`}
-                  >
-                    <span className="relative z-10">{item.label}</span>
-                    {isActive(item.href) && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-orange-500"></span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="hidden md:flex lg:hidden flex-1 justify-center">
-              <div className="flex flex-wrap items-baseline justify-center gap-2">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-2 py-2 text-xs font-medium transition-all duration-200 relative no-underline ${
-                      isActive(item.href)
-                        ? 'text-orange-400 font-semibold'
-                        : 'text-gray-300 hover:text-white'
-                    }`}
-                  >
-                    <span className="relative z-10">{item.label}</span>
-                    {isActive(item.href) && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-orange-500"></span>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex flex-1 justify-end items-center gap-2">
-              <div className="hidden lg:block">
-                <Link
-                  href="/login"
-                  className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 no-underline text-sm"
-                >
-                  Login
-                </Link>
-              </div>
-              <div className="hidden lg:block ml-2">
-                <Link
-                  href="/signup"
-                  className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 no-underline text-sm"
-                >
-                  Sign Up
-                </Link>
-              </div>
-
-              <div className="md:hidden">
-                <button
-                  onClick={toggleMenu}
-                  className="text-gray-300 hover:text-white focus:outline-none"
-                  aria-label="Toggle menu"
-                >
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    {isMenuOpen ? (
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    ) : (
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 6h16M4 12h16M4 18h16"
-                      />
-                    )}
-                  </svg>
-                </button>
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={toggleMenu}
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors"
+              aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMenuOpen}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                {isMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
 
+        {/* Mobile menu */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="md:hidden mt-4"
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              className="md:hidden mt-2 overflow-hidden"
             >
-              <div className="px-4 pt-3 pb-4 space-y-2 bg-slate-900/95 backdrop-blur-md rounded-lg shadow-lg border border-slate-700">
+              <div className="rounded-xl bg-slate-900/95 backdrop-blur-md border border-slate-700/50 shadow-xl py-2 px-2">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`block px-3 py-2.5 text-base font-medium transition-all duration-200 rounded-lg no-underline ${
+                    className={`block px-3 py-2.5 text-sm font-medium rounded-lg no-underline transition-colors ${
                       isActive(item.href)
-                        ? 'text-orange-400 font-semibold bg-slate-800'
-                        : 'text-gray-300 hover:text-white hover:bg-slate-800'
+                        ? 'text-orange-400 bg-orange-500/10'
+                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
                     }`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {item.label}
                   </Link>
                 ))}
-                <div className="pt-3 mt-2 border-t border-slate-700 flex gap-2">
+                <div className="flex gap-2 pt-2 mt-2 border-t border-slate-700/50 px-2">
                   <Link
                     href="/login"
-                    className="flex-1 text-center py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold text-sm no-underline"
+                    className="flex-1 text-center py-2.5 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-500 rounded-lg no-underline transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Login
                   </Link>
                   <Link
                     href="/signup"
-                    className="flex-1 text-center py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold text-sm no-underline"
+                    className="flex-1 text-center py-2.5 text-sm font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 rounded-lg no-underline transition-colors border border-slate-600"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Sign Up

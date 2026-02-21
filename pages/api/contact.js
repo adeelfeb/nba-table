@@ -2,7 +2,7 @@ import { sendEmail } from '../../utils/email';
 import { jsonError, jsonSuccess } from '../../lib/response';
 import { applyCors } from '../../utils';
 import { logger } from '../../utils/logger';
-import connectDB from '../../lib/db';
+import { getDBConnection } from '../../lib/dbHelper';
 import ContactSubmission from '../../models/ContactSubmission';
 import { requireRecaptcha } from '../../lib/recaptcha';
 
@@ -83,12 +83,14 @@ This is an automated message from the contact form on designndev.com
 
     logger.info(`Contact form submission received from: ${nameStr} (${emailStr})`);
 
-    // Save to database for dashboard viewing (non-blocking)
-    try {
-      await connectDB();
-      await ContactSubmission.create({ name: nameStr, email: emailStr });
-    } catch (dbErr) {
-      logger.warn('Contact submission save to DB failed:', dbErr.message);
+    // Save to database when connected (non-blocking; frontend works even when DB is down)
+    const { connected } = await getDBConnection();
+    if (connected) {
+      try {
+        await ContactSubmission.create({ name: nameStr, email: emailStr });
+      } catch (dbErr) {
+        logger.warn('Contact submission save to DB failed:', dbErr.message);
+      }
     }
 
     return jsonSuccess(res, 200, 'Thank you for contacting us! We will get back to you soon.', {

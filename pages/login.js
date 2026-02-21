@@ -6,6 +6,7 @@ import Navbar from '../components/designndev/Navbar';
 import Footer from '../components/designndev/Footer';
 import { AuthCardSkeleton } from '../components/Skeleton';
 import { useRecaptcha } from '../utils/useRecaptcha';
+import { safeParseJsonResponse } from '../utils/safeJsonResponse';
 
 function formatErrorMessage(payload, fallback) {
   if (!payload) return fallback;
@@ -120,7 +121,7 @@ export default function LoginPage() {
           return;
         }
 
-        const data = await res.json();
+        const data = await safeParseJsonResponse(res);
         
         // If user is authenticated via COOKIE (not just localStorage), redirect to dashboard
         if (data.success && data.data && data.data.user) {

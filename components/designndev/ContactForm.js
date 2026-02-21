@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 import { useRecaptcha } from '../../utils/useRecaptcha'
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse'
 
 export default function ContactForm({ showHeading = true }) {
   const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha()
@@ -45,7 +46,7 @@ export default function ContactForm({ showHeading = true }) {
         body: JSON.stringify(payload),
       })
 
-      const data = await response.json()
+      const data = await safeParseJsonResponse(response)
 
       if (response.ok) {
         setSubmitStatus({ type: 'success', message: data.message || 'Thank you! We will get back to you soon.' })

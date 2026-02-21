@@ -20,18 +20,13 @@ export default async function authMiddleware(req, res) {
   }
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET);
-    
-    // Try to connect to DB, but handle gracefully if unavailable
-    try {
-      await connectDB();
-    } catch (dbError) {
-      if (dbError.code === 'NO_DB_URI') {
-        jsonError(res, 503, 'Database not configured. Please configure MONGODB_URI.');
-        return null;
-      }
-      throw dbError; // Re-throw other DB errors
+
+    const dbResult = await connectDB();
+    if (!dbResult.success) {
+      jsonError(res, 503, 'Database service is currently unavailable. Please try again later.');
+      return null;
     }
-    
+
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       jsonError(res, 401, 'Invalid token');

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import Modal from '../Modal';
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse';
 import styles from '../../styles/UserOverviewTable.module.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -401,7 +402,7 @@ export default function UserOverviewTable({ currentUser = null }) {
       if (!contentType.includes('application/json')) {
         throw new Error('Unexpected server response');
       }
-      const payload = await response.json();
+      const payload = await safeParseJsonResponse(response);
       if (!response.ok || payload.success === false) {
         const message = payload?.message || 'Unable to fetch users';
         throw new Error(message);
@@ -432,7 +433,7 @@ export default function UserOverviewTable({ currentUser = null }) {
       if (!contentType.includes('application/json')) {
         throw new Error('Unexpected server response');
       }
-      const payload = await response.json();
+      const payload = await safeParseJsonResponse(response);
       if (!response.ok || payload.success === false) {
         const message = payload?.message || 'Unable to fetch roles';
         throw new Error(message);
@@ -580,7 +581,7 @@ export default function UserOverviewTable({ currentUser = null }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        const payload = await response.json().catch(() => ({}));
+        const payload = await safeParseJsonResponse(response).catch(() => ({}));
         if (!response.ok || payload.success === false) {
           const message = payload?.message || 'Failed to update user';
           throw new Error(message);
@@ -640,7 +641,7 @@ export default function UserOverviewTable({ currentUser = null }) {
           method: 'DELETE',
           credentials: 'include',
         });
-        const payload = await response.json().catch(() => ({}));
+        const payload = await safeParseJsonResponse(response).catch(() => ({}));
         if (!response.ok || payload.success === false) {
           const message = payload?.message || 'Failed to delete user';
           throw new Error(message);
@@ -686,7 +687,7 @@ export default function UserOverviewTable({ currentUser = null }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ isEmailVerified: !user.isEmailVerified }),
         });
-        const payload = await response.json().catch(() => ({}));
+        const payload = await safeParseJsonResponse(response).catch(() => ({}));
         if (!response.ok || payload.success === false) {
           throw new Error(payload?.message || 'Failed to update verification status');
         }
@@ -725,7 +726,7 @@ export default function UserOverviewTable({ currentUser = null }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ isPaused: !user.isPaused }),
         });
-        const payload = await response.json().catch(() => ({}));
+        const payload = await safeParseJsonResponse(response).catch(() => ({}));
         if (!response.ok || payload.success === false) {
           throw new Error(payload?.message || 'Failed to update account status');
         }
@@ -847,7 +848,7 @@ export default function UserOverviewTable({ currentUser = null }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        const payload = await response.json().catch(() => ({}));
+        const payload = await safeParseJsonResponse(response).catch(() => ({}));
         if (!response.ok || payload.success === false) {
           const message = payload?.message || 'Failed to create user';
           throw new Error(message);

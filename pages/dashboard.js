@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { safeParseJsonResponse } from '../utils/safeJsonResponse';
 import DashboardLayout from '../components/DashboardLayout';
 import SettingsPanel from '../components/dashboard/SettingsPanel';
 import AddOrigin from '../components/dashboard/AddOrigin';
@@ -272,7 +273,7 @@ export default function Dashboard({ user }) {
             credentials: 'include',
           });
           if (response.ok) {
-            const data = await response.json();
+            const data = await safeParseJsonResponse(response);
             if (data.success && data.data?.token) {
               localStorage.setItem('token', data.data.token);
             }
@@ -319,7 +320,7 @@ export default function Dashboard({ user }) {
         credentials: 'include',
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await safeParseJsonResponse(res);
         if (data.success && typeof data.data?.unreadCount === 'number') {
           setChatUnreadCount(data.data.unreadCount);
         }

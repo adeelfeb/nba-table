@@ -14,6 +14,7 @@ function formatDate(d) {
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
+    res.setHeader('Content-Type', 'application/json');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
@@ -102,12 +103,14 @@ export default async function handler(req, res) {
 
     allGames.sort((a, b) => new Date(a.date) - new Date(b.date));
 
+    res.setHeader('Content-Type', 'application/json');
     return res.status(200).json({
       success: true,
       data: { games: allGames },
     });
   } catch (error) {
     console.error('[NBA Schedule API] Error:', error.message);
+    res.setHeader('Content-Type', 'application/json');
     return res.status(500).json({
       success: false,
       error: error.message || 'Failed to fetch NBA schedule',

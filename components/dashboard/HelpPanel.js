@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Code, Globe, Smartphone, Rocket, Search, Mail, Send } from 'lucide-react';
 import { useRecaptcha } from '../../utils/useRecaptcha';
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse';
 
 export default function HelpPanel() {
   const { execute: executeRecaptcha, isAvailable: recaptchaAvailable } = useRecaptcha();
@@ -35,7 +36,7 @@ export default function HelpPanel() {
         credentials: 'include',
         body: JSON.stringify(payload),
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await safeParseJsonResponse(res).catch(() => ({}));
       if (res.ok && data.success) {
         setMessage('');
         setStatus({ type: 'success', text: data.message || 'Request submitted successfully. We will get back to you.' });

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse';
 
 function DownloadIcon({ size = 20 }) {
   return (
@@ -42,7 +43,7 @@ export default function BackupPanel({ user }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        const data = await safeParseJsonResponse(res).catch(() => ({}));
         throw new Error(data.message || `Export failed (${res.status})`);
       }
       const blob = await res.blob();
@@ -106,7 +107,7 @@ export default function BackupPanel({ user }) {
           content: base64,
         }),
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (data.success) {
         setImportResult(data.data);
         setImportFile(null);

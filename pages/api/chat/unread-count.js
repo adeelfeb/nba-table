@@ -1,3 +1,4 @@
+import { getDBConnection } from '../../../lib/dbHelper';
 import connectDB from '../../../lib/db';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import { applyCors } from '../../../utils';
@@ -14,16 +15,22 @@ function canAccessChat(role) {
 
 export default async function handler(req, res) {
   if (await applyCors(req, res)) return;
+
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return jsonError(res, 405, `Method ${req.method} not allowed`);
+  }
+
+  const { connected } = await getDBConnection();
+  if (!connected) {
+    return jsonSuccess(res, 200, 'OK', { unreadCount: 0 });
+  }
+
   await connectDB();
   const user = await authMiddleware(req, res);
   if (!user) return;
   if (!canAccessChat(user.role)) {
     return jsonSuccess(res, 200, 'OK', { unreadCount: 0 });
-  }
-
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return jsonError(res, 405, `Method ${req.method} not allowed`);
   }
 
   try {

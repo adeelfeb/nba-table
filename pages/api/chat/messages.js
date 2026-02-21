@@ -1,3 +1,4 @@
+import { getDBConnection } from '../../../lib/dbHelper';
 import connectDB from '../../../lib/db';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import { applyCors } from '../../../utils';
@@ -28,6 +29,15 @@ function canMessagePartner(myRole, partnerRole) {
 
 export default async function handler(req, res) {
   if (await applyCors(req, res)) return;
+
+  const { connected } = await getDBConnection();
+  if (!connected) {
+    if (req.method === 'GET') {
+      return jsonSuccess(res, 200, 'OK', { messages: [], partner: null });
+    }
+    return jsonError(res, 503, 'Database service is currently unavailable. Please try again later.');
+  }
+
   await connectDB();
   const user = await authMiddleware(req, res);
   if (!user) return;

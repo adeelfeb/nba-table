@@ -1,4 +1,4 @@
-import { requireDB } from '../../../lib/dbHelper';
+import { getDBConnection, requireDB } from '../../../lib/dbHelper';
 import { jsonError, jsonSuccess } from '../../../lib/response';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import roleMiddleware from '../../../middlewares/roleMiddleware';
@@ -37,6 +37,14 @@ export default async function handler(req, res) {
 
   if (method === 'OPTIONS') {
     return;
+  }
+
+  const { connected } = await getDBConnection();
+  if (!connected && method === 'GET') {
+    return jsonSuccess(res, 200, 'Allowed origins loaded', { origins: [] });
+  }
+  if (!connected) {
+    return jsonError(res, 503, 'Database service is currently unavailable. Please try again later.');
   }
 
   const user = await authMiddleware(req, res);

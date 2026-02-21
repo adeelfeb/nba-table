@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse'
 
 export default function NBAGamesList() {
   const [games, setGames] = useState([])
@@ -16,8 +17,8 @@ export default function NBAGamesList() {
       setError(null)
       try {
         const res = await fetch(`/api/nba/schedule?days=${dateRange}`)
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error || 'Failed to fetch')
+        const json = await safeParseJsonResponse(res)
+        if (!res.ok) throw new Error(json.error || json.message || 'Failed to fetch')
         setGames(json.data?.games || [])
       } catch (err) {
         setError(err.message || 'Could not load games')

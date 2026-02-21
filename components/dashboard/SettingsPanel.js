@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse';
 
 export default function SettingsPanel({ user, onProfileUpdated }) {
   const [profileName, setProfileName] = useState(user?.name || '');
@@ -40,7 +41,7 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
         body: JSON.stringify({ name: profileName.trim() }),
       });
 
-      const result = await response.json().catch(() => ({}));
+      const result = await safeParseJsonResponse(response).catch(() => ({}));
       if (!response.ok) {
         throw new Error(result?.message || 'Unable to update profile');
       }
@@ -72,7 +73,7 @@ export default function SettingsPanel({ user, onProfileUpdated }) {
         }),
       });
 
-      const result = await response.json().catch(() => ({}));
+      const result = await safeParseJsonResponse(response).catch(() => ({}));
       if (!response.ok) {
         throw new Error(result?.message || 'Unable to update password');
       }

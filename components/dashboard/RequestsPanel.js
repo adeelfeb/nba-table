@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Mail, User, Calendar } from 'lucide-react';
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse';
 
 export default function RequestsPanel() {
   const [helpRequests, setHelpRequests] = useState([]);
@@ -20,7 +21,7 @@ export default function RequestsPanel() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: 'include',
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (data.success && data.data) {
         setHelpRequests(data.data.helpRequests || []);
         setContactSubmissions(data.data.contactSubmissions || []);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse';
 
 const EMPTY_FORM = {
   origin: '',
@@ -34,7 +35,7 @@ export default function AddOrigin() {
       const response = await fetch('/api/allowed-origins', {
         signal: options.signal,
       });
-      const payload = await response.json().catch(() => ({}));
+      const payload = await safeParseJsonResponse(response).catch(() => ({}));
       if (!response.ok) {
         throw new Error(payload?.message || 'Unable to load allowed origins');
       }
@@ -106,7 +107,7 @@ export default function AddOrigin() {
         }),
       });
 
-      const payload = await response.json().catch(() => ({}));
+      const payload = await safeParseJsonResponse(response).catch(() => ({}));
       if (!response.ok) {
         throw new Error(payload?.message || 'Unable to add origin');
       }
@@ -167,7 +168,7 @@ export default function AddOrigin() {
           isActive: Boolean(editingForm.isActive),
         }),
       });
-      const payload = await response.json().catch(() => ({}));
+      const payload = await safeParseJsonResponse(response).catch(() => ({}));
       if (!response.ok) {
         throw new Error(payload?.message || 'Unable to update origin');
       }
@@ -202,7 +203,7 @@ export default function AddOrigin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !origin.isActive }),
       });
-      const payload = await response.json().catch(() => ({}));
+      const payload = await safeParseJsonResponse(response).catch(() => ({}));
       if (!response.ok) {
         throw new Error(payload?.message || 'Unable to update origin status');
       }
@@ -240,7 +241,7 @@ export default function AddOrigin() {
       const response = await fetch(`/api/allowed-origins/${origin.id}`, {
         method: 'DELETE',
       });
-      const payload = await response.json().catch(() => ({}));
+      const payload = await safeParseJsonResponse(response).catch(() => ({}));
       if (!response.ok) {
         throw new Error(payload?.message || 'Unable to delete origin');
       }

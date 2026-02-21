@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Navbar from '../components/designndev/Navbar';
 import Footer from '../components/designndev/Footer';
+import { safeParseJsonResponse } from '../utils/safeJsonResponse';
 
 function formatErrorMessage(payload, fallback) {
   if (!payload) return fallback;
@@ -73,7 +74,7 @@ export default function VerifyEmailPage() {
         body: JSON.stringify({ email }),
       });
       
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       
       if (!res.ok) {
         setError(data.message || 'Failed to resend code');

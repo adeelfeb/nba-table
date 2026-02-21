@@ -1,3 +1,4 @@
+import { getDBConnection } from '../../../lib/dbHelper';
 import connectDB from '../../../lib/db';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import { applyCors } from '../../../utils';
@@ -13,18 +14,26 @@ function canAccessChat(role) {
   return r === 'superadmin' || CHAT_ROLES.includes(r);
 }
 
+const EMPTY_CONVERSATIONS = { conversations: [], totalUnread: 0 };
+
 export default async function handler(req, res) {
   if (await applyCors(req, res)) return;
+
+  if (req.method !== 'GET') {
+    res.setHeader('Allow', ['GET']);
+    return jsonError(res, 405, `Method ${req.method} not allowed`);
+  }
+
+  const { connected } = await getDBConnection();
+  if (!connected) {
+    return jsonSuccess(res, 200, 'Conversations retrieved.', EMPTY_CONVERSATIONS);
+  }
+
   await connectDB();
   const user = await authMiddleware(req, res);
   if (!user) return;
   if (!canAccessChat(user.role)) {
     return jsonError(res, 403, 'Chat is only available for developer and HR roles.');
-  }
-
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return jsonError(res, 405, `Method ${req.method} not allowed`);
   }
 
   try {

@@ -5,6 +5,7 @@ import {
   requestNotificationPermission,
   showNotification,
 } from '../../utils/notifications';
+import { safeParseJsonResponse } from '../../utils/safeJsonResponse';
 import styles from '../../styles/ChatNow.module.css';
 
 const CHAT_NOTIFICATIONS_KEY = 'chatNotificationsEnabled';
@@ -77,10 +78,10 @@ export default function ChatNow({ user, onUnreadChange }) {
         credentials: 'include',
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        const data = await safeParseJsonResponse(res).catch(() => ({}));
         throw new Error(data.message || 'Failed to load conversations');
       }
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (data.success && data.data) {
         const list = data.data.conversations || [];
         setConversations(list);
@@ -107,10 +108,10 @@ export default function ChatNow({ user, onUnreadChange }) {
         credentials: 'include',
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
+        const data = await safeParseJsonResponse(res).catch(() => ({}));
         throw new Error(data.message || 'Failed to load messages');
       }
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (data.success && data.data) {
         setMessages(data.data.messages || []);
         setPartner(data.data.partner || null);
@@ -168,13 +169,14 @@ export default function ChatNow({ user, onUnreadChange }) {
     if (!selectedId || !partner) return;
 
     const poll = async () => {
-      const res = await fetch(`/api/chat/messages?with=${encodeURIComponent(selectedId)}`, {
-        headers: getAuthHeaders(),
-        credentials: 'include',
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.success || !data.data?.messages) return;
+      try {
+        const res = await fetch(`/api/chat/messages?with=${encodeURIComponent(selectedId)}`, {
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        });
+        if (!res.ok) return;
+        const data = await safeParseJsonResponse(res);
+        if (!data.success || !data.data?.messages) return;
 
       const list = data.data.messages;
       const prevIds = lastMessageIdsRef.current;
@@ -205,6 +207,9 @@ export default function ChatNow({ user, onUnreadChange }) {
           });
         }
       }
+      } catch {
+        // Ignore parse/network errors in poll
+      }
     };
 
     const isVisible = typeof document !== 'undefined' && !document.hidden;
@@ -233,7 +238,7 @@ export default function ChatNow({ user, onUnreadChange }) {
           credentials: 'include',
         });
         if (!res.ok) return;
-        const data = await res.json();
+        const data = await safeParseJsonResponse(res);
         if (!data.success || !data.data?.conversations) return;
 
         const list = data.data.conversations;
@@ -307,7 +312,7 @@ export default function ChatNow({ user, onUnreadChange }) {
         credentials: 'include',
         body: JSON.stringify({ recipientId: selectedId, content: text }),
       });
-      const data = await res.json();
+      const data = await safeParseJsonResponse(res);
       if (!res.ok) throw new Error(data.message || 'Failed to send');
 
       if (data.success && data.data?.message) {

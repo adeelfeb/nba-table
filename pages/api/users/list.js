@@ -1,4 +1,4 @@
-import { requireDB } from '../../../lib/dbHelper';
+import { getDBConnection, requireDB } from '../../../lib/dbHelper';
 import User from '../../../models/User';
 import authMiddleware from '../../../middlewares/authMiddleware';
 import roleMiddleware from '../../../middlewares/roleMiddleware';
@@ -11,6 +11,11 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
     return jsonError(res, 405, `Method ${req.method} not allowed`);
+  }
+
+  const { connected } = await getDBConnection();
+  if (!connected) {
+    return jsonSuccess(res, 200, 'Users fetched', []);
   }
 
   const sessionUser = await authMiddleware(req, res);
