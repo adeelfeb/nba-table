@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Link from 'next/link'
 import { safeParseJsonResponse } from '../../utils/safeJsonResponse'
+import { GamesListSkeleton } from './GameCardSkeleton'
 
 export default function NBAGamesList() {
   const [games, setGames] = useState([])
@@ -56,13 +56,19 @@ export default function NBAGamesList() {
     return (
       <section className="py-16 md:py-24 bg-slate-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center gap-2 text-gray-400">
-            <svg className="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            <span>Loading games…</span>
-          </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
+          >
+            <div className="h-9 w-40 rounded-lg bg-slate-700/60 skeleton-shimmer" />
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-16 rounded-lg bg-slate-700/60 skeleton-shimmer" />
+              <div className="h-9 w-24 rounded-lg bg-slate-700/60 skeleton-shimmer" />
+            </div>
+          </motion.div>
+          <GamesListSkeleton count={6} />
         </div>
       </section>
     )
@@ -70,19 +76,28 @@ export default function NBAGamesList() {
 
   if (error) {
     return (
-      <section className="py-16 md:py-24 bg-slate-900">
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="py-16 md:py-24 bg-slate-900"
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center text-red-400">
             <p className="font-medium">{error}</p>
             <p className="text-sm text-gray-400 mt-2">Please try again later.</p>
           </div>
         </div>
-      </section>
+      </motion.section>
     )
   }
 
   return (
-    <section className="py-16 md:py-24 bg-slate-900">
+    <motion.section
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="py-16 md:py-24 bg-slate-900"
+    >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-white">
@@ -93,7 +108,7 @@ export default function NBAGamesList() {
             <select
               value={dateRange}
               onChange={(e) => setDateRange(Number(e.target.value))}
-              className="bg-slate-800 text-white border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="bg-slate-800 text-white border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-shadow"
             >
               <option value={3}>3 days</option>
               <option value={5}>5 days</option>
@@ -104,9 +119,13 @@ export default function NBAGamesList() {
         </div>
 
         {games.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12 text-gray-400"
+          >
             <p>No games scheduled for this period.</p>
-          </div>
+          </motion.div>
         ) : (
           <ul className="space-y-4">
             <AnimatePresence mode="popLayout">
@@ -115,9 +134,9 @@ export default function NBAGamesList() {
                   key={game.id}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 md:p-5 hover:border-slate-600 transition-colors"
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.3), ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 md:p-5 hover:border-slate-600 hover:bg-slate-800/80 transition-all duration-200"
                 >
                   <div className="flex flex-col md:flex-row md:items-center gap-4">
                     {/* Teams */}
@@ -180,6 +199,6 @@ export default function NBAGamesList() {
           </ul>
         )}
       </div>
-    </section>
+    </motion.section>
   )
 }

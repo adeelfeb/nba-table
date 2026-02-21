@@ -24,6 +24,28 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-poppins)', 'Poppins', 'system-ui', 'sans-serif'],
       },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.6' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.5s ease-in-out infinite',
+        'fade-in': 'fade-in 0.4s ease-out forwards',
+        'pulse-soft': 'pulse 1.5s ease-in-out infinite',
+      },
+      backgroundSize: {
+        'shimmer': '200% 100%',
+      },
     },
   },
   plugins: [],

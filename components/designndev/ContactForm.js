@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
 import { Send, Loader2 } from 'lucide-react'
 import { useRecaptcha } from '../../utils/useRecaptcha'
@@ -86,9 +86,16 @@ export default function ContactForm({ showHeading = true }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-gray-200 shadow-lg w-full min-w-0"
+          animate={isSubmitting ? { scale: 0.995 } : { scale: 1 }}
+          className="relative bg-white rounded-2xl p-4 sm:p-6 md:p-8 border border-gray-200 shadow-lg w-full min-w-0 transition-shadow duration-300"
         >
-          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+          {isSubmitting && (
+            <div
+              className="absolute inset-0 rounded-2xl bg-white/60 backdrop-blur-[1px] z-10 pointer-events-auto"
+              aria-hidden
+            />
+          )}
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6 relative">
             {/* Name Field */}
             <div className="min-w-0">
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -101,7 +108,7 @@ export default function ContactForm({ showHeading = true }) {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full min-w-0 max-w-full box-border px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 text-base"
+                className="w-full min-w-0 max-w-full box-border px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 text-base placeholder:text-gray-400"
                 placeholder="Your name"
               />
             </div>
@@ -118,44 +125,50 @@ export default function ContactForm({ showHeading = true }) {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full min-w-0 max-w-full box-border px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 text-base"
+                className="w-full min-w-0 max-w-full box-border px-3 py-2.5 sm:px-4 sm:py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 text-gray-900 text-base placeholder:text-gray-400"
                 placeholder="your.email@example.com"
               />
             </div>
 
             {/* Submit Button */}
-            <button
+            <motion.button
               type="submit"
               disabled={isSubmitting}
-              className="w-full min-w-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-3 sm:px-6 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:shadow-xl hover:shadow-blue-500/50 hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+              whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+              className="w-full min-w-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 sm:px-6 sm:py-3.5 rounded-xl font-semibold text-sm sm:text-base shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 flex items-center justify-center gap-2.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:shadow-lg"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Sending...
+                  <Loader2 className="w-5 h-5 animate-spin flex-shrink-0" aria-hidden />
+                  <span>Sending…</span>
                 </>
               ) : (
                 <>
-                  Send Message
-                  <Send className="w-5 h-5" />
+                  <span>Send Message</span>
+                  <Send className="w-5 h-5 flex-shrink-0" aria-hidden />
                 </>
               )}
-            </button>
+            </motion.button>
 
             {/* Status Message */}
-            {submitStatus && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`p-4 rounded-lg ${
-                  submitStatus.type === 'success'
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-800 border border-red-200'
-                }`}
-              >
-                <p className="text-sm font-medium">{submitStatus.message}</p>
-              </motion.div>
-            )}
+            <AnimatePresence mode="wait">
+              {submitStatus && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className={`overflow-hidden p-4 rounded-xl border ${
+                    submitStatus.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-red-50 text-red-800 border-red-200'
+                  }`}
+                >
+                  <p className="text-sm font-medium">{submitStatus.message}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </form>
         </motion.div>
       </div>
