@@ -54,7 +54,7 @@ export default function NBAGamesList() {
 
   if (loading) {
     return (
-      <section className="py-16 md:py-24 bg-slate-900">
+      <section className="pt-8 md:pt-12 pb-16 md:pb-24 bg-slate-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0 }}
@@ -79,7 +79,7 @@ export default function NBAGamesList() {
       <motion.section
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="py-16 md:py-24 bg-slate-900"
+        className="pt-8 md:pt-12 pb-16 md:pb-24 bg-slate-900"
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center text-red-400">
@@ -96,7 +96,7 @@ export default function NBAGamesList() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="py-16 md:py-24 bg-slate-900"
+      className="pt-8 md:pt-12 pb-16 md:pb-24 bg-slate-900"
     >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
