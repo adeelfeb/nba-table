@@ -9,18 +9,17 @@ const poppins = Poppins({
 })
 
 export const metadata = {
-  title: 'Design n Dev | Expert Full-Stack Web Development & Next.js Solutions',
-  description: 'Turn your business idea into reality with Design n Dev. We specialize in fast, scalable custom development using Next.js, MERN Stack, and Node.js for startups and enterprises.',
-  keywords: 'Next.js development, MERN stack agency, Startup MVP development, Full-stack web development, React development, Node.js development',
+  title: 'NBA Games | Upcoming NBA Schedule, Scores & Standings',
+  description: 'Stay up to date with the latest NBA games. View upcoming schedule, scores, team records, venues, and broadcast channels. Mobile-friendly and always updated.',
+  keywords: 'NBA, basketball, schedule, scores, games, standings',
   icons: {
     icon: '/favicon.svg',
     apple: '/favicon.svg',
   },
   openGraph: {
-    title: 'Design n Dev | Expert Full-Stack Web Development & Next.js Solutions',
-    description: 'Turn your business idea into reality with Design n Dev. We specialize in fast, scalable custom development using Next.js, MERN Stack, and Node.js for startups and enterprises.',
-    url: 'https://designndev.com',
-    siteName: 'Design n Dev',
+    title: 'NBA Games | Upcoming NBA Schedule, Scores & Standings',
+    description: 'Stay up to date with the latest NBA games. View upcoming schedule, scores, team records, venues, and broadcast channels.',
+    siteName: 'NBA Games',
     type: 'website',
   },
 }
@@ -28,7 +27,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={poppins.variable}>
-      <body className={`${poppins.className} antialiased bg-white`}>
+      <body className={`${poppins.className} antialiased bg-slate-900`}>
         {children}
       </body>
     </html>

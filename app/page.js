@@ -1,42 +1,34 @@
 import Navbar from '../components/designndev/Navbar'
-import Hero from '../components/designndev/Hero'
-import Reviews from '../components/designndev/Reviews'
+import NBAHero from '../components/designndev/NBAHero'
+import NBAGamesList from '../components/designndev/NBAGamesList'
 import ContactForm from '../components/designndev/ContactForm'
-import ValueProp from '../components/designndev/ValueProp'
-import Services from '../components/designndev/Services'
-import TechStack from '../components/designndev/TechStack'
-import Process from '../components/designndev/Process'
 import Footer from '../components/designndev/Footer'
 
 export const metadata = {
-  title: 'Design n Dev | Expert Full-Stack Web Development & Next.js Solutions',
-  description: 'Turn your business idea into reality with Design n Dev. We specialize in fast, scalable custom development using Next.js, MERN Stack, and Node.js for startups and enterprises.',
-  keywords: 'Next.js development, MERN stack agency, Startup MVP development, Full-stack web development, React development, Node.js development, custom web solutions, e-commerce development',
+  title: 'NBA Games | Upcoming NBA Schedule, Scores & Standings',
+  description: 'Stay up to date with the latest NBA games. View upcoming schedule, scores, team records, venues, and broadcast channels. Mobile-friendly and always updated.',
+  keywords: 'NBA, basketball, schedule, scores, games, standings, ESPN',
   openGraph: {
-    title: 'Design n Dev | Expert Full-Stack Web Development & Next.js Solutions',
-    description: 'Turn your business idea into reality with Design n Dev. We specialize in fast, scalable custom development using Next.js, MERN Stack, and Node.js for startups and enterprises.',
-    url: 'https://designndev.com',
-    siteName: 'Design n Dev',
+    title: 'NBA Games | Upcoming NBA Schedule, Scores & Standings',
+    description: 'Stay up to date with the latest NBA games. View upcoming schedule, scores, team records, venues, and broadcast channels.',
+    url: 'https://nba-games.example.com',
+    siteName: 'NBA Games',
     type: 'website',
-  },
-  alternates: {
-    canonical: 'https://designndev.com',
   },
 }
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-slate-900">
       <Navbar />
-      <Hero />
-      <Reviews />
-      <ContactForm />
-      <ValueProp />
-      <Services />
-      <TechStack />
-      <Process />
+      <NBAHero />
+      <div id="games">
+        <NBAGamesList />
+      </div>
+      <div className="bg-slate-50">
+        <ContactForm />
+      </div>
       <Footer />
     </main>
   )
 }
-

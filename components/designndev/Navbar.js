@@ -12,15 +12,12 @@ function useRouterCompat() {
     if (typeof window !== 'undefined') {
       setPathname(window.location.pathname)
       
-      // Listen for route changes (works for both App Router and Pages Router)
       const handleRouteChange = () => {
         setPathname(window.location.pathname)
       }
       
-      // Listen to popstate for browser back/forward
       window.addEventListener('popstate', handleRouteChange)
       
-      // Also listen to pushstate/replacestate
       const originalPushState = history.pushState
       const originalReplaceState = history.replaceState
       
@@ -45,22 +42,12 @@ function useRouterCompat() {
   return { asPath: pathname, pathname }
 }
 
-/**
- * Navbar Component
- * 
- * A responsive navigation bar with:
- * - Mobile menu toggle
- * - Smooth animations with Framer Motion
- * - Active link highlighting
- * - Responsive design with tablet view
- */
 export default function Navbar() {
   const router = useRouterCompat()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
-  // Handle scroll effect
   useEffect(() => {
     setIsMounted(true)
     const handleScroll = () => {
@@ -75,8 +62,6 @@ export default function Navbar() {
     setIsMenuOpen(!isMenuOpen)
   }
 
-  // Check if a link is active using Next.js router
-  // Only check after component is mounted to avoid hydration mismatch
   const isActive = (href) => {
     if (!isMounted) return false
     const pathname = router.asPath || router.pathname
@@ -89,10 +74,9 @@ export default function Navbar() {
 
   const navItems = [
     { href: '/', label: 'Home' },
-    { href: '/services', label: 'Services' },
-    { href: '/valentine', label: 'Valentine', isValentine: true },
     { href: '/blogs', label: 'Blog' },
-    { href: '/portfolio', label: 'Portfolio' },
+    { href: '/information', label: 'Information' },
+    { href: '/privacy-policy', label: 'Privacy Policy' },
   ]
 
   return (
@@ -105,130 +89,116 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className={`navbar rounded-2xl px-4 sm:px-6 py-3 sm:py-4 transition-all duration-300 ${
           isScrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-lg'
-            : 'bg-white/90 backdrop-blur-sm shadow-md'
+            ? 'bg-slate-900/95 backdrop-blur-md shadow-lg'
+            : 'bg-slate-900/90 backdrop-blur-sm shadow-md'
         }`}>
           <div className="flex items-center w-full">
-            {/* Logo - left */}
             <div className="flex flex-1 justify-start min-w-0">
               <Link 
                 href="/" 
                 className="text-xl sm:text-2xl font-bold no-underline hover:scale-110 transition-transform duration-300 inline-block"
               >
                 <span>
-                  <span className="text-blue-600">Design</span>
-                  <span className="text-gray-700"> n </span>
-                  <span className="text-purple-600">Dev</span>
+                  <span className="text-orange-500">NBA</span>
+                  <span className="text-gray-300"> Games</span>
                 </span>
               </Link>
             </div>
 
-            {/* Desktop Navigation - centered */}
             <div className="hidden lg:flex flex-1 justify-center">
-              <div className="flex items-baseline space-x-8">
+              <div className="flex flex-wrap items-baseline justify-center gap-4 lg:gap-8">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`px-3 py-2 text-sm font-medium transition-all duration-200 relative no-underline ${
                       isActive(item.href)
-                        ? 'text-rose-600 font-semibold'
-                        : item.isValentine 
-                          ? 'text-rose-600 font-semibold hover:text-rose-700 bg-rose-50 rounded-lg hover:bg-rose-100 border border-rose-100'
-                          : 'text-gray-700 hover:text-blue-600'
+                        ? 'text-orange-400 font-semibold'
+                        : 'text-gray-300 hover:text-white'
                     }`}
                   >
                     <span className="relative z-10">{item.label}</span>
                     {isActive(item.href) && (
-                      <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${item.isValentine ? 'bg-rose-500' : 'bg-blue-600'}`}></span>
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-orange-500"></span>
                     )}
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* Tablet Navigation - centered */}
             <div className="hidden md:flex lg:hidden flex-1 justify-center">
-              <div className="flex items-baseline space-x-4">
+              <div className="flex flex-wrap items-baseline justify-center gap-2">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`px-2 py-2 text-xs font-medium transition-all duration-200 relative no-underline ${
                       isActive(item.href)
-                        ? 'text-rose-600 font-semibold'
-                        : item.isValentine 
-                          ? 'text-rose-600 font-semibold hover:text-rose-700 bg-rose-50 rounded-lg hover:bg-rose-100'
-                          : 'text-gray-700 hover:text-blue-600'
+                        ? 'text-orange-400 font-semibold'
+                        : 'text-gray-300 hover:text-white'
                     }`}
                   >
                     <span className="relative z-10">{item.label}</span>
                     {isActive(item.href) && (
-                      <span className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-full ${item.isValentine ? 'bg-rose-500' : 'bg-blue-600'}`}></span>
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-orange-500"></span>
                     )}
                   </Link>
                 ))}
               </div>
             </div>
 
-            {/* CTA Button + Mobile menu - right */}
             <div className="flex flex-1 justify-end items-center gap-2">
-            {/* CTA Button - Desktop */}
-            <div className="hidden lg:block">
-              <Link
-                href="/contact"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-full font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200 no-underline"
-              >
-                Contact
-              </Link>
-            </div>
-
-            {/* CTA Button - Tablet */}
-            <div className="hidden md:block lg:hidden">
-              <Link
-                href="/contact"
-                className="px-4 py-2 text-xs font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 no-underline"
-              >
-                Contact
-              </Link>
-            </div>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <button
-                onClick={toggleMenu}
-                className="text-gray-700 hover:text-blue-600 focus:outline-none focus:text-blue-600"
-                aria-label="Toggle menu"
-              >
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="hidden lg:block">
+                <Link
+                  href="/login"
+                  className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 no-underline text-sm"
                 >
-                  {isMenuOpen ? (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  ) : (
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 6h16M4 12h16M4 18h16"
-                    />
-                  )}
-                </svg>
-              </button>
-            </div>
+                  Login
+                </Link>
+              </div>
+              <div className="hidden lg:block ml-2">
+                <Link
+                  href="/signup"
+                  className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 no-underline text-sm"
+                >
+                  Sign Up
+                </Link>
+              </div>
+
+              <div className="md:hidden">
+                <button
+                  onClick={toggleMenu}
+                  className="text-gray-300 hover:text-white focus:outline-none"
+                  aria-label="Toggle menu"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    {isMenuOpen ? (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    ) : (
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 6h16M4 12h16M4 18h16"
+                      />
+                    )}
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
         <AnimatePresence>
           {isMenuOpen && (
             <motion.div
@@ -238,30 +208,37 @@ export default function Navbar() {
               transition={{ duration: 0.3 }}
               className="md:hidden mt-4"
             >
-              <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white/95 backdrop-blur-md rounded-lg shadow-lg">
+              <div className="px-4 pt-3 pb-4 space-y-2 bg-slate-900/95 backdrop-blur-md rounded-lg shadow-lg border border-slate-700">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`block px-3 py-2 text-base font-medium transition-all duration-200 rounded-lg no-underline ${
+                    className={`block px-3 py-2.5 text-base font-medium transition-all duration-200 rounded-lg no-underline ${
                       isActive(item.href)
-                        ? 'text-rose-600 font-semibold bg-rose-50'
-                        : item.isValentine 
-                          ? 'text-rose-600 font-semibold bg-rose-50 hover:bg-rose-100'
-                          : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                        ? 'text-orange-400 font-semibold bg-slate-800'
+                        : 'text-gray-300 hover:text-white hover:bg-slate-800'
                     }`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {item.label}
                   </Link>
                 ))}
-                <Link
-                  href="/contact"
-                  className="block w-full text-center mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full font-semibold hover:shadow-lg transition-all duration-200 no-underline"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Contact
-                </Link>
+                <div className="pt-3 mt-2 border-t border-slate-700 flex gap-2">
+                  <Link
+                    href="/login"
+                    className="flex-1 text-center py-2.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-semibold text-sm no-underline"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="flex-1 text-center py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold text-sm no-underline"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Sign Up
+                  </Link>
+                </div>
               </div>
             </motion.div>
           )}
@@ -270,4 +247,3 @@ export default function Navbar() {
     </motion.nav>
   )
 }
-

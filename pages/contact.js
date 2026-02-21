@@ -7,33 +7,32 @@ export default function ContactPage() {
   return (
     <>
       <Head>
-        <title>Contact Us | Design n Dev - Get in Touch</title>
+        <title>Contact | NBA Games</title>
         <meta 
           name="description" 
-          content="Get in touch with Design n Dev for your web development needs. Ready to build your new venture? Let's discuss your specific requirements and start your project today." 
+          content="Get in touch with NBA Games. Questions, feedback, or suggestions about our NBA schedule and scores site." 
         />
         <meta 
           name="keywords" 
-          content="contact web developer, hire web developer, web development consultation, get quote, web development services" 
+          content="NBA, contact, feedback, support" 
         />
-        <meta property="og:title" content="Contact Us | Design n Dev" />
+        <meta property="og:title" content="Contact | NBA Games" />
         <meta 
           property="og:description" 
-          content="Ready to build your new venture? Get in touch with us today." 
+          content="Get in touch with NBA Games." 
         />
         <meta property="og:type" content="website" />
-        <link rel="canonical" href="https://designndev.com/contact" />
       </Head>
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-slate-50">
         <Navbar />
         <main className="pt-24 pb-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10 sm:mb-12">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                Get in Touch
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+                Contact Us
               </h1>
-              <p className="text-base sm:text-xl text-gray-600 max-w-2xl mx-auto px-1">
-                Ready to build your new venture? Let's discuss your requirements and start your project today.
+              <p className="text-base sm:text-xl text-slate-600 max-w-2xl mx-auto px-1">
+                Have questions or feedback about NBA Games? Get in touch.
               </p>
             </div>
 

@@ -7,12 +7,6 @@ import AddOrigin from '../components/dashboard/AddOrigin';
 import UserOverviewTable from '../components/dashboard/UserOverviewTable';
 import ApiEndpointsPanel from '../components/dashboard/ApiEndpointsPanel';
 import BlogManager from '../components/dashboard/BlogManager';
-import PortfolioManager from '../components/dashboard/PortfolioManager';
-import NewYearResolutionManager from '../components/dashboard/NewYearResolutionManager';
-import ValentineUrlManager from '../components/dashboard/ValentineUrlManager';
-import ValentineUrlMonitor from '../components/dashboard/ValentineUrlMonitor';
-import CreditRequestsPanel from '../components/dashboard/CreditRequestsPanel';
-import ContestResultsPanel from '../components/dashboard/ContestResultsPanel';
 import BackupPanel from '../components/dashboard/BackupPanel';
 import SupportPanel from '../components/dashboard/SupportPanel';
 import ResourcesPanel from '../components/dashboard/ResourcesPanel';
@@ -61,10 +55,6 @@ const NAVIGATION_BY_ROLE = {
     { key: 'messages', label: 'Messages' },
     { key: 'user-management', label: 'User Management' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'valentine-urls', label: 'Valentine Links' },
-    { key: 'contest-results', label: 'Contest Results' },
-    { key: 'valentine-monitor', label: 'Valentine Monitor' },
-    { key: 'credit-requests', label: 'Credit Requests' },
     { key: 'requests', label: 'Requests' },
     { key: 'backup', label: 'Backup' },
     { key: 'add-origin', label: 'Add Origin' },
@@ -76,13 +66,7 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'messages', label: 'Messages' },
     { key: 'user-management', label: 'User Management' },
-    { key: 'resolutions', label: 'New Year Resolutions' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'portfolios', label: 'Portfolios' },
-    { key: 'valentine-urls', label: 'Valentine Links' },
-    { key: 'contest-results', label: 'Contest Results' },
-    { key: 'valentine-monitor', label: 'Valentine Monitor' },
-    { key: 'credit-requests', label: 'Credit Requests' },
     { key: 'requests', label: 'Requests' },
     { key: 'backup', label: 'Backup' },
     { key: 'add-origin', label: 'Add Origin' },
@@ -93,7 +77,6 @@ const NAVIGATION_BY_ROLE = {
   admin: [
     { key: 'overview', label: 'Overview' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
@@ -104,7 +87,6 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'messages', label: 'Messages' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
@@ -115,7 +97,6 @@ const NAVIGATION_BY_ROLE = {
     { key: 'overview', label: 'Overview' },
     { key: 'messages', label: 'Messages' },
     { key: 'blogs', label: 'Blogs' },
-    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'requests', label: 'Requests' },
     { key: 'add-origin', label: 'Add Origin' },
     { key: 'api-endpoints', label: 'API Endpoints' },
@@ -124,8 +105,6 @@ const NAVIGATION_BY_ROLE = {
   ],
   base_user: [
     { key: 'blogs', label: 'Blogs' },
-    { key: 'resolutions', label: 'New Year Resolutions' },
-    { key: 'valentine-urls', label: 'Valentine Links' },
     { key: 'resources', label: 'Resources' },
     { key: 'support', label: 'Support' },
     { key: 'help', label: 'Help' },
@@ -153,43 +132,6 @@ const SECTION_DESCRIPTORS = {
       }
       return <UserOverviewTable currentUser={user} />;
     },
-  },
-  resolutions: {
-    subtitle: 'Manage and track your New Year resolutions.',
-    hideHeader: true,
-    body: (user) => <NewYearResolutionManager />,
-  },
-  'valentine-urls': {
-    subtitle: (user) => {
-      const role = (user?.role || '').toLowerCase();
-      if (role === 'developer' || role === 'superadmin') {
-        return 'Create secure Valentine links. As developer: fulfill credit requests, manage links, and view analytics.';
-      }
-      return 'Create secure Valentine links with custom messages and themes.';
-    },
-    hideHeader: true,
-    body: (user) => <ValentineUrlManager user={user} />,
-  },
-  'valentine-monitor': {
-    subtitle: 'Developer-only: view all Valentine links, creators, full details, and utilization trends. Read-only.',
-    hideHeader: true,
-    body: (user) => <ValentineUrlMonitor user={user} />,
-  },
-  'contest-results': {
-    subtitle: 'Manage Valentine contest entries: rank messages, set the featured message for the Valentine page.',
-    hideHeader: true,
-    body: (user) => <ContestResultsPanel user={user} />,
-  },
-  'credit-requests': {
-    subtitle: (user) => {
-      const role = (user?.role || '').toLowerCase();
-      if (role === 'developer' || role === 'superadmin') {
-        return 'Fulfill Valentine credit requests: choose how many credits to assign, mark as paid, and add credits to users.';
-      }
-      return 'View and fulfill Valentine credit requests. Mark as paid and add credits to users.';
-    },
-    hideHeader: true,
-    body: (user) => <CreditRequestsPanel user={user} />,
   },
   backup: {
     subtitle: 'Export all database collections to JSON or Excel. Import a backup file to add entries (invalid or duplicate rows are skipped). Developer and super admin only.',
@@ -257,11 +199,6 @@ const SECTION_DESCRIPTORS = {
     subtitle: 'Create, manage, and publish SEO-optimized blog posts.',
     hideHeader: true,
     body: (user) => <BlogManager user={user} />,
-  },
-  portfolios: {
-    subtitle: 'Create, manage, and publish portfolio projects with SEO optimization.',
-    hideHeader: true,
-    body: (user) => <PortfolioManager user={user} />,
   },
   submissions: {
     subtitle: 'Oversee incoming submissions and coordinate reviews.',
@@ -566,7 +503,7 @@ export default function Dashboard({ user }) {
 
   // Ensure sectionTitle is always a string to prevent React warnings
   const safeSectionTitle = typeof sectionTitle === 'string' ? sectionTitle : (Array.isArray(sectionTitle) ? sectionTitle.join(' ') : String(sectionTitle || 'Dashboard'));
-  const pageTitle = `${safeSectionTitle} | Designndev Resolution list`;
+  const pageTitle = `${safeSectionTitle} | NBA Dashboard`;
 
   return (
     <>

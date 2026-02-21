@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 
 // Category mapping for navigation items
 const getNavCategory = (key) => {
-  const hr = ['overview', 'blogs', 'portfolios', 'add-origin'];
-  const valentine = ['valentine-urls', 'messages'];
-  const all = ['api-endpoints', 'user-management', 'resources', 'support', 'help', 'requests', 'privacy', 'updates', 'activity', 'resolutions'];
-  if (valentine.includes(key)) return 'valentine';
+  const hr = ['overview', 'blogs', 'add-origin'];
+  const all = ['api-endpoints', 'user-management', 'resources', 'support', 'help', 'requests', 'privacy', 'updates', 'activity', 'messages'];
   if (hr.includes(key)) return 'hr';
   return 'all';
 };
@@ -50,13 +48,6 @@ const getNavIcon = (key) => {
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
       </svg>
     ),
-    'portfolios': (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="3" y1="9" x2="21" y2="9"></line>
-        <line x1="9" y1="21" x2="9" y2="9"></line>
-      </svg>
-    ),
     'resources': (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -92,11 +83,6 @@ const getNavIcon = (key) => {
     'activity': (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-      </svg>
-    ),
-    'valentine-urls': (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
       </svg>
     ),
     'requests': (
@@ -193,9 +179,9 @@ export default function DashboardLayout({
             </div>
             <div className="brand-text">
               <span className="brand-title">
-                <span className="brand-title-blue">Design</span>
-                <span className="brand-title-separator"> n </span>
-                <span className="brand-title-purple">Dev</span>
+                <span className="brand-title-blue">NBA</span>
+                <span className="brand-title-separator"> </span>
+                <span className="brand-title-purple">Dashboard</span>
               </span>
               <span className="brand-subtitle">{roleLabel}</span>
             </div>
@@ -594,48 +580,6 @@ export default function DashboardLayout({
         
         .nav-button--all.is-active .nav-icon {
           filter: drop-shadow(0 0 4px rgba(94, 234, 212, 0.6));
-        }
-
-        /* Valentine Links - Rose/Valentine theme */
-        .nav-button--valentine {
-          background: linear-gradient(135deg, rgba(225, 29, 72, 0.28), rgba(190, 18, 60, 0.18));
-          color: #ffe4e9;
-          border-color: rgba(253, 164, 175, 0.4);
-        }
-
-        .nav-button--valentine:hover,
-        .nav-button--valentine:focus-visible {
-          outline: none;
-          background: linear-gradient(135deg, rgba(244, 63, 94, 0.45), rgba(225, 29, 72, 0.3));
-          transform: translateX(4px);
-          box-shadow: 0 20px 38px rgba(225, 29, 72, 0.35);
-          border-color: rgba(253, 164, 175, 0.55);
-          color: #fff5f7;
-        }
-
-        .nav-button--valentine.is-active {
-          background: linear-gradient(135deg, rgba(251, 113, 133, 0.5), rgba(225, 29, 72, 0.45));
-          box-shadow: inset 0 0 0 1px rgba(253, 164, 175, 0.6), 0 6px 20px rgba(225, 29, 72, 0.3);
-          color: #fff;
-          border-color: rgba(253, 164, 175, 0.6);
-        }
-
-        .nav-button--valentine.is-active::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 4px;
-          height: 60%;
-          background: linear-gradient(180deg, #f43f5e, #e11d48);
-          border-radius: 0 4px 4px 0;
-          box-shadow: 0 0 8px rgba(225, 29, 72, 0.5);
-        }
-
-        .nav-button--valentine.is-active .nav-icon {
-          filter: drop-shadow(0 0 4px rgba(251, 113, 133, 0.7));
-          color: #fff;
         }
 
         .nav-icon {

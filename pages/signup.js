@@ -125,7 +125,7 @@ export default function SignupPage() {
           // Use router.replace then set hash to avoid Next.js router issues
           router.replace('/dashboard').then(() => {
             if (typeof window !== 'undefined') {
-              window.location.hash = 'valentine-urls';
+              window.location.hash = 'blogs';
             }
           });
           return;
@@ -235,7 +235,7 @@ export default function SignupPage() {
         // Use router.replace then set hash to avoid Next.js router issues
         router.replace('/dashboard').then(() => {
           if (typeof window !== 'undefined') {
-            window.location.hash = 'valentine-urls';
+            window.location.hash = 'blogs';
           }
         });
       }
